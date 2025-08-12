@@ -45,23 +45,23 @@ public class File
         var connectionStringBuilder = new SqliteConnectionStringBuilder
         {
             DataSource = filename,
-            DefaultTimeout = _config.ConnectionSettings.DefaultTimeout,
-            ForeignKeys = _config.ConnectionSettings.EnableForeignKeys
+            DefaultTimeout = _config.SqliteSettings.ConnectionSettings.DefaultTimeout,
+            ForeignKeys = _config.SqliteSettings.ConnectionSettings.EnableForeignKeys
         };
 
         using var connection = new SqliteConnection(connectionStringBuilder.ConnectionString);
         await connection.OpenAsync();
 
         // Apply pragma settings from configuration
-        if (!string.IsNullOrEmpty(_config.ConnectionSettings.JournalMode))
+        if (!string.IsNullOrEmpty(_config.SqliteSettings.ConnectionSettings.JournalMode))
         {
             var journalCommand = connection.CreateCommand();
-            journalCommand.CommandText = $"PRAGMA journal_mode = {_config.ConnectionSettings.JournalMode}";
+            journalCommand.CommandText = $"PRAGMA journal_mode = {_config.SqliteSettings.ConnectionSettings.JournalMode}";
             await journalCommand.ExecuteNonQueryAsync();
         }
 
         // Apply additional pragma settings
-        foreach (var pragma in _config.ConnectionSettings.Pragma)
+        foreach (var pragma in _config.SqliteSettings.ConnectionSettings.Pragma)
         {
             var pragmaCommand = connection.CreateCommand();
             pragmaCommand.CommandText = $"PRAGMA {pragma.Key} = {pragma.Value}";
@@ -93,7 +93,7 @@ public class File
 
         // Prepare bulk insert with transaction handling based on configuration
         SqliteTransaction? transaction = null;
-        if (_config.ImportSettings.EnableTransactions)
+        if (_config.SqliteSettings.ImportSettings.EnableTransactions)
         {
             transaction = connection.BeginTransaction();
         }
@@ -135,7 +135,7 @@ public class File
                     rowCount++;
 
                     // Commit batch if configured batch size is reached
-                    if (_config.ImportSettings.BatchSize > 0 && rowCount % _config.ImportSettings.BatchSize == 0)
+                    if (_config.SqliteSettings.ImportSettings.BatchSize > 0 && rowCount % _config.SqliteSettings.ImportSettings.BatchSize == 0)
                     {
                         if (transaction != null)
                         {
@@ -148,7 +148,7 @@ public class File
                 catch (Exception ex)
                 {
                     errorCount++;
-                    if (!_config.ImportSettings.ContinueOnError)
+                    if (!_config.SqliteSettings.ImportSettings.ContinueOnError)
                     {
                         throw new InvalidOperationException($"Error processing row {rowCount + 1}: {ex.Message}", ex);
                     }
@@ -159,7 +159,7 @@ public class File
                     }
                     
                     // Log error if continuing on error (basic console logging for now)
-                    if (_config.ImportSettings.LogLevel.Equals("info", StringComparison.OrdinalIgnoreCase))
+                    if (_config.SqliteSettings.ImportSettings.LogLevel.Equals("info", StringComparison.OrdinalIgnoreCase))
                     {
                         Console.WriteLine($"Warning: Error at row {rowCount + 1}: {ex.Message}");
                     }

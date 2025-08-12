@@ -4,10 +4,10 @@ namespace LibClaimsDataImport.Importer;
 
 public class ImportConfig
 {
-    public ConnectionSettings ConnectionSettings { get; set; } = new();
-    public ImportSettings ImportSettings { get; set; } = new();
+    public SqliteSettings SqliteSettings { get; set; } = new();
     public ColumnMappings ColumnMappings { get; set; } = new();
     public ValidationSettings Validation { get; set; } = new();
+    public Dictionary<string, DestinationColumn> DestinationTable { get; set; } = new();
 
     public static ImportConfig LoadFromFile(string configPath = "ClaimsDataImportConfig.json")
     {
@@ -25,6 +25,12 @@ public class ImportConfig
         var config = JsonSerializer.Deserialize<ImportConfig>(jsonString, options);
         return config ?? new ImportConfig();
     }
+}
+
+public class SqliteSettings
+{
+    public ConnectionSettings ConnectionSettings { get; set; } = new();
+    public ImportSettings ImportSettings { get; set; } = new();
 }
 
 public class ConnectionSettings
@@ -45,7 +51,6 @@ public class ImportSettings
 
 public class ColumnMappings
 {
-    public List<string> DateTimeFormats { get; set; } = new();
     public MoneyFormats MoneyFormats { get; set; } = new();
 }
 
@@ -59,7 +64,12 @@ public class MoneyFormats
 
 public class ValidationSettings
 {
-    public bool RequireAllColumns { get; set; } = false;
-    public bool AllowExtraColumns { get; set; } = true;
     public int MaxRowErrors { get; set; } = 100;
+}
+
+public class DestinationColumn
+{
+    public string ColumnName { get; set; } = string.Empty;
+    public string Nullable { get; set; } = "Y";
+    public string Datatype { get; set; } = string.Empty;
 }

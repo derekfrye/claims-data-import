@@ -1,27 +1,22 @@
 {
-  "connectionSettings": {
-    "defaultTimeout": 30,
-    "enableForeignKeys": true,
-    "journalMode": "WAL",
-    "pragma": {
-      "cache_size": 10000,
-      "temp_store": "memory"
+  "sqliteSettings": {
+    "connectionSettings": {
+      "defaultTimeout": 30,
+      "enableForeignKeys": true,
+      "journalMode": "WAL",
+      "pragma": {
+        "cache_size": 10000,
+        "temp_store": "memory"
+      }
+    },
+    "importSettings": {
+      "batchSize": 1000,
+      "enableTransactions": true,
+      "continueOnError": false,
+      "logLevel": "info"
     }
   },
-  "importSettings": {
-    "batchSize": 1000,
-    "enableTransactions": true,
-    "continueOnError": false,
-    "logLevel": "info"
-  },
   "columnMappings": {
-    "dateTimeFormats": [
-      "yyyy-MM-dd",
-      "MM/dd/yyyy",
-      "dd/MM/yyyy",
-      "yyyy-MM-dd HH:mm:ss",
-      "MM/dd/yyyy HH:mm:ss"
-    ],
     "moneyFormats": {
       "allowParenthesesForNegative": true,
       "stripCurrencySymbols": true,
@@ -30,8 +25,128 @@
     }
   },
   "validation": {
-    "requireAllColumns": false,
-    "allowExtraColumns": true,
     "maxRowErrors": 100
+  },
+  "destinationTable": {
+    "recid": {
+      "columnName": "recid",
+      "nullable": "N",
+      "datatype": "integer"
+    },
+    "mem_id": {
+      "columnName": "mem_id",
+      "nullable": "Y",
+      "datatype": "text"
+    },
+    "fill_dt": {
+      "columnName": "fill_dt",
+      "nullable": "N",
+      "datatype": "date"
+    },
+    "client_name": {
+      "columnName": "client_name",
+      "nullable": "N",
+      "datatype": "text"
+    },
+    "ndc11": {
+      "columnName": "ndc11",
+      "nullable": "N",
+      "datatype": "character(11)"
+    },
+    "drug_nm": {
+      "columnName": "drug_nm",
+      "nullable": "N",
+      "datatype": "text"
+    },
+    "cost_basis": {
+      "columnName": "cost_basis",
+      "nullable": "Y",
+      "datatype": "text"
+    },
+    "pharmacy_type": {
+      "columnName": "pharmacy_type",
+      "nullable": "N",
+      "datatype": "pharmacy_enum"
+    },
+    "specialty_ind": {
+      "columnName": "specialty_ind",
+      "nullable": "N",
+      "datatype": "yn_enum"
+    },
+    "ldd": {
+      "columnName": "ldd",
+      "nullable": "N",
+      "datatype": "yn_enum"
+    },
+    "biosim": {
+      "columnName": "biosim",
+      "nullable": "N",
+      "datatype": "yn_enum"
+    },
+    "bg": {
+      "columnName": "bg",
+      "nullable": "N",
+      "datatype": "bg_enum"
+    },
+    "otc": {
+      "columnName": "otc",
+      "nullable": "N",
+      "datatype": "yn_enum"
+    },
+    "acute_maint": {
+      "columnName": "acute_maint",
+      "nullable": "N",
+      "datatype": "acute_maint_enum"
+    },
+    "rxs": {
+      "columnName": "rxs",
+      "nullable": "N",
+      "datatype": "integer"
+    },
+    "dsu": {
+      "columnName": "dsu",
+      "nullable": "N",
+      "datatype": "integer"
+    },
+    "qty": {
+      "columnName": "qty",
+      "nullable": "N",
+      "datatype": "integer"
+    },
+    "awp": {
+      "columnName": "awp",
+      "nullable": "N",
+      "datatype": "numeric(19,4)"
+    },
+    "ing": {
+      "columnName": "ing",
+      "nullable": "N",
+      "datatype": "numeric(19,4)"
+    },
+    "disp": {
+      "columnName": "disp",
+      "nullable": "N",
+      "datatype": "numeric(19,4)"
+    },
+    "mcs": {
+      "columnName": "mcs",
+      "nullable": "N",
+      "datatype": "numeric(19,4)"
+    },
+    "plan_pay": {
+      "columnName": "plan_pay",
+      "nullable": "N",
+      "datatype": "numeric(19,4)"
+    },
+    "form": {
+      "columnName": "form",
+      "nullable": "N",
+      "datatype": "yn_enum"
+    },
+    "tier": {
+      "columnName": "tier",
+      "nullable": "N",
+      "datatype": "integer"
+    }
   }
 }
