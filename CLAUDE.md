@@ -59,9 +59,39 @@ The solution currently does not contain test projects. Test commands should be a
 - Main UI: `MainPage.xaml` with basic counter functionality as template
 - Currently uses default MAUI template structure - needs customization for claims import functionality
 
+## Implementation Details
+
+### Core Library Features
+- **FileSpec Class**: Analyzes CSV files to detect column types automatically
+  - Supports SQL Server Money format detection ($1,234.56)
+  - Detects integers (int/long) and decimals
+  - Defaults to string for mixed or unrecognized data
+  - Located in: `LibClaimsDataImport/Importer/FileSpec.cs`
+
+- **File Class**: Handles CSV import to SQLite database
+  - Validates database and table existence before import
+  - Uses parameterized queries to prevent SQL injection
+  - Supports transactional imports with rollback on failure
+  - Located in: `LibClaimsDataImport/Importer/File.cs`
+
+### Console Application Usage
+```bash
+CmdClaimsDataImport --database <path> --table <name> --filename <path>
+```
+
+Example:
+```bash
+CmdClaimsDataImport --database claims.db --table claims_data --filename data.csv
+```
+
+### Dependencies
+- **Sylvan.Data.Csv**: High-performance CSV reading with automatic delimiter detection
+- **Microsoft.Data.Sqlite**: SQLite database connectivity for .NET
+
 ## Development Notes
 
 - All projects use .NET 9.0 with nullable reference types enabled
-- GUI project supports multiple platforms but may require specific SDKs for deployment
-- The solution structure suggests this is designed for importing claims data, but the actual import logic is not yet implemented
-- Both applications currently contain placeholder/template code that should be replaced with actual functionality
+- GUI project supports multiple platforms but may require Android/iOS SDKs for full compilation
+- Library uses streaming approach - doesn't load entire CSV into memory
+- Column type detection prioritizes: Money → Integer → Decimal → String
+- Database table must exist before import (library doesn't create tables)
