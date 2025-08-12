@@ -39,7 +39,13 @@ dotnet run --project GuiClaimsDataImport
 ```
 
 ### Testing
-The solution currently does not contain test projects. Test commands should be added when tests are implemented.
+```bash
+# Run all tests
+dotnet test LibClaimsDataImport.Tests/LibClaimsDataImport.Tests.csproj
+
+# Run tests with detailed output
+dotnet test LibClaimsDataImport.Tests/LibClaimsDataImport.Tests.csproj --logger "console;verbosity=detailed"
+```
 
 ## Architecture Overview
 
@@ -93,5 +99,6 @@ CmdClaimsDataImport --database claims.db --table claims_data --filename data.csv
 - All projects use .NET 9.0 with nullable reference types enabled
 - GUI project supports multiple platforms but may require Android/iOS SDKs for full compilation
 - Library uses streaming approach - doesn't load entire CSV into memory
-- Column type detection prioritizes: Money → Integer → Decimal → String
+- Column type detection prioritizes: Money → DateTime → Integer → Decimal → String
+- Comprehensive test suite using XUnit with 27+ test cases for date parsing
 - Database table must exist before import (library doesn't create tables)

@@ -1,5 +1,8 @@
 using Sylvan.Data.Csv;
 using System.Globalization;
+using System.Runtime.CompilerServices;
+
+[assembly: InternalsVisibleTo("LibClaimsDataImport.Tests")]
 
 namespace LibClaimsDataImport.Importer;
 
@@ -17,7 +20,7 @@ public class FileSpec
 
     public void Scan()
     {
-        // Get column names from headers
+        // Get column names from header
         var columnCount = _csvReader.FieldCount;
         var columnNames = new string[columnCount];
         for (int i = 0; i < columnCount; i++)
@@ -86,16 +89,32 @@ public class FileSpec
             return TypeCode.Decimal;
         }
 
+        // Try date/time formats
+        if (TryParseDateTime(value, out _))
+        {
+            return TypeCode.DateTime;
+        }
+
         // Try integer (long or int)
         if (long.TryParse(value, NumberStyles.Integer, CultureInfo.InvariantCulture, out var longValue))
         {
-            return longValue <= int.MaxValue && longValue >= int.MinValue 
-                ? TypeCode.Int32 
+            return longValue <= int.MaxValue && longValue >= int.MinValue
+                ? TypeCode.Int32
                 : TypeCode.Int64;
         }
 
         // Default to string
         return TypeCode.String;
+    }
+
+    internal static bool TryParseDateTime(string? value, out DateTime result)
+    {
+        result = DateTime.MinValue;
+        if (string.IsNullOrWhiteSpace(value))
+            return false;
+
+        // Try parsing common date formats
+        return DateTime.TryParse(value, CultureInfo.InvariantCulture, DateTimeStyles.None, out result);
     }
 
     private static bool TryParseMoney(string value, out decimal result)
@@ -105,13 +124,14 @@ public class FileSpec
             return false;
 
         // Remove common money formatting characters
-        var cleanValue = value.Trim()
+        var cleanValue = string.Concat(value.Where(c => !char.IsWhiteSpace(c)))
             .Replace("$", "")
             .Replace(",", "")
+            .Replace("_", "")
             .Replace("(", "-")
             .Replace(")", "");
 
-        return decimal.TryParse(cleanValue, NumberStyles.Number | NumberStyles.AllowCurrencySymbol, 
+        return decimal.TryParse(cleanValue, NumberStyles.Number | NumberStyles.AllowCurrencySymbol,
             CultureInfo.InvariantCulture, out result);
     }
 
@@ -122,6 +142,7 @@ public class FileSpec
             TypeCode.Int32 => typeof(int),
             TypeCode.Int64 => typeof(long),
             TypeCode.Decimal => typeof(decimal),
+            TypeCode.DateTime => typeof(DateTime),
             _ => typeof(string)
         };
     }
