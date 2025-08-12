@@ -15,8 +15,18 @@ public class FileSpecTests
     [InlineData("2023-12-25T14:30:45", 2023, 12, 25, 14, 30, 45)]
     [InlineData("1/1/2000", 2000, 1, 1, 0, 0, 0)]
     [InlineData("01/01/2000", 2000, 1, 1, 0, 0, 0)]
+    [InlineData("01/03/2000", 2000, 1, 3, 0, 0, 0)]
+    [InlineData("1/04/2000", 2000, 1, 4, 0, 0, 0)]
+    [InlineData("1/04/00", 2000, 1, 4, 0, 0, 0)]
+    [InlineData("3/9/21", 2021, 3, 9, 0, 0, 0)]
+    [InlineData("04/9/25", 2025, 4, 9, 0, 0, 0)]
+    [InlineData("9/1/25", 2025, 9, 1, 0, 0, 0)]
+    [InlineData("6/01/24", 2024, 6, 1, 0, 0, 0)]
+    [InlineData("6/3/24", 2024, 6, 3, 0, 0, 0)]
     [InlineData("2000-01-01", 2000, 1, 1, 0, 0, 0)]
     [InlineData("Jan 1, 2000", 2000, 1, 1, 0, 0, 0)]
+    [InlineData("mar 1 24", 2024, 3, 1, 0, 0, 0)]
+    [InlineData("AUG-19-25", 2025, 8, 19, 0, 0, 0)]
     public void TryParseDateTime_ValidDateFormats_ParsesCorrectly(string input, int expectedYear, int expectedMonth, int expectedDay, int expectedHour, int expectedMinute, int expectedSecond)
     {
         // Act
