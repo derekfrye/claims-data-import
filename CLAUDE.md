@@ -100,5 +100,8 @@ CmdClaimsDataImport --database claims.db --table claims_data --filename data.csv
 - GUI project supports multiple platforms but may require Android/iOS SDKs for full compilation
 - Library uses streaming approach - doesn't load entire CSV into memory
 - Column type detection prioritizes: Money → DateTime → Integer → Decimal → String
-- Comprehensive test suite using XUnit with 27+ test cases for date parsing
+- Comprehensive test suite using XUnit with 43+ test cases covering:
+  - Valid date formats with exact expected value validation
+  - Invalid date inputs and edge cases (leap years, impossible dates)
+  - Multiple date format variations (ISO 8601, US, European, natural language)
 - Database table must exist before import (library doesn't create tables)

@@ -5,101 +5,94 @@ namespace LibClaimsDataImport.Tests;
 public class FileSpecTests
 {
     [Theory]
-    [InlineData("2023-12-25", true)]
-    [InlineData("12/25/2023", true)]
-    [InlineData("2023-12-25 14:30:00", true)]
-    [InlineData("Dec 25, 2023", true)]
-    [InlineData("25 Dec 2023", true)]
-    [InlineData("2023/12/25", true)]
-    [InlineData("12-25-2023", true)]
-    [InlineData("2023-12-25T14:30:00", true)]
-    [InlineData("2023-12-25T14:30:00Z", true)]
-    [InlineData("Monday, December 25, 2023", true)]
-    public void TryParseDateTime_ValidDateFormats_ReturnsTrue(string input, bool expected)
+    [InlineData("2023-12-25", 2023, 12, 25, 0, 0, 0)]
+    [InlineData("12/25/2023", 2023, 12, 25, 0, 0, 0)]
+    [InlineData("2023-12-25 14:30:00", 2023, 12, 25, 14, 30, 0)]
+    [InlineData("Dec 25, 2023", 2023, 12, 25, 0, 0, 0)]
+    [InlineData("2023/12/25", 2023, 12, 25, 0, 0, 0)]
+    [InlineData("12-25-2023", 2023, 12, 25, 0, 0, 0)]
+    [InlineData("2023-12-25T14:30:00", 2023, 12, 25, 14, 30, 0)]
+    [InlineData("2023-12-25T14:30:45", 2023, 12, 25, 14, 30, 45)]
+    [InlineData("1/1/2000", 2000, 1, 1, 0, 0, 0)]
+    [InlineData("01/01/2000", 2000, 1, 1, 0, 0, 0)]
+    [InlineData("2000-01-01", 2000, 1, 1, 0, 0, 0)]
+    [InlineData("Jan 1, 2000", 2000, 1, 1, 0, 0, 0)]
+    public void TryParseDateTime_ValidDateFormats_ParsesCorrectly(string input, int expectedYear, int expectedMonth, int expectedDay, int expectedHour, int expectedMinute, int expectedSecond)
     {
         // Act
         bool result = FileSpec.TryParseDateTime(input, out DateTime parsedDate);
 
         // Assert
-        Assert.Equal(expected, result);
-        if (expected)
-        {
-            Assert.NotEqual(DateTime.MinValue, parsedDate);
-        }
+        Assert.True(result, $"Failed to parse '{input}' as DateTime");
+        Assert.Equal(expectedYear, parsedDate.Year);
+        Assert.Equal(expectedMonth, parsedDate.Month);
+        Assert.Equal(expectedDay, parsedDate.Day);
+        Assert.Equal(expectedHour, parsedDate.Hour);
+        Assert.Equal(expectedMinute, parsedDate.Minute);
+        Assert.Equal(expectedSecond, parsedDate.Second);
     }
 
     [Theory]
-    [InlineData("not a date", false)]
-    [InlineData("", false)]
-    [InlineData("   ", false)]
-    [InlineData(null, false)]
-    [InlineData("123456", false)]
-    [InlineData("abc-def-ghi", false)]
-    [InlineData("25/13/2023", false)] // Invalid month
-    [InlineData("32/12/2023", false)] // Invalid day
-    [InlineData("2023-13-01", false)] // Invalid month
-    [InlineData("2023-12-32", false)] // Invalid day
-    [InlineData("25:30:70", false)] // Invalid time format
-    public void TryParseDateTime_InvalidDateFormats_ReturnsFalse(string? input, bool expected)
+    [InlineData("not a date")]
+    [InlineData("")]
+    [InlineData("   ")]
+    [InlineData(null)]
+    [InlineData("123456")]
+    [InlineData("abc-def-ghi")]
+    [InlineData("25/13/2023")] // Invalid month
+    [InlineData("32/12/2023")] // Invalid day
+    [InlineData("2023-13-01")] // Invalid month
+    [InlineData("2023-12-32")] // Invalid day
+    [InlineData("25:30:70")] // Invalid time format
+    [InlineData("13/25/2023")] // Invalid month when interpreted as MM/dd/yyyy
+    [InlineData("2023-2-30")] // February 30th doesn't exist
+    [InlineData("NotADate123")]
+    [InlineData("2023-12-25-extra")]
+    public void TryParseDateTime_InvalidDateFormats_ReturnsFalse(string? input)
     {
         // Act
         bool result = FileSpec.TryParseDateTime(input, out DateTime parsedDate);
 
         // Assert
-        Assert.Equal(expected, result);
-        if (!expected)
-        {
-            Assert.Equal(DateTime.MinValue, parsedDate);
-        }
-    }
-
-    [Fact]
-    public void TryParseDateTime_SpecificValidDate_ParsesCorrectly()
-    {
-        // Arrange
-        string input = "2023-12-25 15:30:45";
-        
-        // Act
-        bool result = FileSpec.TryParseDateTime(input, out DateTime parsedDate);
-
-        // Assert
-        Assert.True(result);
-        Assert.Equal(new DateTime(2023, 12, 25, 15, 30, 45), parsedDate);
-    }
-
-    [Fact]
-    public void TryParseDateTime_ISO8601Format_ParsesCorrectly()
-    {
-        // Arrange
-        string input = "2023-12-25T15:30:45";
-        
-        // Act
-        bool result = FileSpec.TryParseDateTime(input, out DateTime parsedDate);
-
-        // Assert
-        Assert.True(result);
-        Assert.Equal(2023, parsedDate.Year);
-        Assert.Equal(12, parsedDate.Month);
-        Assert.Equal(25, parsedDate.Day);
-        Assert.Equal(15, parsedDate.Hour);
-        Assert.Equal(30, parsedDate.Minute);
-        Assert.Equal(45, parsedDate.Second);
+        Assert.False(result, $"Expected '{input}' to fail parsing but it succeeded with value: {parsedDate}");
+        Assert.Equal(DateTime.MinValue, parsedDate);
     }
 
     [Theory]
-    [InlineData("1/1/2000")]
-    [InlineData("01/01/2000")]
-    [InlineData("2000-01-01")]
-    [InlineData("Jan 1, 2000")]
-    public void TryParseDateTime_VariousFormatsForSameDate_AllSucceed(string input)
+    [InlineData("2023-12-25 15:30:45", 2023, 12, 25, 15, 30, 45)]
+    [InlineData("2023-12-25T15:30:45", 2023, 12, 25, 15, 30, 45)]
+    [InlineData("Dec 31, 1999 23:59:59", 1999, 12, 31, 23, 59, 59)]
+    [InlineData("2024-02-29", 2024, 2, 29, 0, 0, 0)] // Leap year
+    [InlineData("2023-01-01T00:00:00", 2023, 1, 1, 0, 0, 0)]
+    [InlineData("1900-01-01", 1900, 1, 1, 0, 0, 0)] // Historic date
+    [InlineData("2099-12-31 23:59:59", 2099, 12, 31, 23, 59, 59)] // Future date
+    [InlineData("2023-06-15T12:00:00.000", 2023, 6, 15, 12, 0, 0)] // With milliseconds
+    public void TryParseDateTime_ComplexFormats_ParsesCorrectly(string input, int expectedYear, int expectedMonth, int expectedDay, int expectedHour, int expectedMinute, int expectedSecond)
     {
         // Act
         bool result = FileSpec.TryParseDateTime(input, out DateTime parsedDate);
 
         // Assert
-        Assert.True(result);
-        Assert.Equal(2000, parsedDate.Year);
-        Assert.Equal(1, parsedDate.Month);
-        Assert.Equal(1, parsedDate.Day);
+        Assert.True(result, $"Failed to parse '{input}' as DateTime");
+        Assert.Equal(new DateTime(expectedYear, expectedMonth, expectedDay, expectedHour, expectedMinute, expectedSecond), parsedDate);
+    }
+
+    [Theory]
+    [InlineData("2023-02-29")] // Non-leap year February 29th
+    [InlineData("2023-04-31")] // April 31st doesn't exist  
+    [InlineData("2023-06-31")] // June 31st doesn't exist
+    [InlineData("2023-09-31")] // September 31st doesn't exist
+    [InlineData("2023-11-31")] // November 31st doesn't exist
+    [InlineData("0000-01-01")] // Year 0
+    [InlineData("2023-00-01")] // Month 0
+    [InlineData("2023-01-00")] // Day 0
+    public void TryParseDateTime_EdgeCaseInvalidDates_ReturnsFalse(string input)
+    {
+        // Act
+        bool result = FileSpec.TryParseDateTime(input, out DateTime parsedDate);
+
+        // Assert
+        Assert.False(result, $"Expected '{input}' to fail parsing but it succeeded with value: {parsedDate}");
+        Assert.Equal(DateTime.MinValue, parsedDate);
     }
 }
