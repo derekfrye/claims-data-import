@@ -117,7 +117,7 @@ public class FileSpec
         return DateTime.TryParse(value, CultureInfo.InvariantCulture, DateTimeStyles.None, out result);
     }
 
-    private static bool TryParseMoney(string value, out decimal result)
+    internal static bool TryParseMoney(string? value, out decimal result)
     {
         result = 0;
         if (string.IsNullOrWhiteSpace(value))
