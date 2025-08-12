@@ -1,0 +1,37 @@
+{
+  "connectionSettings": {
+    "defaultTimeout": 30,
+    "enableForeignKeys": true,
+    "journalMode": "WAL",
+    "pragma": {
+      "cache_size": 10000,
+      "temp_store": "memory"
+    }
+  },
+  "importSettings": {
+    "batchSize": 1000,
+    "enableTransactions": true,
+    "continueOnError": false,
+    "logLevel": "info"
+  },
+  "columnMappings": {
+    "dateTimeFormats": [
+      "yyyy-MM-dd",
+      "MM/dd/yyyy",
+      "dd/MM/yyyy",
+      "yyyy-MM-dd HH:mm:ss",
+      "MM/dd/yyyy HH:mm:ss"
+    ],
+    "moneyFormats": {
+      "allowParenthesesForNegative": true,
+      "stripCurrencySymbols": true,
+      "stripThousandsSeparators": true,
+      "defaultCurrency": "USD"
+    }
+  },
+  "validation": {
+    "requireAllColumns": false,
+    "allowExtraColumns": true,
+    "maxRowErrors": 100
+  }
+}
