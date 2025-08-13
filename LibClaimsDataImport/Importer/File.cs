@@ -69,7 +69,7 @@ public class File
         }
 
         // Create table if it doesn't exist using configuration
-        await _config.CreateTableIfNotExists(connection, table);
+        await _config.CreateTableIfNotExists(connection, table, _fileSpec);
 
         // Reset the stream reader to the beginning
         _streamReader.BaseStream.Seek(0, SeekOrigin.Begin);

@@ -5,6 +5,7 @@ public class ImportArguments
     public string DatabasePath { get; set; } = string.Empty;
     public string TableName { get; set; } = string.Empty;
     public string CsvFileName { get; set; } = string.Empty;
+    public string? ConfigPath { get; set; }
 }
 
 public static class ArgumentParser
@@ -39,6 +40,12 @@ public static class ArgumentParser
                     if (i + 1 < args.Length)
                     {
                         arguments.CsvFileName = args[++i];
+                    }
+                    break;
+                case "--config":
+                    if (i + 1 < args.Length)
+                    {
+                        arguments.ConfigPath = args[++i];
                     }
                     break;
             }
@@ -83,14 +90,16 @@ public static class ArgumentParser
         Console.WriteLine("Claims Data Import Tool");
         Console.WriteLine();
         Console.WriteLine("Usage:");
-        Console.WriteLine("  CmdClaimsDataImport --database <path> --table <name> --filename <path>");
+        Console.WriteLine("  CmdClaimsDataImport --database <path> --table <name> --filename <path> [--config <path>]");
         Console.WriteLine();
         Console.WriteLine("Arguments:");
         Console.WriteLine("  --database <path>    Path to SQLite database file (must be writable)");
         Console.WriteLine("  --table <name>       Name of existing table in the database");
         Console.WriteLine("  --filename <path>    Path to CSV file to import (must be readable)");
+        Console.WriteLine("  --config <path>      Path to JSON configuration file (optional)");
         Console.WriteLine();
         Console.WriteLine("Example:");
         Console.WriteLine("  CmdClaimsDataImport --database claims.db --table claims_data --filename data.csv");
+        Console.WriteLine("  CmdClaimsDataImport --database claims.db --table claims_data --filename data.csv --config myconfig.json");
     }
 }

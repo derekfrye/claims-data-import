@@ -20,12 +20,12 @@ public class FileSpec
 
     public void Scan()
     {
-        // Get column names from header
+        // Get column names from header and sanitize them
         var columnCount = _csvReader.FieldCount;
         var columnNames = new string[columnCount];
         for (int i = 0; i < columnCount; i++)
         {
-            columnNames[i] = _csvReader.GetName(i);
+            columnNames[i] = SanitizeColumnName(_csvReader.GetName(i));
         }
         ColumnNames.AddRange(columnNames);
 
@@ -145,5 +145,47 @@ public class FileSpec
             TypeCode.DateTime => typeof(DateTime),
             _ => typeof(string)
         };
+    }
+
+    private static string SanitizeColumnName(string columnName)
+    {
+        if (string.IsNullOrWhiteSpace(columnName))
+            return "column";
+
+        // Trim whitespace
+        var sanitized = columnName.Trim();
+        
+        // Remove non-ASCII characters and convert non-alphanumeric to underscores
+        var result = new System.Text.StringBuilder();
+        foreach (char c in sanitized)
+        {
+            if (char.IsAsciiLetter(c) || char.IsAsciiDigit(c))
+            {
+                result.Append(char.ToLowerInvariant(c));
+            }
+            else
+            {
+                result.Append('_');
+            }
+        }
+        
+        var finalResult = result.ToString();
+        
+        // Ensure it doesn't start with a number or underscore
+        if (string.IsNullOrEmpty(finalResult) || char.IsAsciiDigit(finalResult[0]))
+        {
+            finalResult = "col_" + finalResult;
+        }
+        
+        // Remove consecutive underscores
+        while (finalResult.Contains("__"))
+        {
+            finalResult = finalResult.Replace("__", "_");
+        }
+        
+        // Remove trailing underscores
+        finalResult = finalResult.TrimEnd('_');
+        
+        return string.IsNullOrEmpty(finalResult) ? "column" : finalResult;
     }
 }

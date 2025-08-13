@@ -31,8 +31,15 @@ public static class ImportProcessor
         streamReader.BaseStream.Seek(0, SeekOrigin.Begin);
         streamReader.DiscardBufferedData();
 
+        // Load config if specified, otherwise use default
+        LibClaimsDataImport.Importer.ImportConfig? config = null;
+        if (!string.IsNullOrEmpty(arguments.ConfigPath))
+        {
+            config = LibClaimsDataImport.Importer.ImportConfig.LoadFromFile(arguments.ConfigPath);
+        }
+
         // Create File instance and import data
-        var file = LibClaimsDataImport.Importer.File.New(streamReader, fileSpec);
+        var file = LibClaimsDataImport.Importer.File.New(streamReader, fileSpec, config);
         Console.WriteLine("Importing data to database...");
         await file.WriteToDb(arguments.DatabasePath, arguments.TableName);
         

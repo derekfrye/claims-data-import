@@ -28,7 +28,7 @@ public class ImportConfig
         return config ?? new ImportConfig();
     }
 
-    public async Task CreateTableIfNotExists(SqliteConnection connection, string tableName)
+    public async Task CreateTableIfNotExists(SqliteConnection connection, string tableName, FileSpec? fileSpec = null)
     {
         // Check if table exists
         var tableExistsCommand = connection.CreateCommand();
@@ -42,15 +42,28 @@ public class ImportConfig
         }
 
         // Create table based on destinationTable configuration
-        var createTableSql = GenerateCreateTableSql(tableName);
+        var createTableSql = GenerateCreateTableSql(tableName, fileSpec);
         
         using var command = new SqliteCommand(createTableSql, connection);
         await command.ExecuteNonQueryAsync();
     }
 
-    private string GenerateCreateTableSql(string tableName)
+    private string GenerateCreateTableSql(string tableName, FileSpec? fileSpec = null)
     {
-        // Validate primary key configuration
+        // Check if destination table is set to "auto" for auto-detection
+        if (DestinationTable.Count == 1 && 
+            DestinationTable.ContainsKey("auto") && 
+            DestinationTable["auto"].Datatype.Equals("auto", StringComparison.OrdinalIgnoreCase))
+        {
+            if (fileSpec == null)
+            {
+                throw new InvalidOperationException("FileSpec is required when destination table is set to 'auto'");
+            }
+
+            return GenerateCreateTableSqlFromFileSpec(tableName, fileSpec);
+        }
+
+        // Validate primary key configuration for manual schema
         ValidatePrimaryKeyConfiguration();
         
         var columns = new List<string>();
@@ -77,6 +90,24 @@ public class ImportConfig
                 columnDef += $" {checkConstraint}";
             }
             
+            columns.Add(columnDef);
+        }
+
+        return $"CREATE TABLE [{tableName}] ({string.Join(", ", columns)})";
+    }
+
+    private string GenerateCreateTableSqlFromFileSpec(string tableName, FileSpec fileSpec)
+    {
+        var columns = new List<string>();
+        
+        // Add auto-increment primary key
+        columns.Add("[id] INTEGER PRIMARY KEY AUTOINCREMENT");
+        
+        // Add columns based on FileSpec auto-detection
+        foreach (var column in fileSpec.ColumnTypes)
+        {
+            var sqliteType = MapSystemTypeToSqlite(column.Value);
+            var columnDef = $"[{column.Key}] {sqliteType}";
             columns.Add(columnDef);
         }
 
@@ -128,6 +159,17 @@ public class ImportConfig
             var dt when dt.StartsWith("numeric(") => "DECIMAL" + dt.Substring(7), // Keep precision info
             _ => "TEXT" // Default fallback
         };
+    }
+
+    private static string MapSystemTypeToSqlite(Type systemType)
+    {
+        if (systemType == typeof(int) || systemType == typeof(long))
+            return "INTEGER";
+        if (systemType == typeof(decimal))
+            return "REAL";
+        if (systemType == typeof(DateTime))
+            return "TEXT"; // SQLite stores dates as TEXT
+        return "TEXT"; // Default fallback
     }
 }
 
