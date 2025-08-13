@@ -58,7 +58,7 @@ public class FileSpec
                     continue;
 
                 // Try to determine the most appropriate type
-                var detectedType = DetectColumnType(value);
+                var detectedType = TypeCodeFromSystemType(DataTypeDetector.DetectType(value));
                 
                 // If this is the first non-null value, set the type
                 if (columnTypes[i] == TypeCode.Empty)
@@ -81,97 +81,7 @@ public class FileSpec
         }
     }
 
-    private static TypeCode DetectColumnType(string value)
-    {
-        // Try SQL Server Money format first (e.g., $1,234.56 or 1234.56)
-        if (TryParseMoney(value, out _))
-        {
-            return TypeCode.Decimal;
-        }
 
-        // Try date/time formats - check more specific types first
-        if (TryParseTimeOnly(value, out _))
-        {
-            return TypeCode.DateTime; // We'll use a custom type code mapping later
-        }
-        else if (TryParseDateOnly(value, out _))
-        {
-            return TypeCode.DateTime; // We'll distinguish this in ConvertToSystemType
-        }
-        else if (TryParseDateTime(value, out _))
-        {
-            return TypeCode.DateTime;
-        }
-
-        // Try integer (long or int)
-        if (long.TryParse(value, NumberStyles.Integer, CultureInfo.InvariantCulture, out var longValue))
-        {
-            return longValue <= int.MaxValue && longValue >= int.MinValue
-                ? TypeCode.Int32
-                : TypeCode.Int64;
-        }
-
-        // Default to string
-        return TypeCode.String;
-    }
-
-    internal static bool TryParseTimeOnly(string? value, out TimeOnly result)
-    {
-        result = TimeOnly.MinValue;
-        if (string.IsNullOrWhiteSpace(value))
-            return false;
-
-        // Check if it looks like time-only format (HH:mm, HH:mm:ss, etc.)
-        if (TimeOnly.TryParse(value, CultureInfo.InvariantCulture, out result))
-        {
-            // Additional check: ensure it doesn't contain date components
-            return !value.Contains('/') && !value.Contains('-') && !char.IsLetter(value[0]);
-        }
-        return false;
-    }
-
-    internal static bool TryParseDateOnly(string? value, out DateOnly result)
-    {
-        result = DateOnly.MinValue;
-        if (string.IsNullOrWhiteSpace(value))
-            return false;
-
-        // Try to parse as date and check if it's date-only (no time component)
-        if (DateOnly.TryParse(value, CultureInfo.InvariantCulture, out result))
-        {
-            // Additional check: ensure it doesn't contain time components
-            return !value.Contains(':') && !value.ToLower().Contains("am") && !value.ToLower().Contains("pm");
-        }
-        return false;
-    }
-
-    internal static bool TryParseDateTime(string? value, out DateTime result)
-    {
-        result = DateTime.MinValue;
-        if (string.IsNullOrWhiteSpace(value))
-            return false;
-
-        // Try parsing common date formats
-        return DateTime.TryParse(value, CultureInfo.InvariantCulture, DateTimeStyles.None, out result);
-    }
-
-    internal static bool TryParseMoney(string? value, out decimal result)
-    {
-        result = 0;
-        if (string.IsNullOrWhiteSpace(value))
-            return false;
-
-        // Remove common money formatting characters
-        var cleanValue = string.Concat(value.Where(c => !char.IsWhiteSpace(c)))
-            .Replace("$", "")
-            .Replace(",", "")
-            .Replace("_", "")
-            .Replace("(", "-")
-            .Replace(")", "");
-
-        return decimal.TryParse(cleanValue, NumberStyles.Number | NumberStyles.AllowCurrencySymbol,
-            CultureInfo.InvariantCulture, out result);
-    }
 
     private static Type ConvertToSystemType(TypeCode typeCode)
     {
@@ -183,6 +93,19 @@ public class FileSpec
             TypeCode.DateTime => typeof(DateTime),
             _ => typeof(string)
         };
+    }
+
+    private static TypeCode TypeCodeFromSystemType(Type systemType)
+    {
+        if (systemType == typeof(int))
+            return TypeCode.Int32;
+        if (systemType == typeof(long))
+            return TypeCode.Int64;
+        if (systemType == typeof(decimal))
+            return TypeCode.Decimal;
+        if (systemType == typeof(DateTime) || systemType == typeof(DateOnly) || systemType == typeof(TimeOnly))
+            return TypeCode.DateTime;
+        return TypeCode.String;
     }
 
     private static string SanitizeColumnName(string columnName)

@@ -119,8 +119,20 @@ public class File
                 {
                     for (int i = 0; i < _fileSpec.ColumnTypes.Count; i++)
                     {
-                        var value = _csvReader.IsDBNull(i) ? DBNull.Value : _csvReader.GetValue(i);
-                        insertCommand.Parameters[i].Value = value;
+                        if (_csvReader.IsDBNull(i))
+                        {
+                            insertCommand.Parameters[i].Value = DBNull.Value;
+                        }
+                        else
+                        {
+                            var columnName = _fileSpec.ColumnTypes.Keys.ElementAt(i);
+                            var columnType = _fileSpec.ColumnTypes[columnName];
+                            var rawValue = _csvReader.GetString(i);
+
+                            // Use the centralized data type logic for consistent parsing
+                            var parsedValue = DataTypeDetector.ParseValue(rawValue, columnType);
+                            insertCommand.Parameters[i].Value = parsedValue;
+                        }
                     }
 
                     await insertCommand.ExecuteNonQueryAsync();
@@ -177,4 +189,5 @@ public class File
             transaction?.Dispose();
         }
     }
+
 }

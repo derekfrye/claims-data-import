@@ -25,7 +25,7 @@ public class MoneyParseTests
         decimal expected = (decimal)expectedValue;
 
         // Act
-        bool result = FileSpec.TryParseMoney(input, out decimal parsedValue);
+        bool result = DataTypeDetector.TryParseMoney(input, out decimal parsedValue);
 
         // Assert
         Assert.True(result, $"Failed to parse '{input}' as money");
@@ -47,7 +47,7 @@ public class MoneyParseTests
         decimal expected = (decimal)expectedValue;
 
         // Act
-        bool result = FileSpec.TryParseMoney(input, out decimal parsedValue);
+        bool result = DataTypeDetector.TryParseMoney(input, out decimal parsedValue);
 
         // Assert
         Assert.True(result, $"Failed to parse negative money format '{input}'");
@@ -68,7 +68,7 @@ public class MoneyParseTests
         decimal expected = (decimal)expectedValue;
 
         // Act
-        bool result = FileSpec.TryParseMoney(input, out decimal parsedValue);
+        bool result = DataTypeDetector.TryParseMoney(input, out decimal parsedValue);
 
         // Assert
         Assert.True(result, $"Failed to parse money format with separators '{input}'");
@@ -92,7 +92,7 @@ public class MoneyParseTests
     public void TryParseMoney_InvalidFormats_ReturnsFalse(string? input)
     {
         // Act
-        bool result = FileSpec.TryParseMoney(input, out decimal parsedValue);
+        bool result = DataTypeDetector.TryParseMoney(input, out decimal parsedValue);
 
         // Assert
         Assert.False(result, $"Expected '{input}' to fail parsing but it succeeded with value: {parsedValue}");
@@ -113,7 +113,7 @@ public class MoneyParseTests
         decimal expected = (decimal)expectedValue;
 
         // Act
-        bool result = FileSpec.TryParseMoney(input, out decimal parsedValue);
+        bool result = DataTypeDetector.TryParseMoney(input, out decimal parsedValue);
 
         // Assert
         Assert.True(result, $"Failed to parse edge case money format '{input}'");
@@ -136,7 +136,7 @@ public class MoneyParseTests
         decimal expected = (decimal)expectedValue;
 
         // Act
-        bool result = FileSpec.TryParseMoney(input, out decimal parsedValue);
+        bool result = DataTypeDetector.TryParseMoney(input, out decimal parsedValue);
 
         // Assert
         Assert.True(result, $"Current implementation should parse '{input}' successfully");
