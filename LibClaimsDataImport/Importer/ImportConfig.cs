@@ -154,9 +154,11 @@ public class ImportConfig
             "integer" => "INTEGER",
             "text" => "TEXT",
             "date" => "DATE",
+            "time" => "TIME",
+            "datetime" => "DATETIME",
             "enum" => "TEXT", // Enum types become TEXT with CHECK constraints
             var dt when dt.StartsWith("character(") => "TEXT",
-            var dt when dt.StartsWith("numeric(") => "DECIMAL" + dt.Substring(7), // Keep precision info
+            var dt when dt.StartsWith("numeric(") => "DECIMAL" + dt.Substring(7), // "numeric(10,2)" → .Substring(7) returns "10,2)"
             _ => "TEXT" // Default fallback
         };
     }
@@ -168,7 +170,11 @@ public class ImportConfig
         if (systemType == typeof(decimal))
             return "REAL";
         if (systemType == typeof(DateTime))
-            return "TEXT"; // SQLite stores dates as TEXT
+            return "DATETIME"; // Preserve semantic type for schema readability
+        if (systemType == typeof(DateOnly))
+            return "DATE";
+        if (systemType == typeof(TimeOnly))
+            return "TIME";
         return "TEXT"; // Default fallback
     }
 }

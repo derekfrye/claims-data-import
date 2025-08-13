@@ -89,8 +89,16 @@ public class FileSpec
             return TypeCode.Decimal;
         }
 
-        // Try date/time formats
-        if (TryParseDateTime(value, out _))
+        // Try date/time formats - check more specific types first
+        if (TryParseTimeOnly(value, out _))
+        {
+            return TypeCode.DateTime; // We'll use a custom type code mapping later
+        }
+        else if (TryParseDateOnly(value, out _))
+        {
+            return TypeCode.DateTime; // We'll distinguish this in ConvertToSystemType
+        }
+        else if (TryParseDateTime(value, out _))
         {
             return TypeCode.DateTime;
         }
@@ -105,6 +113,36 @@ public class FileSpec
 
         // Default to string
         return TypeCode.String;
+    }
+
+    internal static bool TryParseTimeOnly(string? value, out TimeOnly result)
+    {
+        result = TimeOnly.MinValue;
+        if (string.IsNullOrWhiteSpace(value))
+            return false;
+
+        // Check if it looks like time-only format (HH:mm, HH:mm:ss, etc.)
+        if (TimeOnly.TryParse(value, CultureInfo.InvariantCulture, out result))
+        {
+            // Additional check: ensure it doesn't contain date components
+            return !value.Contains('/') && !value.Contains('-') && !char.IsLetter(value[0]);
+        }
+        return false;
+    }
+
+    internal static bool TryParseDateOnly(string? value, out DateOnly result)
+    {
+        result = DateOnly.MinValue;
+        if (string.IsNullOrWhiteSpace(value))
+            return false;
+
+        // Try to parse as date and check if it's date-only (no time component)
+        if (DateOnly.TryParse(value, CultureInfo.InvariantCulture, out result))
+        {
+            // Additional check: ensure it doesn't contain time components
+            return !value.Contains(':') && !value.ToLower().Contains("am") && !value.ToLower().Contains("pm");
+        }
+        return false;
     }
 
     internal static bool TryParseDateTime(string? value, out DateTime result)
