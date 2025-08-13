@@ -14,39 +14,8 @@ public static class DataTypeDetector
     /// </summary>
     public static Type DetectType(string? value)
     {
-        if (string.IsNullOrWhiteSpace(value))
-            return typeof(string);
-
-        // Try SQL Server Money format first (e.g., $1,234.56 or 1234.56)
-        if (TryParseMoney(value, out _))
-        {
-            return typeof(decimal);
-        }
-
-        // Try date/time formats - check more specific types first
-        if (TryParseTimeOnly(value, out _))
-        {
-            return typeof(TimeOnly);
-        }
-        else if (TryParseDateOnly(value, out _))
-        {
-            return typeof(DateOnly);
-        }
-        else if (TryParseDateTime(value, out _))
-        {
-            return typeof(DateTime);
-        }
-
-        // Try integer (long or int)
-        if (long.TryParse(value, NumberStyles.Integer, CultureInfo.InvariantCulture, out var longValue))
-        {
-            return longValue <= int.MaxValue && longValue >= int.MinValue
-                ? typeof(int)
-                : typeof(long);
-        }
-
-        // Default to string
-        return typeof(string);
+        var result = TryParseToStrongestType(value, out _);
+        return result.DetectedType;
     }
 
     /// <summary>
@@ -58,39 +27,97 @@ public static class DataTypeDetector
         if (string.IsNullOrWhiteSpace(value))
             return value ?? string.Empty;
 
-        // Use the same parsing logic as DetectType for consistency
-        if (targetType == typeof(decimal))
+        var result = TryParseToStrongestType(value, out var parsedValue);
+        
+        // If the detected type matches the target type, return the parsed value
+        if (result.DetectedType == targetType)
+            return parsedValue;
+
+        // Otherwise, try to parse specifically for the target type
+        return TryParseForSpecificType(value, targetType);
+    }
+
+    /// <summary>
+    /// Core parsing logic that detects the strongest possible type for a value
+    /// and optionally returns the parsed value.
+    /// </summary>
+    private static (Type DetectedType, bool Success) TryParseToStrongestType(string? value, out object parsedValue)
+    {
+        parsedValue = value ?? string.Empty;
+
+        if (string.IsNullOrWhiteSpace(value))
+            return (typeof(string), true);
+
+        // Try SQL Server Money format first (e.g., $1,234.56 or 1234.56)
+        if (TryParseMoney(value, out var decimalValue))
         {
-            if (TryParseMoney(value, out var decimalValue))
-                return decimalValue;
-        }
-        else if (targetType == typeof(DateTime))
-        {
-            if (TryParseDateTime(value, out var dateTimeValue))
-                return dateTimeValue;
-        }
-        else if (targetType == typeof(DateOnly))
-        {
-            if (TryParseDateOnly(value, out var dateOnlyValue))
-                return dateOnlyValue;
-        }
-        else if (targetType == typeof(TimeOnly))
-        {
-            if (TryParseTimeOnly(value, out var timeOnlyValue))
-                return timeOnlyValue;
-        }
-        else if (targetType == typeof(int))
-        {
-            if (int.TryParse(value, NumberStyles.Integer, CultureInfo.InvariantCulture, out var intValue))
-                return intValue;
-        }
-        else if (targetType == typeof(long))
-        {
-            if (long.TryParse(value, NumberStyles.Integer, CultureInfo.InvariantCulture, out var longValue))
-                return longValue;
+            parsedValue = decimalValue;
+            return (typeof(decimal), true);
         }
 
-        // Default: return as string (same as original CSV value)
+        // Try date/time formats - check more specific types first
+        if (TryParseTimeOnly(value, out var timeOnlyValue))
+        {
+            parsedValue = timeOnlyValue;
+            return (typeof(TimeOnly), true);
+        }
+        
+        if (TryParseDateOnly(value, out var dateOnlyValue))
+        {
+            parsedValue = dateOnlyValue;
+            return (typeof(DateOnly), true);
+        }
+        
+        if (TryParseDateTime(value, out var dateTimeValue))
+        {
+            parsedValue = dateTimeValue;
+            return (typeof(DateTime), true);
+        }
+
+        // Try integer (long or int)
+        if (long.TryParse(value, NumberStyles.Integer, CultureInfo.InvariantCulture, out var longValue))
+        {
+            if (longValue <= int.MaxValue && longValue >= int.MinValue)
+            {
+                parsedValue = (int)longValue;
+                return (typeof(int), true);
+            }
+            else
+            {
+                parsedValue = longValue;
+                return (typeof(long), true);
+            }
+        }
+
+        // Default to string
+        parsedValue = value;
+        return (typeof(string), true);
+    }
+
+    /// <summary>
+    /// Attempts to parse a value for a specific target type when the auto-detected type doesn't match.
+    /// </summary>
+    private static object TryParseForSpecificType(string value, Type targetType)
+    {
+        if (targetType == typeof(decimal) && TryParseMoney(value, out var decimalValue))
+            return decimalValue;
+        
+        if (targetType == typeof(DateTime) && TryParseDateTime(value, out var dateTimeValue))
+            return dateTimeValue;
+        
+        if (targetType == typeof(DateOnly) && TryParseDateOnly(value, out var dateOnlyValue))
+            return dateOnlyValue;
+        
+        if (targetType == typeof(TimeOnly) && TryParseTimeOnly(value, out var timeOnlyValue))
+            return timeOnlyValue;
+        
+        if (targetType == typeof(int) && int.TryParse(value, NumberStyles.Integer, CultureInfo.InvariantCulture, out var intValue))
+            return intValue;
+        
+        if (targetType == typeof(long) && long.TryParse(value, NumberStyles.Integer, CultureInfo.InvariantCulture, out var longValue))
+            return longValue;
+
+        // Default: return as string
         return value;
     }
 
