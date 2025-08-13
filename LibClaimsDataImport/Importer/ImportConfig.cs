@@ -49,6 +49,9 @@ public class ImportConfig
 
     private string GenerateCreateTableSql(string tableName)
     {
+        // Validate primary key configuration
+        ValidatePrimaryKeyConfiguration();
+        
         var columns = new List<string>();
         
         foreach (var column in DestinationTable)
@@ -60,20 +63,17 @@ public class ImportConfig
                 columnDef += " NOT NULL";
             }
 
-            // Handle identity column for recid
-            if (column.Key == "recid" && column.Value.Datatype == "integer")
+            // Handle primary key column
+            if (column.Value.PrimaryKey)
             {
                 columnDef += " PRIMARY KEY AUTOINCREMENT";
             }
 
             // Add CHECK constraint for enum types
-            if (column.Value.Datatype.EndsWith("_enum"))
+            if (column.Value.Datatype == "enum" && column.Value.Values.Count > 0)
             {
-                var checkConstraint = GetEnumCheckConstraint(column.Value.Datatype, column.Value.ColumnName);
-                if (!string.IsNullOrEmpty(checkConstraint))
-                {
-                    columnDef += $" {checkConstraint}";
-                }
+                var checkConstraint = GetEnumCheckConstraint(column.Value.Values, column.Value.ColumnName);
+                columnDef += $" {checkConstraint}";
             }
             
             columns.Add(columnDef);
@@ -82,18 +82,31 @@ public class ImportConfig
         return $"CREATE TABLE [{tableName}] ({string.Join(", ", columns)})";
     }
 
-    private static string GetEnumCheckConstraint(string enumType, string columnName)
+    private void ValidatePrimaryKeyConfiguration()
     {
-        var enumValues = enumType.ToLowerInvariant() switch
+        var primaryKeyColumns = DestinationTable.Where(c => c.Value.PrimaryKey).ToList();
+        
+        if (primaryKeyColumns.Count == 0)
         {
-            "pharmacy_enum" => new[] { "R", "M", "S" }, // Retail, Mail, Specialty
-            "yn_enum" => new[] { "Y", "N" }, // Yes/No
-            "bg_enum" => new[] { "B", "G" }, // Brand/Generic
-            "acute_maint_enum" => new[] { "Acute", "Maint" }, // Acute/Maintenance
-            _ => Array.Empty<string>()
-        };
+            throw new InvalidOperationException("No primary key column defined. Exactly one column must have primary_key: true");
+        }
+        
+        if (primaryKeyColumns.Count > 1)
+        {
+            var columnNames = string.Join(", ", primaryKeyColumns.Select(c => c.Value.ColumnName));
+            throw new InvalidOperationException($"Multiple primary key columns defined: {columnNames}. Only one column can have primary_key: true");
+        }
 
-        if (enumValues.Length == 0)
+        var primaryKeyColumn = primaryKeyColumns.First();
+        if (primaryKeyColumn.Value.Datatype != "integer")
+        {
+            throw new InvalidOperationException($"Primary key column '{primaryKeyColumn.Value.ColumnName}' must be of integer datatype, but was '{primaryKeyColumn.Value.Datatype}'");
+        }
+    }
+
+    private static string GetEnumCheckConstraint(List<string> enumValues, string columnName)
+    {
+        if (enumValues.Count == 0)
         {
             return string.Empty;
         }
@@ -109,9 +122,9 @@ public class ImportConfig
             "integer" => "INTEGER",
             "text" => "TEXT",
             "date" => "DATE",
+            "enum" => "TEXT", // Enum types become TEXT with CHECK constraints
             var dt when dt.StartsWith("character(") => "TEXT",
             var dt when dt.StartsWith("numeric(") => "DECIMAL" + dt.Substring(7), // Keep precision info
-            var dt when dt.EndsWith("_enum") => "TEXT", // All enum types become TEXT with CHECK constraints
             _ => "TEXT" // Default fallback
         };
     }
@@ -162,4 +175,6 @@ public class DestinationColumn
     public string ColumnName { get; set; } = string.Empty;
     public string Nullable { get; set; } = "Y";
     public string Datatype { get; set; } = string.Empty;
+    public List<string> Values { get; set; } = new();
+    public bool PrimaryKey { get; set; } = false;
 }

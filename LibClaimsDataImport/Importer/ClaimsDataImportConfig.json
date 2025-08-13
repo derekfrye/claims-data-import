@@ -31,7 +31,8 @@
     "recid": {
       "columnName": "recid",
       "nullable": "N",
-      "datatype": "integer"
+      "datatype": "integer",
+      "primary_key": true
     },
     "mem_id": {
       "columnName": "mem_id",
@@ -66,37 +67,44 @@
     "pharmacy_type": {
       "columnName": "pharmacy_type",
       "nullable": "N",
-      "datatype": "pharmacy_enum"
+      "datatype": "enum",
+      "values": ["R", "M", "S"]
     },
     "specialty_ind": {
       "columnName": "specialty_ind",
       "nullable": "N",
-      "datatype": "yn_enum"
+      "datatype": "enum",
+      "values": ["Y", "N"]
     },
     "ldd": {
       "columnName": "ldd",
       "nullable": "N",
-      "datatype": "yn_enum"
+      "datatype": "enum",
+      "values": ["Y", "N"]
     },
     "biosim": {
       "columnName": "biosim",
       "nullable": "N",
-      "datatype": "yn_enum"
+      "datatype": "enum",
+      "values": ["Y", "N"]
     },
     "bg": {
       "columnName": "bg",
       "nullable": "N",
-      "datatype": "bg_enum"
+      "datatype": "enum",
+      "values": ["B", "G"]
     },
     "otc": {
       "columnName": "otc",
       "nullable": "N",
-      "datatype": "yn_enum"
+      "datatype": "enum",
+      "values": ["Y", "N"]
     },
     "acute_maint": {
       "columnName": "acute_maint",
       "nullable": "N",
-      "datatype": "acute_maint_enum"
+      "datatype": "enum",
+      "values": ["Acute", "Maint"]
     },
     "rxs": {
       "columnName": "rxs",
@@ -141,7 +149,8 @@
     "form": {
       "columnName": "form",
       "nullable": "N",
-      "datatype": "yn_enum"
+      "datatype": "enum",
+      "values": ["Y", "N"]
     },
     "tier": {
       "columnName": "tier",
