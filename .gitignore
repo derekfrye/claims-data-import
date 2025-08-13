@@ -32,3 +32,4 @@ GuiClaimsDataImport/Platforms/
 *.msix
 *.msm
 *.msp
+data.db
