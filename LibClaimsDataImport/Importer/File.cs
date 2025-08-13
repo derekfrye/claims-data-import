@@ -68,16 +68,8 @@ public class File
             await pragmaCommand.ExecuteNonQueryAsync();
         }
 
-        // Check if table exists
-        var tableExistsCommand = connection.CreateCommand();
-        tableExistsCommand.CommandText = "SELECT name FROM sqlite_master WHERE type='table' AND name=$table";
-        tableExistsCommand.Parameters.AddWithValue("$table", table);
-        
-        var tableExists = await tableExistsCommand.ExecuteScalarAsync();
-        if (tableExists == null)
-        {
-            throw new InvalidOperationException($"Table '{table}' does not exist in database '{filename}'");
-        }
+        // Create table if it doesn't exist using configuration
+        await _config.CreateTableIfNotExists(connection, table);
 
         // Reset the stream reader to the beginning
         _streamReader.BaseStream.Seek(0, SeekOrigin.Begin);
