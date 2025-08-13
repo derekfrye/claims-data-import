@@ -1,4 +1,5 @@
 using System.Text.Json;
+using System.Text.Json.Serialization;
 using Microsoft.Data.Sqlite;
 
 namespace LibClaimsDataImport.Importer;
@@ -12,12 +13,12 @@ public class ImportConfig
 
     public static ImportConfig LoadFromFile(string configPath = "ClaimsDataImportConfig.json")
     {
-        if (!File.Exists(configPath))
+        if (!System.IO.File.Exists(configPath))
         {
             throw new FileNotFoundException($"Configuration file not found: {configPath}");
         }
 
-        var jsonString = File.ReadAllText(configPath);
+        var jsonString = System.IO.File.ReadAllText(configPath);
         var options = new JsonSerializerOptions
         {
             PropertyNameCaseInsensitive = true
@@ -176,5 +177,6 @@ public class DestinationColumn
     public string Nullable { get; set; } = "Y";
     public string Datatype { get; set; } = string.Empty;
     public List<string> Values { get; set; } = new();
+    [JsonPropertyName("primary_key")]
     public bool PrimaryKey { get; set; } = false;
 }

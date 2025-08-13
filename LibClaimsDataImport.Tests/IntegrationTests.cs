@@ -21,12 +21,13 @@ public class IntegrationTests
 
         // Get the path to CmdClaimsDataImport executable
         var cmdProjectPath = Path.GetFullPath(Path.Combine(testDirectory, "..", "..", "..", "..", "CmdClaimsDataImport"));
-        var executablePath = Path.Combine(cmdProjectPath, "bin", "Debug", "net9.0", "CmdClaimsDataImport.exe");
+        var executableDirectory = Path.Combine(cmdProjectPath, "bin", "Debug", "net9.0");
+        var executablePath = Path.Combine(executableDirectory, "CmdClaimsDataImport.exe");
         
         // On Linux/Mac, use the dll with dotnet
         if (!File.Exists(executablePath))
         {
-            executablePath = Path.Combine(cmdProjectPath, "bin", "Debug", "net9.0", "CmdClaimsDataImport.dll");
+            executablePath = Path.Combine(executableDirectory, "CmdClaimsDataImport.dll");
         }
 
         // Act & Assert
@@ -36,6 +37,7 @@ public class IntegrationTests
             Arguments = executablePath.EndsWith(".dll") 
                 ? $"\"{executablePath}\" --database \":memory:\" --table claims_data --filename \"{csvFilePath}\""
                 : $"--database \":memory:\" --table claims_data --filename \"{csvFilePath}\"",
+            WorkingDirectory = executableDirectory, // Set working directory to where config file is located
             RedirectStandardOutput = true,
             RedirectStandardError = true,
             UseShellExecute = false,
