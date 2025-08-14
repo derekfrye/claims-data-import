@@ -7,7 +7,9 @@
       "launchBrowser": true,
       "applicationUrl": "http://localhost:5200",
       "environmentVariables": {
-        "ASPNETCORE_ENVIRONMENT": "Development"
+        "ASPNETCORE_ENVIRONMENT": "Development",
+        "DOTNET_ROOT": "/opt/dotnet",
+        "DOTNET_ROOT_X64": "/opt/dotnet"
       }
     },
     "https": {
@@ -16,7 +18,9 @@
       "launchBrowser": true,
       "applicationUrl": "https://localhost:7211;http://localhost:5200",
       "environmentVariables": {
-        "ASPNETCORE_ENVIRONMENT": "Development"
+        "ASPNETCORE_ENVIRONMENT": "Development",
+        "DOTNET_ROOT": "/opt/dotnet",
+        "DOTNET_ROOT_X64": "/opt/dotnet"
       }
     }
   }
