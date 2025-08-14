@@ -62,6 +62,15 @@ roslynator analyze LibClaimsDataImport.Tests/LibClaimsDataImport.Tests.csproj
 roslynator analyze ClaimsDataImport.sln
 ```
 
+### StyleCop.Analyzers (Future Enhancement)
+```bash
+# Add StyleCop.Analyzers for comprehensive C# style enforcement (aspiration)
+dotnet add LibClaimsDataImport/LibClaimsDataImport.csproj package StyleCop.Analyzers
+
+# Note: Currently produces 180+ violations that need addressing
+# Works seamlessly with dotnet build and --warnaserror flag
+```
+
 ## Architecture Overview
 
 ### Core Library (LibClaimsDataImport)
@@ -147,3 +156,8 @@ This codebase maintains high code quality standards:
 - All builds should use `--warnaserror` flag to maintain zero-warning codebase
 - Roslynator analysis ensures adherence to best practices and performance guidelines
 - Tests must pass before committing changes
+
+### Future Code Quality Goals
+- **StyleCop.Analyzers integration**: Aspire to add comprehensive C# style enforcement
+- **Zero StyleCop violations**: Currently 180+ violations exist that would need addressing
+- **Consistent formatting**: StyleCop would enforce file headers, spacing, naming conventions
