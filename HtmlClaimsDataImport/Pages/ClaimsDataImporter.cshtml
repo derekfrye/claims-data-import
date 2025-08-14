@@ -106,6 +106,10 @@
         background-color: #5a6268;
     }
     
+    .file-input {
+        display: none;
+    }
+    
     .file-status {
         margin-left: 10px;
         color: #6c757d;
@@ -140,34 +144,25 @@
             <form method="post">
                 <div class="form-group">
                     <label for="jsonFile">json:</label>
-                    <input type="text" id="jsonFile" name="JsonFile" value="@Model.JsonFile" />
-                    <button type="button" class="browse-btn" 
-                            hx-post="/ClaimsDataImporter?handler=BrowseFile" 
-                            hx-vals='{"fileType": "json"}'
-                            hx-target="#json-status"
-                            hx-include="#jsonFile">Browse</button>
+                    <input type="text" id="jsonFile" name="JsonFile" value="@Model.JsonFile" readonly />
+                    <input type="file" id="jsonFileInput" class="file-input" accept=".json" onchange="handleFileSelect('json')" />
+                    <button type="button" class="browse-btn" onclick="document.getElementById('jsonFileInput').click()">Browse</button>
                     <span id="json-status" class="file-status">@Model.JsonFileStatus</span>
                 </div>
                 
                 <div class="form-group">
                     <label for="fileName">filename:</label>
-                    <input type="text" id="fileName" name="FileName" value="@Model.FileName" />
-                    <button type="button" class="browse-btn"
-                            hx-post="/ClaimsDataImporter?handler=BrowseFile" 
-                            hx-vals='{"fileType": "filename"}'
-                            hx-target="#filename-status"
-                            hx-include="#fileName">Browse</button>
+                    <input type="text" id="fileName" name="FileName" value="@Model.FileName" readonly />
+                    <input type="file" id="fileNameInput" class="file-input" accept=".csv,.txt" onchange="handleFileSelect('filename')" />
+                    <button type="button" class="browse-btn" onclick="document.getElementById('fileNameInput').click()">Browse</button>
                     <span id="filename-status" class="file-status">@Model.FileNameStatus</span>
                 </div>
                 
                 <div class="form-group">
                     <label for="database">database:</label>
-                    <input type="text" id="database" name="Database" value="@Model.Database" />
-                    <button type="button" class="browse-btn"
-                            hx-post="/ClaimsDataImporter?handler=BrowseFile" 
-                            hx-vals='{"fileType": "database"}'
-                            hx-target="#database-status"
-                            hx-include="#database">Browse</button>
+                    <input type="text" id="database" name="Database" value="@Model.Database" readonly />
+                    <input type="file" id="databaseInput" class="file-input" accept=".db,.sqlite,.sqlite3" onchange="handleFileSelect('database')" />
+                    <button type="button" class="browse-btn" onclick="document.getElementById('databaseInput').click()">Browse</button>
                     <span id="database-status" class="file-status">@Model.DatabaseStatus</span>
                 </div>
             </form>
@@ -207,5 +202,54 @@
         // Config is the only option in Home sidebar for now
         document.querySelector('#home-sidebar li.active').classList.remove('active');
         event.target.classList.add('active');
+    }
+    
+    function handleFileSelect(fileType) {
+        let inputElement, textElement, statusTarget;
+        
+        switch(fileType) {
+            case 'json':
+                inputElement = document.getElementById('jsonFileInput');
+                textElement = document.getElementById('jsonFile');
+                statusTarget = '#json-status';
+                break;
+            case 'filename':
+                inputElement = document.getElementById('fileNameInput');
+                textElement = document.getElementById('fileName');
+                statusTarget = '#filename-status';
+                break;
+            case 'database':
+                inputElement = document.getElementById('databaseInput');
+                textElement = document.getElementById('database');
+                statusTarget = '#database-status';
+                break;
+        }
+        
+        if (inputElement.files.length > 0) {
+            const selectedFile = inputElement.files[0];
+            textElement.value = selectedFile.name;
+            
+            // Use HTMX to update status via server
+            htmx.ajax('POST', '/ClaimsDataImporter?handler=FileSelected', {
+                target: statusTarget,
+                values: {
+                    fileType: fileType,
+                    fileName: selectedFile.name,
+                    action: 'ok'
+                }
+            });
+        } else {
+            // User cancelled - clear the field and update status
+            textElement.value = '';
+            
+            htmx.ajax('POST', '/ClaimsDataImporter?handler=FileSelected', {
+                target: statusTarget,
+                values: {
+                    fileType: fileType,
+                    fileName: '',
+                    action: 'cancel'
+                }
+            });
+        }
     }
 </script>
