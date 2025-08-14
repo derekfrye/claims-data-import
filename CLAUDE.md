@@ -14,19 +14,23 @@ This is a .NET 9.0 solution containing three projects:
 
 ### Building the Solution
 ```bash
+# Standard build (GUI requires MAUI workloads)
 dotnet build ClaimsDataImport.sln
+
+# Recommended: Build with warnings as errors for code quality
+dotnet build ClaimsDataImport.sln --warnaserror
 ```
 
 ### Building Individual Projects
 ```bash
-# Console application
-dotnet build CmdClaimsDataImport/CmdClaimsDataImport.csproj
+# Console application (recommended with --warnaserror)
+dotnet build CmdClaimsDataImport/CmdClaimsDataImport.csproj --warnaserror
 
-# GUI application  
-dotnet build GuiClaimsDataImport/GuiClaimsDataImport.csproj
+# GUI application (requires MAUI workloads)
+dotnet build GuiClaimsDataImport/GuiClaimsDataImport.csproj --warnaserror
 
-# Library
-dotnet build LibClaimsDataImport/LibClaimsDataImport.csproj
+# Library (recommended with --warnaserror) 
+dotnet build LibClaimsDataImport/LibClaimsDataImport.csproj --warnaserror
 ```
 
 ### Running Applications
@@ -132,8 +136,14 @@ CmdClaimsDataImport --database claims.db --table claims_data --filename data.csv
 
 This codebase maintains high code quality standards:
 - **Zero Roslynator diagnostics** across all projects
+- **Zero build warnings** - all builds use `--warnaserror` flag to treat warnings as errors
 - Performance optimizations using `AsSpan()` instead of `Substring()` for string operations
 - Proper use of `TryGetValue()` pattern for dictionary access to avoid double lookups
 - Static method declarations where appropriate to improve performance
 - Cached `JsonSerializerOptions` instances to avoid repeated allocations
 - Comprehensive test coverage ensuring reliability across all components
+
+### Quality Enforcement
+- All builds should use `--warnaserror` flag to maintain zero-warning codebase
+- Roslynator analysis ensures adherence to best practices and performance guidelines
+- Tests must pass before committing changes
