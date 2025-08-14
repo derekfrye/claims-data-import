@@ -152,7 +152,7 @@ public static class DataTypeDetector
         if (DateOnly.TryParse(value, CultureInfo.InvariantCulture, out result))
         {
             // Additional check: ensure it doesn't contain time components
-            return !value.Contains(':') && !value.ToLower().Contains("am") && !value.ToLower().Contains("pm");
+            return !value.Contains(':') && !value.Contains("am", StringComparison.OrdinalIgnoreCase) && !value.Contains("pm", StringComparison.OrdinalIgnoreCase);
         }
         return false;
     }

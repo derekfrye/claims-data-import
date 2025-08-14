@@ -6,6 +6,11 @@ namespace LibClaimsDataImport.Importer;
 
 public class ImportConfig
 {
+    private static readonly JsonSerializerOptions JsonOptions = new()
+    {
+        PropertyNameCaseInsensitive = true
+    };
+    
     public SqliteSettings SqliteSettings { get; set; } = new();
     public ColumnMappings ColumnMappings { get; set; } = new();
     public ValidationSettings Validation { get; set; } = new();
@@ -19,12 +24,8 @@ public class ImportConfig
         }
 
         var jsonString = System.IO.File.ReadAllText(configPath);
-        var options = new JsonSerializerOptions
-        {
-            PropertyNameCaseInsensitive = true
-        };
 
-        var config = JsonSerializer.Deserialize<ImportConfig>(jsonString, options);
+        var config = JsonSerializer.Deserialize<ImportConfig>(jsonString, JsonOptions);
         return config ?? new ImportConfig();
     }
 
@@ -52,8 +53,8 @@ public class ImportConfig
     {
         // Check if destination table is set to "auto" for auto-detection
         if (DestinationTable.Count == 1 && 
-            DestinationTable.ContainsKey("auto") && 
-            DestinationTable["auto"].Datatype.Equals("auto", StringComparison.OrdinalIgnoreCase))
+            DestinationTable.TryGetValue("auto", out var autoColumn) && 
+            autoColumn.Datatype.Equals("auto", StringComparison.OrdinalIgnoreCase))
         {
             if (fileSpec == null)
             {
@@ -96,7 +97,7 @@ public class ImportConfig
         return $"CREATE TABLE [{tableName}] ({string.Join(", ", columns)})";
     }
 
-    private string GenerateCreateTableSqlFromFileSpec(string tableName, FileSpec fileSpec)
+    private static string GenerateCreateTableSqlFromFileSpec(string tableName, FileSpec fileSpec)
     {
         var columns = new List<string>();
         
@@ -158,7 +159,7 @@ public class ImportConfig
             "datetime" => "DATETIME",
             "enum" => "TEXT", // Enum types become TEXT with CHECK constraints
             var dt when dt.StartsWith("character(") => "TEXT",
-            var dt when dt.StartsWith("numeric(") => "DECIMAL" + dt.Substring(7), // "numeric(10,2)" → .Substring(7) returns "10,2)"
+            var dt when dt.StartsWith("numeric(") => string.Concat("DECIMAL", dt.AsSpan(7)), // "numeric(10,2)" → .AsSpan(7) returns "10,2)"
             _ => "TEXT" // Default fallback
         };
     }

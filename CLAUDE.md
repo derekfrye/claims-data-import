@@ -47,15 +47,34 @@ dotnet test LibClaimsDataImport.Tests/LibClaimsDataImport.Tests.csproj
 dotnet test LibClaimsDataImport.Tests/LibClaimsDataImport.Tests.csproj --logger "console;verbosity=detailed"
 ```
 
+### Code Quality Analysis
+```bash
+# Run Roslynator analysis on all projects
+roslynator analyze LibClaimsDataImport/LibClaimsDataImport.csproj
+roslynator analyze CmdClaimsDataImport/CmdClaimsDataImport.csproj
+roslynator analyze LibClaimsDataImport.Tests/LibClaimsDataImport.Tests.csproj
+
+# Run analysis on entire solution
+roslynator analyze ClaimsDataImport.sln
+```
+
 ## Architecture Overview
 
 ### Core Library (LibClaimsDataImport)
-- Currently contains a placeholder `Class1` - this is where the main claims data import logic should be implemented
+- Full-featured claims data import library with sophisticated CSV parsing and SQLite import capabilities
 - Targets .NET 9.0
 - Referenced by both console and GUI applications
+- Core components:
+  - **DataTypeDetector**: Centralized data parsing logic for multiple data types
+  - **FileSpec**: CSV analysis and automatic column type detection
+  - **File**: Database import functionality with transaction support
+  - **ImportConfig**: JSON-based configuration management system
 
 ### Console Application (CmdClaimsDataImport) 
-- Entry point: `Program.cs:3` - simple "Hello, World" implementation
+- Entry point: `Program.cs` with sophisticated argument parsing and error handling
+- Components:
+  - **ArgumentParser**: Command-line argument processing
+  - **ImportProcessor**: End-to-end import orchestration
 - References the core library for shared functionality
 - Suitable for batch processing and automation scenarios
 
@@ -82,17 +101,19 @@ dotnet test LibClaimsDataImport.Tests/LibClaimsDataImport.Tests.csproj --logger 
 
 ### Console Application Usage
 ```bash
-CmdClaimsDataImport --database <path> --table <name> --filename <path>
+CmdClaimsDataImport --database <path> --table <name> --filename <path> [--config <path>]
 ```
 
 Example:
 ```bash
 CmdClaimsDataImport --database claims.db --table claims_data --filename data.csv
+CmdClaimsDataImport --database claims.db --table claims_data --filename data.csv --config custom_config.json
 ```
 
 ### Dependencies
 - **Sylvan.Data.Csv**: High-performance CSV reading with automatic delimiter detection
 - **Microsoft.Data.Sqlite**: SQLite database connectivity for .NET
+- **System.Text.Json**: JSON configuration file parsing and serialization
 
 ## Development Notes
 
@@ -100,7 +121,19 @@ CmdClaimsDataImport --database claims.db --table claims_data --filename data.csv
 - GUI project supports multiple platforms but may require Android/iOS SDKs for full compilation
 - Library uses streaming approach - doesn't load entire CSV into memory
 - Column type detection prioritizes: Money → DateTime → Integer → Decimal → String
-- Comprehensive test suite using XUnit with 111+ test cases organized in separate files:
-  - **DateParseTest.cs** (53 tests): DateTime parsing with exact value validation, invalid dates, edge cases, leap years, multiple format variations (ISO 8601, US, European, natural language)
-  - **MoneyParseTest.cs** (58 tests): Money parsing with standard formats ($1,234.56), negative values in parentheses, whitespace handling, unusual but valid formats, edge cases, invalid formats
+- Comprehensive test suite using XUnit with multiple test files:
+  - **DateParseTest.cs**: DateTime parsing with exact value validation, invalid dates, edge cases, leap years, multiple format variations (ISO 8601, US, European, natural language)
+  - **MoneyParseTest.cs**: Money parsing with standard formats ($1,234.56), negative values in parentheses, whitespace handling, unusual but valid formats, edge cases, invalid formats
+  - **IntegrationTest.cs** & **IntTest2.cs**: Full end-to-end CSV import validation tests
 - Database table must exist before import (library doesn't create tables)
+- All projects maintain zero Roslynator code analysis issues for consistent code quality
+
+## Code Quality Standards
+
+This codebase maintains high code quality standards:
+- **Zero Roslynator diagnostics** across all projects
+- Performance optimizations using `AsSpan()` instead of `Substring()` for string operations
+- Proper use of `TryGetValue()` pattern for dictionary access to avoid double lookups
+- Static method declarations where appropriate to improve performance
+- Cached `JsonSerializerOptions` instances to avoid repeated allocations
+- Comprehensive test coverage ensuring reliability across all components

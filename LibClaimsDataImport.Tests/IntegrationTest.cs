@@ -81,7 +81,7 @@ public class IntegrationTests
         }
     }
 
-    private async Task ValidateImportedData(string connectionString)
+    private static async Task ValidateImportedData(string connectionString)
     {
         using var connection = new SqliteConnection(connectionString);
         await connection.OpenAsync();
