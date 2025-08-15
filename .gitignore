@@ -33,3 +33,4 @@ GuiClaimsDataImport/Platforms/
 *.msm
 *.msp
 data.db
+cookies.txt

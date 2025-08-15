@@ -4,7 +4,7 @@
     ViewData["Title"] = "Claims Data Importer";
 }
 
-<script src="https://unpkg.com/htmx.org@1.9.10"></script>
+<script src="https://unpkg.com/htmx.org@2.0.6"></script>
 
 <style>
     .nav-header {
@@ -230,24 +230,28 @@
             textElement.value = selectedFile.name;
             
             // Use HTMX to update status via server
+            const token = document.querySelector('input[name="__RequestVerificationToken"]').value;
             htmx.ajax('POST', '/ClaimsDataImporter?handler=FileSelected', {
                 target: statusTarget,
                 values: {
                     fileType: fileType,
                     fileName: selectedFile.name,
-                    action: 'ok'
+                    action: 'ok',
+                    __RequestVerificationToken: token
                 }
             });
         } else {
             // User cancelled - clear the field and update status
             textElement.value = '';
             
+            const token = document.querySelector('input[name="__RequestVerificationToken"]').value;
             htmx.ajax('POST', '/ClaimsDataImporter?handler=FileSelected', {
                 target: statusTarget,
                 values: {
                     fileType: fileType,
                     fileName: '',
-                    action: 'cancel'
+                    action: 'cancel',
+                    __RequestVerificationToken: token
                 }
             });
         }
