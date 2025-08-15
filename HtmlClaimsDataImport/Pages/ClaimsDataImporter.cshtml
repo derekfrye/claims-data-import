@@ -289,29 +289,38 @@
                 // Parse the response which contains multiple HTML fragments
                 console.log('Response HTML:', html);
                 
-                // Update status span
-                const statusMatch = html.match(/<span id="([^"]*-status)"[^>]*>([^<]*)<\/span>/);
-                if (statusMatch) {
-                    const statusElement = document.getElementById(statusMatch[1]);
+                // Create a temporary container to parse the response
+                const tempDiv = document.createElement('div');
+                tempDiv.innerHTML = html;
+                
+                // Update status span using data attributes
+                const statusSpan = tempDiv.querySelector('span[data-status]');
+                if (statusSpan) {
+                    const targetId = statusSpan.id;
+                    const statusText = statusSpan.dataset.status;
+                    const statusElement = document.getElementById(targetId);
                     if (statusElement) {
-                        statusElement.textContent = statusMatch[2];
+                        statusElement.textContent = statusText;
                     }
                 }
                 
-                // Update input field with full path
-                const inputMatch = html.match(/<input[^>]+id="([^"]*)"[^>]+value="([^"]*)"[^>]*>/);
-                if (inputMatch) {
-                    const inputElement = document.getElementById(inputMatch[1]);
-                    if (inputElement) {
-                        inputElement.value = inputMatch[2];
+                // Update input field using data attributes
+                const inputElement = tempDiv.querySelector('input[data-file-path]');
+                if (inputElement) {
+                    const targetId = inputElement.id;
+                    const filePath = inputElement.dataset.filePath;
+                    const targetInput = document.getElementById(targetId);
+                    if (targetInput) {
+                        targetInput.value = filePath;
                     }
                 }
                 
-                // Update upload log
-                const logMatch = html.match(/<div hx-swap-oob="afterbegin:#upload-log">([^<]*)<br\/><\/div>/);
-                if (logMatch) {
+                // Update upload log using data attributes
+                const logDiv = tempDiv.querySelector('div[data-log-entry]');
+                if (logDiv) {
+                    const logEntry = logDiv.dataset.logEntry;
                     const uploadLog = document.getElementById('upload-log');
-                    uploadLog.innerHTML = logMatch[1] + '<br/>' + uploadLog.innerHTML;
+                    uploadLog.innerHTML = logEntry + '<br/>' + uploadLog.innerHTML;
                 }
             })
             .catch(error => {

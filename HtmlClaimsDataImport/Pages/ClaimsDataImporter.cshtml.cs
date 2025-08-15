@@ -60,21 +60,21 @@ namespace HtmlClaimsDataImport.Pages
                 case "json":
                     JsonFile = filePath;
                     JsonFileStatus = statusMessage;
-                    return Content($@"<span id=""json-status"" class=""file-status"">{JsonFileStatus}</span>
-                                     <input type=""text"" id=""jsonFile"" name=""JsonFile"" value=""{filePath}"" readonly hx-swap-oob=""outerHTML"" />
-                                     <div hx-swap-oob=""afterbegin:#upload-log"">{logEntry}<br/></div>");
+                    return Content($@"<span id=""json-status"" class=""file-status"" data-status=""{JsonFileStatus}"">{JsonFileStatus}</span>
+                                     <input type=""text"" id=""jsonFile"" name=""JsonFile"" value=""{filePath}"" readonly hx-swap-oob=""outerHTML"" data-file-path=""{filePath}"" />
+                                     <div hx-swap-oob=""afterbegin:#upload-log"" data-log-entry=""{logEntry}"">{logEntry}<br/></div>");
                 case "filename":
                     FileName = filePath;
                     FileNameStatus = statusMessage;
-                    return Content($@"<span id=""filename-status"" class=""file-status"">{FileNameStatus}</span>
-                                     <input type=""text"" id=""fileName"" name=""FileName"" value=""{filePath}"" readonly hx-swap-oob=""outerHTML"" />
-                                     <div hx-swap-oob=""afterbegin:#upload-log"">{logEntry}<br/></div>");
+                    return Content($@"<span id=""filename-status"" class=""file-status"" data-status=""{FileNameStatus}"">{FileNameStatus}</span>
+                                     <input type=""text"" id=""fileName"" name=""FileName"" value=""{filePath}"" readonly hx-swap-oob=""outerHTML"" data-file-path=""{filePath}"" />
+                                     <div hx-swap-oob=""afterbegin:#upload-log"" data-log-entry=""{logEntry}"">{logEntry}<br/></div>");
                 case "database":
                     Database = filePath;
                     DatabaseStatus = statusMessage;
-                    return Content($@"<span id=""database-status"" class=""file-status"">{DatabaseStatus}</span>
-                                     <input type=""text"" id=""database"" name=""Database"" value=""{filePath}"" readonly hx-swap-oob=""outerHTML"" />
-                                     <div hx-swap-oob=""afterbegin:#upload-log"">{logEntry}<br/></div>");
+                    return Content($@"<span id=""database-status"" class=""file-status"" data-status=""{DatabaseStatus}"">{DatabaseStatus}</span>
+                                     <input type=""text"" id=""database"" name=""Database"" value=""{filePath}"" readonly hx-swap-oob=""outerHTML"" data-file-path=""{filePath}"" />
+                                     <div hx-swap-oob=""afterbegin:#upload-log"" data-log-entry=""{logEntry}"">{logEntry}<br/></div>");
             }
             
             return Content(statusMessage);

@@ -4,11 +4,13 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Structure
 
-This is a .NET 9.0 solution containing three projects:
+This is a .NET 9.0 solution containing five projects:
 
 - **LibClaimsDataImport** - Shared library containing core claims data import functionality
 - **CmdClaimsDataImport** - Console application for command-line claims data import operations
-- **GuiClaimsDataImport** - Cross-platform MAUI application providing a GUI for claims data import
+- **HtmlClaimsDataImport** - ASP.NET Core web application providing a web-based GUI for claims data import
+- **LibClaimsDataImport.Tests** - XUnit test suite for the core library
+- **HtmlClaimsDataImport.Tests** - Integration test suite for the web application
 
 ## Build and Development Commands
 
@@ -26,8 +28,8 @@ dotnet build ClaimsDataImport.sln --warnaserror
 # Console application (recommended with --warnaserror)
 dotnet build CmdClaimsDataImport/CmdClaimsDataImport.csproj --warnaserror
 
-# GUI application (requires MAUI workloads)
-dotnet build GuiClaimsDataImport/GuiClaimsDataImport.csproj --warnaserror
+# Web application (recommended with --warnaserror)
+dotnet build HtmlClaimsDataImport/HtmlClaimsDataImport.csproj --warnaserror
 
 # Library (recommended with --warnaserror) 
 dotnet build LibClaimsDataImport/LibClaimsDataImport.csproj --warnaserror
@@ -38,17 +40,23 @@ dotnet build LibClaimsDataImport/LibClaimsDataImport.csproj --warnaserror
 # Console application
 dotnet run --project CmdClaimsDataImport
 
-# GUI application (requires appropriate platform)
-dotnet run --project GuiClaimsDataImport
+# Web application (starts local web server)
+dotnet run --project HtmlClaimsDataImport
 ```
 
 ### Testing
 ```bash
-# Run all tests
+# Run all tests for the entire solution
+dotnet test ClaimsDataImport.sln
+
+# Run library tests only
 dotnet test LibClaimsDataImport.Tests/LibClaimsDataImport.Tests.csproj
 
+# Run web application integration tests only
+dotnet test HtmlClaimsDataImport.Tests/HtmlClaimsDataImport.Tests.csproj
+
 # Run tests with detailed output
-dotnet test LibClaimsDataImport.Tests/LibClaimsDataImport.Tests.csproj --logger "console;verbosity=detailed"
+dotnet test ClaimsDataImport.sln --logger "console;verbosity=detailed"
 ```
 
 ### Code Quality Analysis
@@ -56,7 +64,9 @@ dotnet test LibClaimsDataImport.Tests/LibClaimsDataImport.Tests.csproj --logger 
 # Run Roslynator analysis on all projects
 roslynator analyze LibClaimsDataImport/LibClaimsDataImport.csproj
 roslynator analyze CmdClaimsDataImport/CmdClaimsDataImport.csproj
+roslynator analyze HtmlClaimsDataImport/HtmlClaimsDataImport.csproj
 roslynator analyze LibClaimsDataImport.Tests/LibClaimsDataImport.Tests.csproj
+roslynator analyze HtmlClaimsDataImport.Tests/HtmlClaimsDataImport.Tests.csproj
 
 # Run analysis on entire solution
 roslynator analyze ClaimsDataImport.sln
@@ -91,11 +101,15 @@ dotnet add LibClaimsDataImport/LibClaimsDataImport.csproj package StyleCop.Analy
 - References the core library for shared functionality
 - Suitable for batch processing and automation scenarios
 
-### GUI Application (GuiClaimsDataImport)
-- MAUI cross-platform application targeting Android, iOS, macOS, and Windows
-- Entry point: `MauiProgram.cs:7` - standard MAUI app initialization
-- Main UI: `MainPage.xaml` with basic counter functionality as template
-- Currently uses default MAUI template structure - needs customization for claims import functionality
+### Web Application (HtmlClaimsDataImport)
+- ASP.NET Core web application providing browser-based GUI for claims data import
+- Entry point: `Program.cs:1` - ASP.NET Core initialization with custom temp directory support
+- Main UI: `Pages/ClaimsDataImporter.cshtml` with file upload and import functionality
+- Features:
+  - File upload support for CSV, JSON config, and SQLite database files
+  - Session-based temporary file management with automatic cleanup
+  - Integration with core library for claims data processing
+  - Self-contained deployment configuration for easy distribution
 
 ## Implementation Details
 
@@ -131,13 +145,16 @@ CmdClaimsDataImport --database claims.db --table claims_data --filename data.csv
 ## Development Notes
 
 - All projects use .NET 9.0 with nullable reference types enabled
-- GUI project supports multiple platforms but may require Android/iOS SDKs for full compilation
+- Web application includes self-contained deployment configuration for easy distribution
 - Library uses streaming approach - doesn't load entire CSV into memory
 - Column type detection prioritizes: Money → DateTime → Integer → Decimal → String
-- Comprehensive test suite using XUnit with multiple test files:
-  - **DateParseTest.cs**: DateTime parsing with exact value validation, invalid dates, edge cases, leap years, multiple format variations (ISO 8601, US, European, natural language)
-  - **MoneyParseTest.cs**: Money parsing with standard formats ($1,234.56), negative values in parentheses, whitespace handling, unusual but valid formats, edge cases, invalid formats
-  - **IntegrationTest.cs** & **IntTest2.cs**: Full end-to-end CSV import validation tests
+- Comprehensive test suite using XUnit with multiple test suites:
+  - **LibClaimsDataImport.Tests**: Core library unit tests
+    - **DateParseTest.cs**: DateTime parsing with exact value validation, invalid dates, edge cases, leap years, multiple format variations (ISO 8601, US, European, natural language)
+    - **MoneyParseTest.cs**: Money parsing with standard formats ($1,234.56), negative values in parentheses, whitespace handling, unusual but valid formats, edge cases, invalid formats
+    - **IntegrationTest.cs** & **IntTest2.cs**: Full end-to-end CSV import validation tests
+  - **HtmlClaimsDataImport.Tests**: Web application integration tests
+    - **FileSelectionIntegrationTests.cs**: Tests for web-based file upload and selection functionality
 - Database table must exist before import (library doesn't create tables)
 - All projects maintain zero Roslynator code analysis issues for consistent code quality
 
