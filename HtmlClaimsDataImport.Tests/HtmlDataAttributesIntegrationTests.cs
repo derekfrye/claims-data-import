@@ -1,19 +1,73 @@
 using Microsoft.AspNetCore.Mvc.Testing;
+using Microsoft.AspNetCore.Hosting;
+using Microsoft.Extensions.DependencyInjection;
 using AngleSharp;
 using AngleSharp.Html.Dom;
 using System.Text;
+using HtmlClaimsDataImport.Services;
 
 namespace HtmlClaimsDataImport.Tests;
 
-public class HtmlDataAttributesIntegrationTests : IClassFixture<WebApplicationFactory<Program>>
+public class HtmlDataAttributesIntegrationTests : IClassFixture<HtmlDataAttributesIntegrationTests.CustomWebApplicationFactory>
 {
-    private readonly WebApplicationFactory<Program> _factory;
+    private readonly CustomWebApplicationFactory _factory;
     private readonly HttpClient _client;
 
-    public HtmlDataAttributesIntegrationTests(WebApplicationFactory<Program> factory)
+    public HtmlDataAttributesIntegrationTests(CustomWebApplicationFactory factory)
     {
         _factory = factory;
         _client = _factory.CreateClient();
+    }
+
+    public class CustomWebApplicationFactory : WebApplicationFactory<Program>
+    {
+        private readonly string _testTempDir;
+        private readonly string _testSessionId;
+
+        public CustomWebApplicationFactory()
+        {
+            // Create unique temp directory and session ID for this test run
+            var baseDir = Path.GetDirectoryName(typeof(CustomWebApplicationFactory).Assembly.Location);
+            _testSessionId = Path.GetRandomFileName();
+            _testTempDir = Path.Combine(baseDir!, "test-temp", _testSessionId);
+            Directory.CreateDirectory(_testTempDir);
+        }
+
+        protected override void ConfigureWebHost(IWebHostBuilder builder)
+        {
+            builder.ConfigureServices(services =>
+            {
+                // Replace the ITempDirectoryService with our test implementation
+                var descriptor = services.SingleOrDefault(d => d.ServiceType == typeof(ITempDirectoryService));
+                if (descriptor != null)
+                {
+                    services.Remove(descriptor);
+                }
+                services.AddScoped<ITempDirectoryService>(provider =>
+                {
+                    return new TempDirectoryService(_testSessionId, _testTempDir);
+                });
+            });
+        }
+
+        protected override void Dispose(bool disposing)
+        {
+            if (disposing)
+            {
+                try
+                {
+                    if (Directory.Exists(_testTempDir))
+                    {
+                        Directory.Delete(_testTempDir, true);
+                    }
+                }
+                catch (Exception ex)
+                {
+                    Console.WriteLine($"Failed to cleanup test temp directory {_testTempDir}: {ex.Message}");
+                }
+            }
+            base.Dispose(disposing);
+        }
     }
 
     private async Task<string> GetAntiForgeryTokenAsync()

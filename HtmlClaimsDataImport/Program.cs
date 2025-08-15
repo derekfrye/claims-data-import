@@ -1,19 +1,37 @@
+using HtmlClaimsDataImport.Services;
+
 var builder = WebApplication.CreateBuilder(args);
 
 // Check for custom temp directory argument
+string? customTempDir = null;
 if (args.Length > 0 && args[0].StartsWith("--temp-dir="))
 {
-    var tempDir = args[0].Substring("--temp-dir=".Length);
-    if (!string.IsNullOrEmpty(tempDir))
+    customTempDir = args[0].Substring("--temp-dir=".Length);
+    if (!string.IsNullOrEmpty(customTempDir))
     {
-        HtmlClaimsDataImport.Services.TempDirectoryCleanupService.SetTempBasePath(tempDir);
-        Console.WriteLine($"Using custom temp directory: {tempDir}");
+        TempDirectoryCleanupService.SetTempBasePath(customTempDir);
+        Console.WriteLine($"Using custom temp directory: {customTempDir}");
     }
 }
 
 // Add services to the container.
 builder.Services.AddRazorPages();
-builder.Services.AddHostedService<HtmlClaimsDataImport.Services.TempDirectoryCleanupService>();
+builder.Services.AddSession();
+builder.Services.AddHttpContextAccessor();
+builder.Services.AddHostedService<TempDirectoryCleanupService>();
+
+// Register session-scoped temp directory service
+builder.Services.AddScoped<ITempDirectoryService>(provider =>
+{
+    var httpContextAccessor = provider.GetRequiredService<IHttpContextAccessor>();
+    var httpContext = httpContextAccessor.HttpContext;
+    var sessionId = httpContext?.Session?.Id ?? httpContext?.TraceIdentifier ?? "default";
+    var basePath = TempDirectoryCleanupService.GetTempBasePath();
+    
+    var service = new TempDirectoryService(sessionId, basePath);
+    TempDirectoryCleanupService.RegisterService(service);
+    return service;
+});
 
 var app = builder.Build();
 
@@ -21,13 +39,13 @@ var app = builder.Build();
 AppDomain.CurrentDomain.ProcessExit += (sender, e) =>
 {
     Console.WriteLine("ProcessExit: Cleaning up temp directories...");
-    HtmlClaimsDataImport.Services.TempDirectoryCleanupService.CleanupAllDirectories();
+    TempDirectoryCleanupService.CleanupAllDirectories();
 };
 
 Console.CancelKeyPress += (sender, e) =>
 {
     Console.WriteLine("Ctrl+C: Cleaning up temp directories...");
-    HtmlClaimsDataImport.Services.TempDirectoryCleanupService.CleanupAllDirectories();
+    TempDirectoryCleanupService.CleanupAllDirectories();
 };
 
 // Configure the HTTP request pipeline.
@@ -41,6 +59,8 @@ if (!app.Environment.IsDevelopment())
 app.UseHttpsRedirection();
 
 app.UseRouting();
+
+app.UseSession();
 
 app.UseAuthorization();
 

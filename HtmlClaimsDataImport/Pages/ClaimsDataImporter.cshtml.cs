@@ -6,6 +6,13 @@ namespace HtmlClaimsDataImport.Pages
 {
     public class ClaimsDataImporterModel : PageModel
     {
+        private readonly ITempDirectoryService _tempDirectoryService;
+
+        public ClaimsDataImporterModel(ITempDirectoryService tempDirectoryService)
+        {
+            _tempDirectoryService = tempDirectoryService;
+        }
+
         [BindProperty]
         public string JsonFile { get; set; } = string.Empty;
         
@@ -19,7 +26,7 @@ namespace HtmlClaimsDataImport.Pages
         public string FileNameStatus { get; set; } = string.Empty;
         public string DatabaseStatus { get; set; } = string.Empty;
         
-        public string TempDirectory => TempDirectoryCleanupService.GetSessionTempDirectory();
+        public string TempDirectory => _tempDirectoryService.GetSessionTempDirectory();
 
         public void OnGet()
         {
@@ -37,7 +44,7 @@ namespace HtmlClaimsDataImport.Pages
             }
 
             // Use the session temp directory and save file
-            var tempDir = TempDirectoryCleanupService.GetSessionTempDirectory();
+            var tempDir = _tempDirectoryService.GetSessionTempDirectory();
             var fileName = Path.GetFileName(uploadedFile.FileName);
             var filePath = Path.Combine(tempDir, fileName);
             
