@@ -4,70 +4,56 @@ using Microsoft.Extensions.DependencyInjection;
 using AngleSharp;
 using AngleSharp.Html.Dom;
 using System.Text;
+using System.Net;
 using HtmlClaimsDataImport.Services;
 
 namespace HtmlClaimsDataImport.Tests;
 
-public class HtmlDataAttributesIntegrationTests : IClassFixture<HtmlDataAttributesIntegrationTests.CustomWebApplicationFactory>
+public class HtmlDataAttributesIntegrationTests : IClassFixture<WebApplicationFactory<Program>>
 {
-    private readonly CustomWebApplicationFactory _factory;
+    private readonly WebApplicationFactory<Program> _factory;
     private readonly HttpClient _client;
 
-    public HtmlDataAttributesIntegrationTests(CustomWebApplicationFactory factory)
+    public HtmlDataAttributesIntegrationTests(WebApplicationFactory<Program> factory)
     {
         _factory = factory;
         _client = _factory.CreateClient();
     }
 
-    public class CustomWebApplicationFactory : WebApplicationFactory<Program>
+    private async Task<(string token, HttpClient sessionClient)> EstablishSessionAndGetTokenAsync()
     {
-        private readonly string _testTempDir;
-        private readonly string _testSessionId;
-
-        public CustomWebApplicationFactory()
+        // Create a client with cookie support using the test server
+        var cookieContainer = new CookieContainer();
+        var sessionClient = _factory.WithWebHostBuilder(builder => { })
+            .CreateClient();
+            
+        // Manually configure the client to use cookies by copying its properties to a new client
+        var handler = new HttpClientHandler() { CookieContainer = cookieContainer };
+        var cookieEnabledClient = new HttpClient(handler)
         {
-            // Create unique temp directory and session ID for this test run
-            var baseDir = Path.GetDirectoryName(typeof(CustomWebApplicationFactory).Assembly.Location);
-            _testSessionId = Path.GetRandomFileName();
-            _testTempDir = Path.Combine(baseDir!, "test-temp", _testSessionId);
-            Directory.CreateDirectory(_testTempDir);
-        }
-
-        protected override void ConfigureWebHost(IWebHostBuilder builder)
+            BaseAddress = sessionClient.BaseAddress
+        };
+        
+        // Copy any default headers
+        foreach (var header in sessionClient.DefaultRequestHeaders)
         {
-            builder.ConfigureServices(services =>
-            {
-                // Replace the ITempDirectoryService with our test implementation
-                var descriptor = services.SingleOrDefault(d => d.ServiceType == typeof(ITempDirectoryService));
-                if (descriptor != null)
-                {
-                    services.Remove(descriptor);
-                }
-                services.AddScoped<ITempDirectoryService>(provider =>
-                {
-                    return new TempDirectoryService(_testSessionId, _testTempDir);
-                });
-            });
+            cookieEnabledClient.DefaultRequestHeaders.TryAddWithoutValidation(header.Key, header.Value);
         }
-
-        protected override void Dispose(bool disposing)
-        {
-            if (disposing)
-            {
-                try
-                {
-                    if (Directory.Exists(_testTempDir))
-                    {
-                        Directory.Delete(_testTempDir, true);
-                    }
-                }
-                catch (Exception ex)
-                {
-                    Console.WriteLine($"Failed to cleanup test temp directory {_testTempDir}: {ex.Message}");
-                }
-            }
-            base.Dispose(disposing);
-        }
+        
+        // Dispose the original client
+        sessionClient.Dispose();
+        
+        // Make initial request to establish session (like browser loading page)
+        var getResponse = await cookieEnabledClient.GetAsync("/ClaimsDataImporter");
+        getResponse.EnsureSuccessStatusCode();
+        var getContent = await getResponse.Content.ReadAsStringAsync();
+        
+        // Extract anti-forgery token
+        var tokenStart = getContent.IndexOf("__RequestVerificationToken\" type=\"hidden\" value=\"") + "__RequestVerificationToken\" type=\"hidden\" value=\"".Length;
+        var tokenEnd = getContent.IndexOf("\"", tokenStart);
+        var token = getContent.Substring(tokenStart, tokenEnd - tokenStart);
+        
+        return (token, cookieEnabledClient);
     }
 
     private async Task<string> GetAntiForgeryTokenAsync()
@@ -84,28 +70,24 @@ public class HtmlDataAttributesIntegrationTests : IClassFixture<HtmlDataAttribut
     [Fact]
     public async Task FileUpload_JsonFile_ReturnsCorrectDataAttributes()
     {
-        // Arrange: Get anti-forgery token first
-        var getResponse = await _client.GetAsync("/ClaimsDataImporter");
-        getResponse.EnsureSuccessStatusCode();
-        var getContent = await getResponse.Content.ReadAsStringAsync();
+        // Arrange: Establish unique session and get anti-forgery token
+        var (token, sessionClient) = await EstablishSessionAndGetTokenAsync();
         
-        var tokenStart = getContent.IndexOf("__RequestVerificationToken\" type=\"hidden\" value=\"") + "__RequestVerificationToken\" type=\"hidden\" value=\"".Length;
-        var tokenEnd = getContent.IndexOf("\"", tokenStart);
-        var token = getContent.Substring(tokenStart, tokenEnd - tokenStart);
-        
-        // Create a test JSON file
-        var jsonContent = """{"testKey": "testValue"}""";
-        var jsonBytes = Encoding.UTF8.GetBytes(jsonContent);
-        
-        using var content = new MultipartFormDataContent
+        try
         {
-            { new StringContent("json"), "fileType" },
-            { new StringContent(token), "__RequestVerificationToken" },
-            { new ByteArrayContent(jsonBytes), "uploadedFile", "test-config.json" }
-        };
-        
-        // Act: Post file upload request (simulating HTMX request)
-        var response = await _client.PostAsync("/ClaimsDataImporter?handler=FileUpload", content);
+            // Create a test JSON file
+            var jsonContent = """{"testKey": "testValue"}""";
+            var jsonBytes = Encoding.UTF8.GetBytes(jsonContent);
+            
+            using var content = new MultipartFormDataContent
+            {
+                { new StringContent("json"), "fileType" },
+                { new StringContent(token), "__RequestVerificationToken" },
+                { new ByteArrayContent(jsonBytes), "uploadedFile", "test-config.json" }
+            };
+            
+            // Act: Post file upload request using the session client
+            var response = await sessionClient.PostAsync("/ClaimsDataImporter?handler=FileUpload", content);
         
         // Assert: Response should be successful
         response.EnsureSuccessStatusCode();
@@ -128,30 +110,38 @@ public class HtmlDataAttributesIntegrationTests : IClassFixture<HtmlDataAttribut
         Assert.Contains("test-config.json", inputElement.Value);
         Assert.Equal(inputElement.Value, inputElement.GetAttribute("data-file-path"));
         
-        // Verify log div has data attribute
-        var logDiv = document.QuerySelector("div[data-log-entry]") as IHtmlDivElement;
-        Assert.NotNull(logDiv);
-        Assert.NotNull(logDiv.GetAttribute("data-log-entry"));
-        Assert.Contains("test-config.json", logDiv.GetAttribute("data-log-entry"));
+            // Verify log div has data attribute
+            var logDiv = document.QuerySelector("div[data-log-entry]") as IHtmlDivElement;
+            Assert.NotNull(logDiv);
+            Assert.NotNull(logDiv.GetAttribute("data-log-entry"));
+            Assert.Contains("test-config.json", logDiv.GetAttribute("data-log-entry"));
+        }
+        finally
+        {
+            // Clean up the session client
+            sessionClient.Dispose();
+        }
     }
 
     [Fact]
     public async Task FileUpload_CsvFile_ReturnsCorrectDataAttributes()
     {
-        // Arrange: Get anti-forgery token
-        var token = await GetAntiForgeryTokenAsync();
+        // Arrange: Establish unique session and get anti-forgery token
+        var (token, sessionClient) = await EstablishSessionAndGetTokenAsync();
         
-        // Create a test CSV file
-        var csvContent = "Name,Age,City\nJohn,30,NYC\nJane,25,LA";
-        var csvBytes = Encoding.UTF8.GetBytes(csvContent);
-        
-        using var content = new MultipartFormDataContent();
-        content.Add(new StringContent("filename"), "fileType");
-        content.Add(new StringContent(token), "__RequestVerificationToken");
-        content.Add(new ByteArrayContent(csvBytes), "uploadedFile", "test-data.csv");
-        
-        // Act: Post file upload request
-        var response = await _client.PostAsync("/ClaimsDataImporter?handler=FileUpload", content);
+        try
+        {
+            // Create a test CSV file
+            var csvContent = "Name,Age,City\nJohn,30,NYC\nJane,25,LA";
+            var csvBytes = Encoding.UTF8.GetBytes(csvContent);
+            
+            using var content = new MultipartFormDataContent();
+            content.Add(new StringContent("filename"), "fileType");
+            content.Add(new StringContent(token), "__RequestVerificationToken");
+            content.Add(new ByteArrayContent(csvBytes), "uploadedFile", "test-data.csv");
+            
+            // Act: Post file upload request using session client
+            var response = await sessionClient.PostAsync("/ClaimsDataImporter?handler=FileUpload", content);
         
         // Assert: Response should be successful
         response.EnsureSuccessStatusCode();
@@ -168,11 +158,16 @@ public class HtmlDataAttributesIntegrationTests : IClassFixture<HtmlDataAttribut
         Assert.Contains("File uploaded: test-data.csv", statusSpan.TextContent);
         Assert.Equal(statusSpan.TextContent, statusSpan.GetAttribute("data-status"));
         
-        // Verify input has correct data attribute
-        var inputElement = document.QuerySelector("#fileName") as IHtmlInputElement;
-        Assert.NotNull(inputElement);
-        Assert.Contains("test-data.csv", inputElement.Value);
-        Assert.Equal(inputElement.Value, inputElement.GetAttribute("data-file-path"));
+            // Verify input has correct data attribute
+            var inputElement = document.QuerySelector("#fileName") as IHtmlInputElement;
+            Assert.NotNull(inputElement);
+            Assert.Contains("test-data.csv", inputElement.Value);
+            Assert.Equal(inputElement.Value, inputElement.GetAttribute("data-file-path"));
+        }
+        finally
+        {
+            sessionClient.Dispose();
+        }
     }
 
     [Fact]
