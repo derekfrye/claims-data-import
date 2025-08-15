@@ -4,7 +4,7 @@
     ViewData["Title"] = "Claims Data Importer";
 }
 
-<script src="https://unpkg.com/htmx.org@2.0.6"></script>
+<script src="https://cdn.jsdelivr.net/npm/htmx.org@2.0.6/dist/htmx.min.js"></script>
 
 <style>
     .nav-header {
@@ -90,6 +90,7 @@
         padding: 8px;
         border: 1px solid #ccc;
         border-radius: 4px;
+        font-size: 0.7em;
     }
     
     .browse-btn {
@@ -227,7 +228,9 @@
         
         if (inputElement.files.length > 0) {
             const selectedFile = inputElement.files[0];
-            textElement.value = selectedFile.name;
+            // Use webkitRelativePath if available, otherwise fallback to name
+            const filePath = selectedFile.webkitRelativePath || selectedFile.name;
+            textElement.value = filePath;
             
             // Use HTMX to update status via server
             const token = document.querySelector('input[name="__RequestVerificationToken"]').value;
@@ -235,7 +238,7 @@
                 target: statusTarget,
                 values: {
                     fileType: fileType,
-                    fileName: selectedFile.name,
+                    fileName: filePath,
                     action: 'ok',
                     __RequestVerificationToken: token
                 }

@@ -12,7 +12,7 @@ public class IntTest2
         // Arrange
         var testDirectory = Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location)!;
         var projectDirectory = Path.GetFullPath(Path.Combine(testDirectory, "..", "..", ".."));
-        var csvFilePath = Path.GetFullPath(Path.Combine(projectDirectory, "..", "LibClaimsDataImport", "IntTest_datafile2.txt"));
+        var csvFilePath = Path.Combine(projectDirectory, "IntTest_datafile2.txt");
         var configFilePath = Path.Combine(projectDirectory, "IntTest2.json");
         
         // Create temporary database file for the test
