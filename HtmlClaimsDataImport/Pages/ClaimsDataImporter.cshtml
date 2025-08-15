@@ -126,6 +126,7 @@
     <ul class="nav-menu">
         <li class="active" onclick="showHome()">Home</li>
         <li onclick="showPreview()">Preview</li>
+        <li onclick="showDeveloper()">Developer</li>
     </ul>
 </div>
 
@@ -138,6 +139,12 @@
     
     <div class="sidebar hidden" id="preview-sidebar">
         <!-- Preview sidebar content would go here -->
+    </div>
+    
+    <div class="sidebar hidden" id="developer-sidebar">
+        <ul>
+            <li class="active" onclick="showDeveloperInfo()">Info</li>
+        </ul>
     </div>
     
     <div class="content-area">
@@ -173,6 +180,20 @@
             <h3>Preview Content</h3>
             <p>Preview functionality will be implemented here.</p>
         </div>
+        
+        <div id="developer-content" class="hidden">
+            <h3>Developer Information</h3>
+            <div>
+                <strong>Temp Directory:</strong> <span id="temp-directory">@Model.TempDirectory</span>
+            </div>
+            <br />
+            <div>
+                <strong>File Upload Log:</strong>
+                <div id="upload-log" style="font-family: monospace; background-color: #f8f9fa; padding: 10px; border: 1px solid #ddd; margin-top: 10px; max-height: 300px; overflow-y: auto;">
+                    <!-- Upload log entries will appear here -->
+                </div>
+            </div>
+        </div>
     </div>
 </div>
 
@@ -183,9 +204,11 @@
         
         document.getElementById('home-sidebar').classList.remove('hidden');
         document.getElementById('preview-sidebar').classList.add('hidden');
+        document.getElementById('developer-sidebar').classList.add('hidden');
         
         document.getElementById('config-content').classList.remove('hidden');
         document.getElementById('preview-content').classList.add('hidden');
+        document.getElementById('developer-content').classList.add('hidden');
     }
     
     function showPreview() {
@@ -194,14 +217,35 @@
         
         document.getElementById('home-sidebar').classList.add('hidden');
         document.getElementById('preview-sidebar').classList.remove('hidden');
+        document.getElementById('developer-sidebar').classList.add('hidden');
         
         document.getElementById('config-content').classList.add('hidden');
         document.getElementById('preview-content').classList.remove('hidden');
+        document.getElementById('developer-content').classList.add('hidden');
+    }
+    
+    function showDeveloper() {
+        document.querySelector('.nav-menu li.active').classList.remove('active');
+        event.target.classList.add('active');
+        
+        document.getElementById('home-sidebar').classList.add('hidden');
+        document.getElementById('preview-sidebar').classList.add('hidden');
+        document.getElementById('developer-sidebar').classList.remove('hidden');
+        
+        document.getElementById('config-content').classList.add('hidden');
+        document.getElementById('preview-content').classList.add('hidden');
+        document.getElementById('developer-content').classList.remove('hidden');
     }
     
     function showConfig() {
         // Config is the only option in Home sidebar for now
         document.querySelector('#home-sidebar li.active').classList.remove('active');
+        event.target.classList.add('active');
+    }
+    
+    function showDeveloperInfo() {
+        // Info is the only option in Developer sidebar for now
+        document.querySelector('#developer-sidebar li.active').classList.remove('active');
         event.target.classList.add('active');
     }
     
@@ -235,10 +279,44 @@
             const token = document.querySelector('input[name="__RequestVerificationToken"]').value;
             formData.append('__RequestVerificationToken', token);
             
-            // Use HTMX to upload file to server
-            htmx.ajax('POST', '/ClaimsDataImporter?handler=FileUpload', {
-                target: statusTarget,
-                values: formData
+            // Use fetch to upload file (HTMX doesn't handle FormData well in htmx.ajax)
+            fetch('/ClaimsDataImporter?handler=FileUpload', {
+                method: 'POST',
+                body: formData
+            })
+            .then(response => response.text())
+            .then(html => {
+                // Parse the response which contains multiple HTML fragments
+                console.log('Response HTML:', html);
+                
+                // Update status span
+                const statusMatch = html.match(/<span id="([^"]*-status)"[^>]*>([^<]*)<\/span>/);
+                if (statusMatch) {
+                    const statusElement = document.getElementById(statusMatch[1]);
+                    if (statusElement) {
+                        statusElement.textContent = statusMatch[2];
+                    }
+                }
+                
+                // Update input field with full path
+                const inputMatch = html.match(/<input[^>]+id="([^"]*)"[^>]+value="([^"]*)"[^>]*>/);
+                if (inputMatch) {
+                    const inputElement = document.getElementById(inputMatch[1]);
+                    if (inputElement) {
+                        inputElement.value = inputMatch[2];
+                    }
+                }
+                
+                // Update upload log
+                const logMatch = html.match(/<div hx-swap-oob="afterbegin:#upload-log">([^<]*)<br\/><\/div>/);
+                if (logMatch) {
+                    const uploadLog = document.getElementById('upload-log');
+                    uploadLog.innerHTML = logMatch[1] + '<br/>' + uploadLog.innerHTML;
+                }
+            })
+            .catch(error => {
+                console.error('Upload error:', error);
+                document.querySelector(statusTarget).textContent = 'Upload failed';
             });
         } else {
             // User cancelled - clear the field and update status

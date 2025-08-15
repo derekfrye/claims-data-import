@@ -4,6 +4,13 @@ public class TempDirectoryCleanupService : IHostedService
 {
     private static readonly List<string> _tempDirectories = new();
     private static readonly object _lock = new();
+    private static string? _sessionTempDirectory;
+    private static string? _overrideTempBasePath;
+
+    public static void SetTempBasePath(string? basePath)
+    {
+        _overrideTempBasePath = basePath;
+    }
 
     public static void RegisterTempDirectory(string path)
     {
@@ -15,10 +22,23 @@ public class TempDirectoryCleanupService : IHostedService
 
     public static string CreateTempDirectory()
     {
-        var tempDir = Path.Combine(Path.GetTempPath(), Path.GetRandomFileName());
+        var basePath = _overrideTempBasePath ?? Path.GetTempPath();
+        var tempDir = Path.Combine(basePath, Path.GetRandomFileName());
         Directory.CreateDirectory(tempDir);
         RegisterTempDirectory(tempDir);
         return tempDir;
+    }
+
+    public static string GetSessionTempDirectory()
+    {
+        if (_sessionTempDirectory == null)
+        {
+            lock (_lock)
+            {
+                _sessionTempDirectory ??= CreateTempDirectory();
+            }
+        }
+        return _sessionTempDirectory;
     }
 
     public Task StartAsync(CancellationToken cancellationToken)
@@ -26,7 +46,7 @@ public class TempDirectoryCleanupService : IHostedService
         return Task.CompletedTask;
     }
 
-    public Task StopAsync(CancellationToken cancellationToken)
+    public static void CleanupAllDirectories()
     {
         lock (_lock)
         {
@@ -37,17 +57,22 @@ public class TempDirectoryCleanupService : IHostedService
                     if (Directory.Exists(dir))
                     {
                         Directory.Delete(dir, recursive: true);
+                        Console.WriteLine($"Cleaned up temp directory: {dir}");
                     }
                 }
                 catch (Exception ex)
                 {
-                    // Log the error but don't throw - we're shutting down
                     Console.WriteLine($"Failed to delete temp directory {dir}: {ex.Message}");
                 }
             }
             _tempDirectories.Clear();
         }
-        
+    }
+
+    public Task StopAsync(CancellationToken cancellationToken)
+    {
+        Console.WriteLine("StopAsync: Cleaning up temp directories...");
+        CleanupAllDirectories();
         return Task.CompletedTask;
     }
 }

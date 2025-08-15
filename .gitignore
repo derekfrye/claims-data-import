@@ -34,3 +34,4 @@ GuiClaimsDataImport/Platforms/
 *.msp
 data.db
 cookies.txt
+cookies_debug.txt

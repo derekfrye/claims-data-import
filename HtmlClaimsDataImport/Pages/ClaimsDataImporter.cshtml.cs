@@ -18,6 +18,8 @@ namespace HtmlClaimsDataImport.Pages
         public string JsonFileStatus { get; set; } = string.Empty;
         public string FileNameStatus { get; set; } = string.Empty;
         public string DatabaseStatus { get; set; } = string.Empty;
+        
+        public string TempDirectory => TempDirectoryCleanupService.GetSessionTempDirectory();
 
         public void OnGet()
         {
@@ -26,13 +28,16 @@ namespace HtmlClaimsDataImport.Pages
 
         public async Task<IActionResult> OnPostFileUpload(string fileType, IFormFile uploadedFile)
         {
+            Console.WriteLine($"OnPostFileUpload called: fileType={fileType}, file={uploadedFile?.FileName}, size={uploadedFile?.Length}");
+            
             if (uploadedFile == null || uploadedFile.Length == 0)
             {
+                Console.WriteLine("No file uploaded");
                 return Content("No file selected");
             }
 
-            // Create temp directory and save file
-            var tempDir = TempDirectoryCleanupService.CreateTempDirectory();
+            // Use the session temp directory and save file
+            var tempDir = TempDirectoryCleanupService.GetSessionTempDirectory();
             var fileName = Path.GetFileName(uploadedFile.FileName);
             var filePath = Path.Combine(tempDir, fileName);
             
@@ -40,8 +45,14 @@ namespace HtmlClaimsDataImport.Pages
             {
                 await uploadedFile.CopyToAsync(stream);
             }
+            
+            Console.WriteLine($"File saved to: {filePath}, exists: {System.IO.File.Exists(filePath)}");
 
             var statusMessage = $"File uploaded: {fileName}";
+            var formattedSize = FormatFileSize(uploadedFile.Length);
+            var logEntry = $"File uploaded: {fileName}, {formattedSize}";
+            
+            Console.WriteLine($"Log entry: {logEntry}");
             
             // Update the corresponding property based on file type
             switch (fileType)
@@ -50,17 +61,20 @@ namespace HtmlClaimsDataImport.Pages
                     JsonFile = filePath;
                     JsonFileStatus = statusMessage;
                     return Content($@"<span id=""json-status"" class=""file-status"">{JsonFileStatus}</span>
-                                     <input type=""text"" id=""jsonFile"" name=""JsonFile"" value=""{filePath}"" readonly hx-swap-oob=""outerHTML"" />");
+                                     <input type=""text"" id=""jsonFile"" name=""JsonFile"" value=""{filePath}"" readonly hx-swap-oob=""outerHTML"" />
+                                     <div hx-swap-oob=""afterbegin:#upload-log"">{logEntry}<br/></div>");
                 case "filename":
                     FileName = filePath;
                     FileNameStatus = statusMessage;
                     return Content($@"<span id=""filename-status"" class=""file-status"">{FileNameStatus}</span>
-                                     <input type=""text"" id=""fileName"" name=""FileName"" value=""{filePath}"" readonly hx-swap-oob=""outerHTML"" />");
+                                     <input type=""text"" id=""fileName"" name=""FileName"" value=""{filePath}"" readonly hx-swap-oob=""outerHTML"" />
+                                     <div hx-swap-oob=""afterbegin:#upload-log"">{logEntry}<br/></div>");
                 case "database":
                     Database = filePath;
                     DatabaseStatus = statusMessage;
                     return Content($@"<span id=""database-status"" class=""file-status"">{DatabaseStatus}</span>
-                                     <input type=""text"" id=""database"" name=""Database"" value=""{filePath}"" readonly hx-swap-oob=""outerHTML"" />");
+                                     <input type=""text"" id=""database"" name=""Database"" value=""{filePath}"" readonly hx-swap-oob=""outerHTML"" />
+                                     <div hx-swap-oob=""afterbegin:#upload-log"">{logEntry}<br/></div>");
             }
             
             return Content(statusMessage);
@@ -89,6 +103,21 @@ namespace HtmlClaimsDataImport.Pages
             }
             
             return Content(statusMessage);
+        }
+
+        private static string FormatFileSize(long bytes)
+        {
+            string[] suffixes = { "B", "KiB", "MiB", "GiB", "TiB" };
+            int suffixIndex = 0;
+            double size = bytes;
+
+            while (size >= 1024 && suffixIndex < suffixes.Length - 1)
+            {
+                size /= 1024;
+                suffixIndex++;
+            }
+
+            return $"{size:0.##} {suffixes[suffixIndex]}";
         }
     }
 }
