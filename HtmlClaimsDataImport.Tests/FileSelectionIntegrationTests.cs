@@ -49,8 +49,8 @@ public class FileSelectionIntegrationTests : IClassFixture<WebApplicationFactory
         // Get the response content
         var responseContent = await response.Content.ReadAsStringAsync();
         
-        // Verify the response contains the expected HTML with "zzz" in the input field
-        Assert.Contains("value=\"zzz\"", responseContent);
+        // Verify the response contains the expected HTML in the input field
+        Assert.Contains("value=\"test.csv\"", responseContent);
         Assert.Contains("id=\"fileName\"", responseContent);
     }
 

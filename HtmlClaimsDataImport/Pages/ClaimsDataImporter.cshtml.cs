@@ -35,7 +35,7 @@ namespace HtmlClaimsDataImport.Pages
                     JsonFileStatus = statusMessage;
                     return Content(JsonFileStatus);
                 case "filename":
-                    FileName = action == "ok" ? "zzz" : string.Empty;
+                    FileName = action == "ok" ? fileName : string.Empty;
                     FileNameStatus = statusMessage;
                     // Console.WriteLine(FileName);
                     return Content($@"<span id=""filename-status"" class=""file-status"">{FileNameStatus}</span>
