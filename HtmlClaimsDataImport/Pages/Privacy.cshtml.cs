@@ -3,14 +3,9 @@
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
 
-public class PrivacyModel : PageModel
+public class PrivacyModel(ILogger<PrivacyModel> logger) : PageModel
 {
-    private readonly ILogger<PrivacyModel> logger;
-
-    public PrivacyModel(ILogger<PrivacyModel> logger)
-    {
-        this.logger = logger;
-    }
+    private readonly ILogger<PrivacyModel> logger = logger;
 
     public void OnGet()
     {

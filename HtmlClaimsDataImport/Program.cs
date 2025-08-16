@@ -25,7 +25,7 @@ builder.Services.AddScoped<ITempDirectoryService>(provider =>
 {
     var httpContextAccessor = provider.GetRequiredService<IHttpContextAccessor>();
     var httpContext = httpContextAccessor.HttpContext;
-    
+
     // Ensure session is loaded/initialized before getting ID
     var session = httpContext?.Session;
     if (session != null)
@@ -33,10 +33,10 @@ builder.Services.AddScoped<ITempDirectoryService>(provider =>
         // This ensures the session is loaded and has an ID
         _ = session.IsAvailable;
     }
-    
+
     var sessionId = session?.Id ?? httpContext?.TraceIdentifier ?? "default";
     var basePath = TempDirectoryCleanupService.GetTempBasePath();
-    
+
     var service = new TempDirectoryService(sessionId, basePath);
     TempDirectoryCleanupService.RegisterService(service);
     return service;
@@ -79,4 +79,7 @@ app.MapRazorPages()
 
 app.Run();
 
+/// <summary>
+/// Partial class for Program to support minimal API hosting.
+/// </summary>
 public partial class Program { }

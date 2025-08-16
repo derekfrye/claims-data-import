@@ -32,26 +32,20 @@ public interface ITempDirectoryService
 /// <summary>
 /// Provides functionality for managing temporary directories, including creation, registration, and cleanup.
 /// </summary>
-public class TempDirectoryService : ITempDirectoryService, IDisposable
+/// <remarks>
+/// Initializes a new instance of the <see cref="TempDirectoryService"/> class.
+/// </remarks>
+/// <param name="sessionId">The unique identifier for the session.</param>
+/// <param name="basePath">The base path for temporary directories. If null, the system's temporary path is used.</param>
+public class TempDirectoryService(string sessionId, string? basePath = null) : ITempDirectoryService, IDisposable
 {
     private readonly List<string> tempDirectories = [];
 
     private readonly object lockObject = new ();
 
-    private readonly string basePath;
-    private readonly string sessionId;
+    private readonly string basePath = basePath ?? Path.GetTempPath();
+    private readonly string sessionId = sessionId;
     private string? sessionTempDirectory;
-
-    /// <summary>
-    /// Initializes a new instance of the <see cref="TempDirectoryService"/> class.
-    /// </summary>
-    /// <param name="sessionId">The unique identifier for the session.</param>
-    /// <param name="basePath">The base path for temporary directories. If null, the system's temporary path is used.</param>
-    public TempDirectoryService(string sessionId, string? basePath = null)
-    {
-        this.sessionId = sessionId;
-        this.basePath = basePath ?? Path.GetTempPath();
-    }
 
     /// <summary>
     /// Gets the temporary directory for the current session. Creates it if it does not exist.

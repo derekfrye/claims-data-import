@@ -1,7 +1,3 @@
-/// <summary>
-/// This file contains the ClaimsDataImporter class, which handles file uploads and interactions
-/// for claims data import functionality in the Razor Pages application.
-/// </summary>
 namespace HtmlClaimsDataImport.Pages
 {
     using HtmlClaimsDataImport.Models;
@@ -61,21 +57,6 @@ namespace HtmlClaimsDataImport.Pages
         public void OnGet()
         {
             // Initialize page
-        }
-
-        private static string FormatFileSize(long bytes)
-        {
-            string[] suffixes = { "B", "KiB", "MiB", "GiB", "TiB" };
-            int suffixIndex = 0;
-            double size = bytes;
-
-            while (size >= 1024 && suffixIndex < suffixes.Length - 1)
-            {
-                size /= 1024;
-                suffixIndex++;
-            }
-
-            return $"{size:0.##} {suffixes[suffixIndex]}";
         }
 
         public async Task<IActionResult> OnPostFileUpload(string fileType, IFormFile uploadedFile)
@@ -179,6 +160,21 @@ namespace HtmlClaimsDataImport.Pages
             }
 
             return this.Content(statusMessage);
+        }
+
+        private static string FormatFileSize(long bytes)
+        {
+            string[] suffixes = { "B", "KiB", "MiB", "GiB", "TiB" };
+            int suffixIndex = 0;
+            double size = bytes;
+
+            while (size >= 1024 && suffixIndex < suffixes.Length - 1)
+            {
+                size /= 1024;
+                suffixIndex++;
+            }
+
+            return $"{size:0.##} {suffixes[suffixIndex]}";
         }
 
         private async Task<string> RenderPartialViewAsync<T>(string partialName, T model)
