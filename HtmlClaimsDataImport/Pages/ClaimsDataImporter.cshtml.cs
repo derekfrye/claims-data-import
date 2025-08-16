@@ -32,6 +32,18 @@ namespace HtmlClaimsDataImport.Pages
         public string Database { get; set; } = string.Empty;
 
         /// <summary>
+        /// Gets or sets the JSON file selection mode (default or upload).
+        /// </summary>
+        [BindProperty]
+        public string JsonMode { get; set; } = "default";
+
+        /// <summary>
+        /// Gets or sets the database selection mode (default or upload).
+        /// </summary>
+        [BindProperty]
+        public string DatabaseMode { get; set; } = "default";
+
+        /// <summary>
         /// Gets or sets the status message for the JSON file.
         /// </summary>
         public string JsonFileStatus { get; set; } = string.Empty;
@@ -52,13 +64,40 @@ namespace HtmlClaimsDataImport.Pages
         public string TempDirectory => this.tempDirectoryService.GetSessionTempDirectory();
 
         /// <summary>
+        /// Gets the default JSON configuration file name.
+        /// </summary>
+        public string DefaultJsonFile => "system.json";
+
+        /// <summary>
+        /// Gets the default database file name.
+        /// </summary>
+        public string DefaultDatabase => "claims.db";
+
+        /// <summary>
         /// Handles GET requests to initialize the page.
         /// </summary>
         public void OnGet()
         {
-            // Initialize page
+            // Initialize default values if not already set
+            if (string.IsNullOrEmpty(this.JsonFile) && this.JsonMode == "default")
+            {
+                this.JsonFile = this.DefaultJsonFile;
+                this.JsonFileStatus = "Using default configuration";
+            }
+
+            if (string.IsNullOrEmpty(this.Database) && this.DatabaseMode == "default")
+            {
+                this.Database = this.DefaultDatabase;
+                this.DatabaseStatus = "Using default database";
+            }
         }
 
+        /// <summary>
+        /// Handles the file upload action for a specific file type.
+        /// </summary>
+        /// <param name="fileType">The type of the file being uploaded (e.g., json, filename, database).</param>
+        /// <param name="uploadedFile">The uploaded file to process.</param>
+        /// <returns>An <see cref="IActionResult"/> representing the result of the operation.</returns>
         public async Task<IActionResult> OnPostFileUpload(string fileType, IFormFile uploadedFile)
         {
             Console.WriteLine($"OnPostFileUpload called: fileType={fileType}, file={uploadedFile?.FileName}, size={uploadedFile?.Length}");

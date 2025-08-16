@@ -93,6 +93,42 @@
         font-size: 0.7em;
     }
     
+    .mode-selector {
+        width: 150px;
+        padding: 8px;
+        border: 1px solid #ccc;
+        border-radius: 4px;
+        font-size: 0.8em;
+        margin-bottom: 10px;
+    }
+    
+    .default-preview {
+        background-color: #f8f9fa;
+        border: 1px solid #e9ecef;
+        border-radius: 4px;
+        padding: 10px;
+        margin-top: 5px;
+        margin-bottom: 10px;
+    }
+    
+    .default-text {
+        color: #6c757d;
+        font-style: italic;
+        font-size: 0.9em;
+    }
+    
+    .upload-section {
+        margin-top: 5px;
+    }
+    
+    .file-path-input {
+        width: 300px;
+        padding: 8px;
+        border: 1px solid #ccc;
+        border-radius: 4px;
+        font-size: 0.7em;
+    }
+    
     .browse-btn {
         margin-left: 10px;
         padding: 8px 16px;
@@ -151,10 +187,30 @@
         <div id="config-content">
             <form method="post" enctype="multipart/form-data">
                 <div class="form-group">
-                    <label for="jsonFile">json:</label>
-                    <input type="text" id="jsonFile" name="JsonFile" value="@Model.JsonFile" readonly />
-                    <input type="file" id="jsonFileInput" class="file-input" accept=".json" onchange="uploadFile('json', this)" />
-                    <button type="button" class="browse-btn" onclick="document.getElementById('jsonFileInput').click()">Browse</button>
+                    <label for="jsonMode">json:</label>
+                    <select id="jsonMode" name="JsonMode" onchange="toggleJsonMode()" class="mode-selector">
+                        @if (Model.JsonMode == "default")
+                        {
+                            <option value="default" selected="selected">Use Default</option>
+                            <option value="upload">Upload File</option>
+                        }
+                        else
+                        {
+                            <option value="default">Use Default</option>
+                            <option value="upload" selected="selected">Upload File</option>
+                        }
+                    </select>
+                    
+                    <div id="json-default-preview" class="default-preview @(Model.JsonMode == "upload" ? "hidden" : "")">
+                        <span class="default-text">Default: @Model.DefaultJsonFile</span>
+                    </div>
+                    
+                    <div id="json-upload-section" class="upload-section @(Model.JsonMode == "default" ? "hidden" : "")">
+                        <input type="text" id="jsonFile" name="JsonFile" value="@Model.JsonFile" readonly class="file-path-input" />
+                        <input type="file" id="jsonFileInput" class="file-input" accept=".json" onchange="uploadFile('json', this)" />
+                        <button type="button" class="browse-btn" onclick="document.getElementById('jsonFileInput').click()">Browse</button>
+                    </div>
+                    
                     <span id="json-status" class="file-status">@Model.JsonFileStatus</span>
                 </div>
                 
@@ -167,10 +223,30 @@
                 </div>
                 
                 <div class="form-group">
-                    <label for="database">database:</label>
-                    <input type="text" id="database" name="Database" value="@Model.Database" readonly />
-                    <input type="file" id="databaseInput" class="file-input" accept=".db,.sqlite,.sqlite3" onchange="uploadFile('database', this)" />
-                    <button type="button" class="browse-btn" onclick="document.getElementById('databaseInput').click()">Browse</button>
+                    <label for="databaseMode">database:</label>
+                    <select id="databaseMode" name="DatabaseMode" onchange="toggleDatabaseMode()" class="mode-selector">
+                        @if (Model.DatabaseMode == "default")
+                        {
+                            <option value="default" selected="selected">Use Default</option>
+                            <option value="upload">Upload File</option>
+                        }
+                        else
+                        {
+                            <option value="default">Use Default</option>
+                            <option value="upload" selected="selected">Upload File</option>
+                        }
+                    </select>
+                    
+                    <div id="database-default-preview" class="default-preview @(Model.DatabaseMode == "upload" ? "hidden" : "")">
+                        <span class="default-text">Default: @Model.DefaultDatabase</span>
+                    </div>
+                    
+                    <div id="database-upload-section" class="upload-section @(Model.DatabaseMode == "default" ? "hidden" : "")">
+                        <input type="text" id="database" name="Database" value="@Model.Database" readonly class="file-path-input" />
+                        <input type="file" id="databaseInput" class="file-input" accept=".db,.sqlite,.sqlite3" onchange="uploadFile('database', this)" />
+                        <button type="button" class="browse-btn" onclick="document.getElementById('databaseInput').click()">Browse</button>
+                    </div>
+                    
                     <span id="database-status" class="file-status">@Model.DatabaseStatus</span>
                 </div>
             </form>
@@ -247,6 +323,44 @@
         // Info is the only option in Developer sidebar for now
         document.querySelector('#developer-sidebar li.active').classList.remove('active');
         event.target.classList.add('active');
+    }
+    
+    function toggleJsonMode() {
+        const mode = document.getElementById('jsonMode').value;
+        const defaultPreview = document.getElementById('json-default-preview');
+        const uploadSection = document.getElementById('json-upload-section');
+        const statusElement = document.getElementById('json-status');
+        
+        if (mode === 'default') {
+            defaultPreview.classList.remove('hidden');
+            uploadSection.classList.add('hidden');
+            // Clear upload field and show default status
+            document.getElementById('jsonFile').value = '';
+            statusElement.textContent = 'Using default configuration';
+        } else {
+            defaultPreview.classList.add('hidden');
+            uploadSection.classList.remove('hidden');
+            statusElement.textContent = 'Please select a file';
+        }
+    }
+    
+    function toggleDatabaseMode() {
+        const mode = document.getElementById('databaseMode').value;
+        const defaultPreview = document.getElementById('database-default-preview');
+        const uploadSection = document.getElementById('database-upload-section');
+        const statusElement = document.getElementById('database-status');
+        
+        if (mode === 'default') {
+            defaultPreview.classList.remove('hidden');
+            uploadSection.classList.add('hidden');
+            // Clear upload field and show default status
+            document.getElementById('database').value = '';
+            statusElement.textContent = 'Using default database';
+        } else {
+            defaultPreview.classList.add('hidden');
+            uploadSection.classList.remove('hidden');
+            statusElement.textContent = 'Please select a file';
+        }
     }
     
     function uploadFile(fileType, inputElement) {
