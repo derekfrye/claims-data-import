@@ -4,6 +4,13 @@
     <ProjectReference Include="..\LibClaimsDataImport\LibClaimsDataImport.csproj" />
   </ItemGroup>
 
+  <ItemGroup>
+    <PackageReference Include="StyleCop.Analyzers" Version="1.1.118">
+      <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+      <PrivateAssets>all</PrivateAssets>
+    </PackageReference>
+  </ItemGroup>
+
   <PropertyGroup>
     <TargetFramework>net9.0</TargetFramework>
     <Nullable>enable</Nullable>
@@ -14,6 +21,10 @@
     <PublishSingleFile>true</PublishSingleFile>
     <PublishTrimmed>false</PublishTrimmed>
     <PublishReadyToRun>true</PublishReadyToRun>
+    
+    <!-- StyleCop configuration -->
+    <GenerateDocumentationFile>true</GenerateDocumentationFile>
+    <NoWarn>$(NoWarn);SA1633;SA1513;SA0001;CS1591;SA1600;SA1515;SA1502;SA1505;SA1508;SA1201</NoWarn>
   </PropertyGroup>
 
 </Project>

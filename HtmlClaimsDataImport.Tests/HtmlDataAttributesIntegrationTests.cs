@@ -153,7 +153,7 @@ public class HtmlDataAttributesIntegrationTests : IClassFixture<WebApplicationFa
         var statusSpan = document.QuerySelector("#json-status") as IHtmlSpanElement;
         Assert.NotNull(statusSpan);
         Assert.Contains("File uploaded: test-config.json", statusSpan.TextContent);
-        Assert.Equal(statusSpan.TextContent, statusSpan.GetAttribute("data-status"));
+        Assert.Equal(statusSpan.TextContent.Trim(), statusSpan.GetAttribute("data-status"));
         
         // Verify input has correct data attribute  
         var inputElement = document.QuerySelector("#jsonFile") as IHtmlInputElement;
@@ -209,7 +209,7 @@ public class HtmlDataAttributesIntegrationTests : IClassFixture<WebApplicationFa
         var statusSpan = document.QuerySelector("#filename-status") as IHtmlSpanElement;
         Assert.NotNull(statusSpan);
         Assert.Contains("File uploaded: test-data.csv", statusSpan.TextContent);
-        Assert.Equal(statusSpan.TextContent, statusSpan.GetAttribute("data-status"));
+        Assert.Equal(statusSpan.TextContent.Trim(), statusSpan.GetAttribute("data-status"));
         
         // Verify input has correct data attribute
         var inputElement = document.QuerySelector("#fileName") as IHtmlInputElement;
@@ -250,7 +250,7 @@ public class HtmlDataAttributesIntegrationTests : IClassFixture<WebApplicationFa
         var statusSpan = document.QuerySelector("#database-status") as IHtmlSpanElement;
         Assert.NotNull(statusSpan);
         Assert.Contains("File uploaded: test-database.db", statusSpan.TextContent);
-        Assert.Equal(statusSpan.TextContent, statusSpan.GetAttribute("data-status"));
+        Assert.Equal(statusSpan.TextContent.Trim(), statusSpan.GetAttribute("data-status"));
         
         // Verify input has correct data attribute
         var inputElement = document.QuerySelector("#database") as IHtmlInputElement;
@@ -389,7 +389,7 @@ public class HtmlDataAttributesIntegrationTests : IClassFixture<WebApplicationFa
         Assert.NotNull(logDiv);
         
         // 4. Data attributes should match visible content
-        Assert.Equal(statusSpan.TextContent, statusSpan.GetAttribute("data-status"));
+        Assert.Equal(statusSpan.TextContent.Trim(), statusSpan.GetAttribute("data-status"));
         Assert.Equal(inputElement.GetAttribute("value"), inputElement.GetAttribute("data-file-path"));
     }
 }

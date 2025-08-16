@@ -1,0 +1,9 @@
+@model HtmlClaimsDataImport.Models.FileSelectedResponseModel
+
+<span id="@Model.FileType-status" class="file-status">@Model.StatusMessage</span>
+<input type="text" 
+       id="@Model.InputId" 
+       name="@Model.InputName" 
+       value="@Model.FileName" 
+       readonly 
+       hx-swap-oob="outerHTML" />

@@ -174,7 +174,25 @@ This codebase maintains high code quality standards:
 - Roslynator analysis ensures adherence to best practices and performance guidelines
 - Tests must pass before committing changes
 
+### StyleCop.Analyzers Configuration
+
+The web application (HtmlClaimsDataImport) includes StyleCop.Analyzers with the following suppressions:
+
+**Suppressed Rules:**
+- **SA1633**: File header copyright text - Not required for internal web application files
+- **SA1513**: Closing brace followed by blank line - Conflicts with modern C# formatting preferences
+- **SA0001**: XML comment analysis disabled - Reduces noise from documentation analyzer
+- **CS1591**: Missing XML comment for publicly visible members - Web app internal classes don't require public API documentation
+- **SA1600**: Elements should be documented - Same rationale as CS1591 for internal web application
+- **SA1515**: Single-line comment preceded by blank line - Conflicts with natural commenting style
+- **SA1502**: Element should not be on single line - Allows concise property declarations
+- **SA1505**: Opening braces not followed by blank line - Modern C# style preference
+- **SA1508**: Closing braces not preceded by blank line - Modern C# style preference  
+- **SA1201**: Elements should appear in correct order - Allows logical grouping over strict ordering
+
+**Active Rules:**
+- All other StyleCop rules are active and enforced
+
 ### Future Code Quality Goals
-- **StyleCop.Analyzers integration**: Aspire to add comprehensive C# style enforcement
-- **Zero StyleCop violations**: Currently 180+ violations exist that would need addressing
-- **Consistent formatting**: StyleCop would enforce file headers, spacing, naming conventions
+- **Consistent formatting**: Continue refining StyleCop configuration based on team preferences
+- **Selective enforcement**: Enable additional rules as codebase matures and patterns stabilize

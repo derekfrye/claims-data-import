@@ -1,0 +1,13 @@
+@model HtmlClaimsDataImport.Models.FileUploadResponseModel
+
+<span id="@Model.FileType-status" class="file-status" data-status="@Model.StatusMessage">@Model.StatusMessage</span>
+<input type="text" 
+       id="@Model.InputId" 
+       name="@Model.InputName" 
+       value="@Model.FilePath" 
+       readonly 
+       hx-swap-oob="outerHTML" 
+       data-file-path="@Model.FilePath" />
+<div hx-swap-oob="afterbegin:#upload-log" data-log-entry="@Model.LogEntry">
+    @Model.LogEntry<br/>
+</div>

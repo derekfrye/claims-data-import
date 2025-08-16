@@ -1,61 +1,108 @@
 namespace HtmlClaimsDataImport.Services;
 
+/// <summary>
+/// Defines methods for managing temporary directories, including creation, registration, and cleanup.
+/// </summary>
 public interface ITempDirectoryService
 {
+    /// <summary>
+    /// Gets the temporary directory for the current session.
+    /// </summary>
+    /// <returns>The path to the session's temporary directory.</returns>
     string GetSessionTempDirectory();
+
+    /// <summary>
+    /// Creates a new temporary directory and returns its path.
+    /// </summary>
+    /// <returns>The path to the newly created temporary directory.</returns>
     string CreateTempDirectory();
+
+    /// <summary>
+    /// Registers a temporary directory for cleanup.
+    /// </summary>
+    /// <param name="path">The path to the temporary directory to register.</param>
     void RegisterTempDirectory(string path);
+
+    /// <summary>
+    /// Cleans up all registered temporary directories.
+    /// </summary>
     void CleanupDirectories();
 }
 
+/// <summary>
+/// Provides functionality for managing temporary directories, including creation, registration, and cleanup.
+/// </summary>
 public class TempDirectoryService : ITempDirectoryService, IDisposable
 {
-    private readonly List<string> _tempDirectories = new();
-    private readonly object _lock = new();
-    private readonly string _basePath;
-    private readonly string _sessionId;
-    private string? _sessionTempDirectory;
+    private readonly List<string> tempDirectories = [];
 
+    private readonly object lockObject = new ();
+
+    private readonly string basePath;
+    private readonly string sessionId;
+    private string? sessionTempDirectory;
+
+    /// <summary>
+    /// Initializes a new instance of the <see cref="TempDirectoryService"/> class.
+    /// </summary>
+    /// <param name="sessionId">The unique identifier for the session.</param>
+    /// <param name="basePath">The base path for temporary directories. If null, the system's temporary path is used.</param>
     public TempDirectoryService(string sessionId, string? basePath = null)
     {
-        _sessionId = sessionId;
-        _basePath = basePath ?? Path.GetTempPath();
+        this.sessionId = sessionId;
+        this.basePath = basePath ?? Path.GetTempPath();
     }
 
+    /// <summary>
+    /// Gets the temporary directory for the current session. Creates it if it does not exist.
+    /// </summary>
+    /// <returns>The path to the session's temporary directory.</returns>
     public string GetSessionTempDirectory()
     {
-        if (_sessionTempDirectory == null)
+        if (this.sessionTempDirectory == null)
         {
-            lock (_lock)
+            lock (this.lockObject)
             {
-                _sessionTempDirectory ??= CreateTempDirectory();
+                this.sessionTempDirectory ??= this.CreateTempDirectory();
             }
         }
-        return _sessionTempDirectory;
+
+        return this.sessionTempDirectory;
     }
 
+    /// <summary>
+    /// Creates a new temporary directory, registers it for cleanup, and returns its path.
+    /// </summary>
+    /// <returns>The path to the newly created temporary directory.</returns>
     public string CreateTempDirectory()
     {
-        var tempDirName = $"session-{_sessionId}-{Path.GetRandomFileName()}";
-        var tempDir = Path.Combine(_basePath, tempDirName);
+        var tempDirName = $"session-{this.sessionId}-{Path.GetRandomFileName()}";
+        var tempDir = Path.Combine(this.basePath, tempDirName);
         Directory.CreateDirectory(tempDir);
-        RegisterTempDirectory(tempDir);
+        this.RegisterTempDirectory(tempDir);
         return tempDir;
     }
 
+    /// <summary>
+    /// Registers a temporary directory for cleanup.
+    /// </summary>
+    /// <param name="path">The path to the temporary directory to register.</param>
     public void RegisterTempDirectory(string path)
     {
-        lock (_lock)
+        lock (this.lockObject)
         {
-            _tempDirectories.Add(path);
+            this.tempDirectories.Add(path);
         }
     }
 
+    /// <summary>
+    /// Cleans up all registered temporary directories by deleting them and clearing the list.
+    /// </summary>
     public void CleanupDirectories()
     {
-        lock (_lock)
+        lock (this.lockObject)
         {
-            foreach (var dir in _tempDirectories)
+            foreach (var dir in this.tempDirectories)
             {
                 try
                 {
@@ -70,58 +117,79 @@ public class TempDirectoryService : ITempDirectoryService, IDisposable
                     Console.WriteLine($"Failed to delete temp directory {dir}: {ex.Message}");
                 }
             }
-            _tempDirectories.Clear();
+
+            this.tempDirectories.Clear();
         }
     }
 
+    /// <summary>
+    /// Disposes the service by cleaning up all registered temporary directories.
+    /// </summary>
     public void Dispose()
     {
-        CleanupDirectories();
+        this.CleanupDirectories();
     }
 }
 
+/// <summary>
+/// A hosted service that manages the cleanup of temporary directories created during the application's lifecycle.
+/// </summary>
 public class TempDirectoryCleanupService : IHostedService
 {
-    private static readonly List<ITempDirectoryService> _activeServices = new();
-    private static readonly object _lock = new();
-    private static string? _overrideTempBasePath;
+    private static readonly List<ITempDirectoryService> ActiveServices = [];
+    private static readonly object LockObject = new ();
+    private static string? overrideTempBasePath;
 
+    /// <summary>
+    /// Sets the base path for temporary directories. If set, this path will override the system's default temporary path.
+    /// </summary>
+    /// <param name="basePath">The base path to use for temporary directories, or null to use the default system path.</param>
     public static void SetTempBasePath(string? basePath)
     {
-        _overrideTempBasePath = basePath;
+        overrideTempBasePath = basePath;
     }
 
+    /// <summary>
+    /// Registers a temporary directory service for cleanup management.
+    /// </summary>
+    /// <param name="service">The temporary directory service to register.</param>
     public static void RegisterService(ITempDirectoryService service)
     {
-        lock (_lock)
+        lock (LockObject)
         {
-            _activeServices.Add(service);
+            ActiveServices.Add(service);
         }
     }
 
+    /// <summary>
+    /// Unregisters a temporary directory service, removing it from cleanup management.
+    /// </summary>
+    /// <param name="service">The temporary directory service to unregister.</param>
     public static void UnregisterService(ITempDirectoryService service)
     {
-        lock (_lock)
+        lock (LockObject)
         {
-            _activeServices.Remove(service);
+            ActiveServices.Remove(service);
         }
     }
 
+    /// <summary>
+    /// Gets the base path for temporary directories. Returns the overridden path if set; otherwise, the system's temporary path.
+    /// </summary>
+    /// <returns>The base path for temporary directories.</returns>
     public static string GetTempBasePath()
     {
-        return _overrideTempBasePath ?? Path.GetTempPath();
+        return overrideTempBasePath ?? Path.GetTempPath();
     }
 
-    public Task StartAsync(CancellationToken cancellationToken)
-    {
-        return Task.CompletedTask;
-    }
-
+    /// <summary>
+    /// Cleans up all temporary directories registered by active services.
+    /// </summary>
     public static void CleanupAllDirectories()
     {
-        lock (_lock)
+        lock (LockObject)
         {
-            var servicesToCleanup = new List<ITempDirectoryService>(_activeServices);
+            var servicesToCleanup = new List<ITempDirectoryService>(ActiveServices);
             foreach (var service in servicesToCleanup)
             {
                 try
@@ -133,10 +201,26 @@ public class TempDirectoryCleanupService : IHostedService
                     Console.WriteLine($"Failed to cleanup service directories: {ex.Message}");
                 }
             }
-            _activeServices.Clear();
+
+            ActiveServices.Clear();
         }
     }
 
+    /// <summary>
+    /// Starts the service. This method is called at the start of the application.
+    /// </summary>
+    /// <param name="cancellationToken">A token to monitor for cancellation requests.</param>
+    /// <returns>A completed task.</returns>
+    public Task StartAsync(CancellationToken cancellationToken)
+    {
+        return Task.CompletedTask;
+    }
+
+    /// <summary>
+    /// Stops the service and cleans up all temporary directories.
+    /// </summary>
+    /// <param name="cancellationToken">A token to monitor for cancellation requests.</param>
+    /// <returns>A completed task.</returns>
     public Task StopAsync(CancellationToken cancellationToken)
     {
         Console.WriteLine("StopAsync: Cleaning up temp directories...");
