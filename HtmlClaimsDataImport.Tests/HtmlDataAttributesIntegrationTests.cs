@@ -1,11 +1,7 @@
 using Microsoft.AspNetCore.Mvc.Testing;
-using Microsoft.AspNetCore.Hosting;
-using Microsoft.Extensions.DependencyInjection;
 using AngleSharp;
 using AngleSharp.Html.Dom;
 using System.Text;
-using System.Net;
-using HtmlClaimsDataImport.Services;
 
 namespace HtmlClaimsDataImport.Tests;
 
@@ -19,42 +15,14 @@ public class HtmlDataAttributesIntegrationTests : IClassFixture<WebApplicationFa
         _factory = factory;
         _client = _factory.CreateClient();
     }
-
-    private async Task<(string token, HttpClient sessionClient)> EstablishSessionAndGetTokenAsync()
+    
+    // Helper to create a session-enabled client that works like the original
+    private HttpClient CreateSessionClient()
     {
-        // Create a client with cookie support using the test server
-        var cookieContainer = new CookieContainer();
-        var sessionClient = _factory.WithWebHostBuilder(builder => { })
-            .CreateClient();
-            
-        // Manually configure the client to use cookies by copying its properties to a new client
-        var handler = new HttpClientHandler() { CookieContainer = cookieContainer };
-        var cookieEnabledClient = new HttpClient(handler)
-        {
-            BaseAddress = sessionClient.BaseAddress
-        };
-        
-        // Copy any default headers
-        foreach (var header in sessionClient.DefaultRequestHeaders)
-        {
-            cookieEnabledClient.DefaultRequestHeaders.TryAddWithoutValidation(header.Key, header.Value);
-        }
-        
-        // Dispose the original client
-        sessionClient.Dispose();
-        
-        // Make initial request to establish session (like browser loading page)
-        var getResponse = await cookieEnabledClient.GetAsync("/ClaimsDataImporter");
-        getResponse.EnsureSuccessStatusCode();
-        var getContent = await getResponse.Content.ReadAsStringAsync();
-        
-        // Extract anti-forgery token
-        var tokenStart = getContent.IndexOf("__RequestVerificationToken\" type=\"hidden\" value=\"") + "__RequestVerificationToken\" type=\"hidden\" value=\"".Length;
-        var tokenEnd = getContent.IndexOf("\"", tokenStart);
-        var token = getContent.Substring(tokenStart, tokenEnd - tokenStart);
-        
-        return (token, cookieEnabledClient);
+        // Just create a regular client like the original and see if it automatically handles cookies
+        return _factory.CreateClient();
     }
+
 
     private async Task<string> GetAntiForgeryTokenAsync()
     {
@@ -68,28 +36,111 @@ public class HtmlDataAttributesIntegrationTests : IClassFixture<WebApplicationFa
     }
 
     [Fact]
+    public async Task FileUpload_JsonFile_ReturnsCorrectDataAttributes_Debug()
+    {
+        // Debug: Check if the original client has cookie support
+        Console.WriteLine($"Original client type: {_client.GetType().Name}");
+        
+        // Test the EXACT same logic with original client first
+        var token = await GetAntiForgeryTokenAsync();
+        
+        // Create a test JSON file
+        var jsonContent = """{"testKey": "testValue"}""";
+        var jsonBytes = Encoding.UTF8.GetBytes(jsonContent);
+        
+        using var content = new MultipartFormDataContent
+        {
+            { new StringContent("json"), "fileType" },
+            { new StringContent(token), "__RequestVerificationToken" },
+            { new ByteArrayContent(jsonBytes), "uploadedFile", "test-config.json" }
+        };
+        
+        // Act: Post file upload request using the ORIGINAL client
+        var response = await _client.PostAsync("/ClaimsDataImporter?handler=FileUpload", content);
+        
+        // Debug: Check if this works
+        if (!response.IsSuccessStatusCode)
+        {
+            var errorContent = await response.Content.ReadAsStringAsync();
+            throw new HttpRequestException($"ORIGINAL CLIENT failed with {response.StatusCode}: {errorContent}");
+        }
+        
+        // This should work - let's see
+        response.EnsureSuccessStatusCode();
+        
+        // If we get here, the problem is specifically with the session client
+        Assert.True(response.IsSuccessStatusCode);
+    }
+
+    [Fact]
+    public async Task FileUpload_JsonFile_ReturnsCorrectDataAttributes_Simple()
+    {
+        // Use the simple session client approach
+        using var sessionClient = CreateSessionClient();
+        
+        // Step 1: Get the page and token using session client
+        var getResponse = await sessionClient.GetAsync("/ClaimsDataImporter");
+        getResponse.EnsureSuccessStatusCode();
+        var getContent = await getResponse.Content.ReadAsStringAsync();
+        
+        // Extract token
+        var tokenStart = getContent.IndexOf("__RequestVerificationToken\" type=\"hidden\" value=\"") + "__RequestVerificationToken\" type=\"hidden\" value=\"".Length;
+        var tokenEnd = getContent.IndexOf("\"", tokenStart);
+        var token = getContent.Substring(tokenStart, tokenEnd - tokenStart);
+        
+        // Step 2: Upload file using the SAME session client  
+        var jsonContent = """{"testKey": "testValue"}""";
+        var jsonBytes = Encoding.UTF8.GetBytes(jsonContent);
+        
+        using var content = new MultipartFormDataContent
+        {
+            { new StringContent("json"), "fileType" },
+            { new StringContent(token), "__RequestVerificationToken" },
+            { new ByteArrayContent(jsonBytes), "uploadedFile", "test-config.json" }
+        };
+        
+        var response = await sessionClient.PostAsync("/ClaimsDataImporter?handler=FileUpload", content);
+        
+        // This should work - same client, same session, same token
+        if (!response.IsSuccessStatusCode)
+        {
+            var errorContent = await response.Content.ReadAsStringAsync();
+            throw new HttpRequestException($"SIMPLE approach failed: {response.StatusCode}: {errorContent}");
+        }
+        
+        response.EnsureSuccessStatusCode();
+        Assert.True(response.IsSuccessStatusCode);
+    }
+
+    [Fact]
     public async Task FileUpload_JsonFile_ReturnsCorrectDataAttributes()
     {
-        // Arrange: Establish unique session and get anti-forgery token
-        var (token, sessionClient) = await EstablishSessionAndGetTokenAsync();
+        // Use the simple working approach - just create a regular client
+        using var sessionClient = CreateSessionClient();
         
-        try
+        // Step 1: Get the page and token using session client
+        var getResponse = await sessionClient.GetAsync("/ClaimsDataImporter");
+        getResponse.EnsureSuccessStatusCode();
+        var getContent = await getResponse.Content.ReadAsStringAsync();
+        
+        // Extract token
+        var tokenStart = getContent.IndexOf("__RequestVerificationToken\" type=\"hidden\" value=\"") + "__RequestVerificationToken\" type=\"hidden\" value=\"".Length;
+        var tokenEnd = getContent.IndexOf("\"", tokenStart);
+        var token = getContent.Substring(tokenStart, tokenEnd - tokenStart);
+        
+        // Step 2: Upload file using the SAME session client (now with cookies!)
+        var jsonContent = """{"testKey": "testValue"}""";
+        var jsonBytes = Encoding.UTF8.GetBytes(jsonContent);
+        
+        using var content = new MultipartFormDataContent
         {
-            // Create a test JSON file
-            var jsonContent = """{"testKey": "testValue"}""";
-            var jsonBytes = Encoding.UTF8.GetBytes(jsonContent);
-            
-            using var content = new MultipartFormDataContent
-            {
-                { new StringContent("json"), "fileType" },
-                { new StringContent(token), "__RequestVerificationToken" },
-                { new ByteArrayContent(jsonBytes), "uploadedFile", "test-config.json" }
-            };
-            
-            // Act: Post file upload request using the session client
-            var response = await sessionClient.PostAsync("/ClaimsDataImporter?handler=FileUpload", content);
+            { new StringContent("json"), "fileType" },
+            { new StringContent(token), "__RequestVerificationToken" },
+            { new ByteArrayContent(jsonBytes), "uploadedFile", "test-config.json" }
+        };
         
-        // Assert: Response should be successful
+        // Act: Post file upload request using the session client
+        var response = await sessionClient.PostAsync("/ClaimsDataImporter?handler=FileUpload", content);
         response.EnsureSuccessStatusCode();
         var responseHtml = await response.Content.ReadAsStringAsync();
         
@@ -110,38 +161,40 @@ public class HtmlDataAttributesIntegrationTests : IClassFixture<WebApplicationFa
         Assert.Contains("test-config.json", inputElement.Value);
         Assert.Equal(inputElement.Value, inputElement.GetAttribute("data-file-path"));
         
-            // Verify log div has data attribute
-            var logDiv = document.QuerySelector("div[data-log-entry]") as IHtmlDivElement;
-            Assert.NotNull(logDiv);
-            Assert.NotNull(logDiv.GetAttribute("data-log-entry"));
-            Assert.Contains("test-config.json", logDiv.GetAttribute("data-log-entry"));
-        }
-        finally
-        {
-            // Clean up the session client
-            sessionClient.Dispose();
-        }
+        // Verify log div has data attribute
+        var logDiv = document.QuerySelector("div[data-log-entry]") as IHtmlDivElement;
+        Assert.NotNull(logDiv);
+        Assert.NotNull(logDiv.GetAttribute("data-log-entry"));
+        Assert.Contains("test-config.json", logDiv.GetAttribute("data-log-entry"));
     }
 
     [Fact]
     public async Task FileUpload_CsvFile_ReturnsCorrectDataAttributes()
     {
-        // Arrange: Establish unique session and get anti-forgery token
-        var (token, sessionClient) = await EstablishSessionAndGetTokenAsync();
+        // Use simple session client approach
+        using var sessionClient = CreateSessionClient();
         
-        try
-        {
-            // Create a test CSV file
-            var csvContent = "Name,Age,City\nJohn,30,NYC\nJane,25,LA";
-            var csvBytes = Encoding.UTF8.GetBytes(csvContent);
-            
-            using var content = new MultipartFormDataContent();
-            content.Add(new StringContent("filename"), "fileType");
-            content.Add(new StringContent(token), "__RequestVerificationToken");
-            content.Add(new ByteArrayContent(csvBytes), "uploadedFile", "test-data.csv");
-            
-            // Act: Post file upload request using session client
-            var response = await sessionClient.PostAsync("/ClaimsDataImporter?handler=FileUpload", content);
+        // Get the page and token using session client
+        var getResponse = await sessionClient.GetAsync("/ClaimsDataImporter");
+        getResponse.EnsureSuccessStatusCode();
+        var getContent = await getResponse.Content.ReadAsStringAsync();
+        
+        // Extract token
+        var tokenStart = getContent.IndexOf("__RequestVerificationToken\" type=\"hidden\" value=\"") + "__RequestVerificationToken\" type=\"hidden\" value=\"".Length;
+        var tokenEnd = getContent.IndexOf("\"", tokenStart);
+        var token = getContent.Substring(tokenStart, tokenEnd - tokenStart);
+        
+        // Create a test CSV file
+        var csvContent = "Name,Age,City\nJohn,30,NYC\nJane,25,LA";
+        var csvBytes = Encoding.UTF8.GetBytes(csvContent);
+        
+        using var content = new MultipartFormDataContent();
+        content.Add(new StringContent("filename"), "fileType");
+        content.Add(new StringContent(token), "__RequestVerificationToken");
+        content.Add(new ByteArrayContent(csvBytes), "uploadedFile", "test-data.csv");
+        
+        // Act: Post file upload request using session client
+        var response = await sessionClient.PostAsync("/ClaimsDataImporter?handler=FileUpload", content);
         
         // Assert: Response should be successful
         response.EnsureSuccessStatusCode();
@@ -158,16 +211,11 @@ public class HtmlDataAttributesIntegrationTests : IClassFixture<WebApplicationFa
         Assert.Contains("File uploaded: test-data.csv", statusSpan.TextContent);
         Assert.Equal(statusSpan.TextContent, statusSpan.GetAttribute("data-status"));
         
-            // Verify input has correct data attribute
-            var inputElement = document.QuerySelector("#fileName") as IHtmlInputElement;
-            Assert.NotNull(inputElement);
-            Assert.Contains("test-data.csv", inputElement.Value);
-            Assert.Equal(inputElement.Value, inputElement.GetAttribute("data-file-path"));
-        }
-        finally
-        {
-            sessionClient.Dispose();
-        }
+        // Verify input has correct data attribute
+        var inputElement = document.QuerySelector("#fileName") as IHtmlInputElement;
+        Assert.NotNull(inputElement);
+        Assert.Contains("test-data.csv", inputElement.Value);
+        Assert.Equal(inputElement.Value, inputElement.GetAttribute("data-file-path"));
     }
 
     [Fact]
