@@ -11,6 +11,18 @@
     </PackageReference>
   </ItemGroup>
 
+  <ItemGroup>
+    <Content Include="default.sqlite3.db">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </Content>
+  </ItemGroup>
+  
+  <ItemGroup>
+    <Content Update="default.json">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </Content>
+  </ItemGroup>
+
   <PropertyGroup>
     <TargetFramework>net9.0</TargetFramework>
     <Nullable>enable</Nullable>
@@ -24,7 +36,7 @@
     
     <!-- StyleCop configuration -->
     <GenerateDocumentationFile>true</GenerateDocumentationFile>
-    <NoWarn>$(NoWarn);SA1633;SA0001;CS1591;SA1600;SA1515;SA1502;SA1201;SA1009;SA1010</NoWarn>
+    <NoWarn>$(NoWarn);SA1633;SA0001;CS1591;SA1600;SA1515;SA1502;SA1201;SA1009;SA1010;SA1516</NoWarn>
   </PropertyGroup>
 
 </Project>

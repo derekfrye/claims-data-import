@@ -1,0 +1,35 @@
+{
+  "sqliteSettings": {
+    "connectionSettings": {
+      "defaultTimeout": 30,
+      "enableForeignKeys": true,
+      "journalMode": "WAL",
+      "pragma": {
+        "cache_size": 10000,
+        "temp_store": "memory"
+      }
+    },
+    "importSettings": {
+      "batchSize": 1000,
+      "enableTransactions": true,
+      "continueOnError": false,
+      "logLevel": "info"
+    }
+  },
+  "columnMappings": {
+    "moneyFormats": {
+      "allowParenthesesForNegative": true,
+      "stripCurrencySymbols": true,
+      "stripThousandsSeparators": true,
+      "defaultCurrency": "USD"
+    }
+  },
+  "validation": {
+    "maxRowErrors": 100
+  },
+  "destinationTable": {
+    "auto": {
+      "datatype": "auto"
+    }
+  }
+}

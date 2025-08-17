@@ -156,6 +156,27 @@
     .hidden {
         display: none;
     }
+    
+    .load-btn {
+        padding: 10px 20px;
+        background-color: #007bff;
+        color: white;
+        border: none;
+        border-radius: 4px;
+        cursor: pointer;
+        font-size: 1em;
+        margin-right: 10px;
+    }
+    
+    .load-btn:hover:not(.disabled) {
+        background-color: #0056b3;
+    }
+    
+    .load-btn.disabled {
+        background-color: #6c757d;
+        cursor: not-allowed;
+        opacity: 0.6;
+    }
 </style>
 
 <div class="nav-header">
@@ -187,6 +208,14 @@
         <div id="config-content">
             <form method="post" enctype="multipart/form-data">
                 <div class="form-group">
+                    <label for="fileName">filename:</label>
+                    <input type="text" id="fileName" name="FileName" value="@Model.FileName" readonly />
+                    <input type="file" id="fileNameInput" class="file-input" accept=".csv,.txt" onchange="uploadFile('filename', this)" />
+                    <button type="button" class="browse-btn" onclick="document.getElementById('fileNameInput').click()">Browse</button>
+                    <span id="filename-status" class="file-status">@Model.FileNameStatus</span>
+                </div>
+                
+                <div class="form-group">
                     <label for="jsonMode">json:</label>
                     <select id="jsonMode" name="JsonMode" onchange="toggleJsonMode()" class="mode-selector">
                         @if (Model.JsonMode == "default")
@@ -215,14 +244,6 @@
                 </div>
                 
                 <div class="form-group">
-                    <label for="fileName">filename:</label>
-                    <input type="text" id="fileName" name="FileName" value="@Model.FileName" readonly />
-                    <input type="file" id="fileNameInput" class="file-input" accept=".csv,.txt" onchange="uploadFile('filename', this)" />
-                    <button type="button" class="browse-btn" onclick="document.getElementById('fileNameInput').click()">Browse</button>
-                    <span id="filename-status" class="file-status">@Model.FileNameStatus</span>
-                </div>
-                
-                <div class="form-group">
                     <label for="databaseMode">database:</label>
                     <select id="databaseMode" name="DatabaseMode" onchange="toggleDatabaseMode()" class="mode-selector">
                         @if (Model.DatabaseMode == "default")
@@ -248,6 +269,11 @@
                     </div>
                     
                     <span id="database-status" class="file-status">@Model.DatabaseStatus</span>
+                </div>
+                
+                <div class="form-group">
+                    <button type="button" id="loadBtn" class="load-btn disabled" onclick="loadData()">Load</button>
+                    <span id="load-warning" class="file-status"></span>
                 </div>
                 
                 <!-- Hidden field to maintain temp directory across requests -->
@@ -345,6 +371,7 @@
             uploadSection.classList.remove('hidden');
             statusElement.textContent = 'Please select a file';
         }
+        validateLoadButton();
     }
     
     function toggleDatabaseMode() {
@@ -364,6 +391,122 @@
             uploadSection.classList.remove('hidden');
             statusElement.textContent = 'Please select a file';
         }
+        validateLoadButton();
+    }
+    
+    function validateLoadButton() {
+        const loadBtn = document.getElementById('loadBtn');
+        const loadWarning = document.getElementById('load-warning');
+        
+        // Check JSON condition
+        const jsonMode = document.getElementById('jsonMode').value;
+        const jsonFile = document.getElementById('jsonFile').value;
+        const jsonValid = jsonMode === 'default' || (jsonMode === 'upload' && jsonFile.trim() !== '');
+        
+        if (!jsonValid) {
+            loadBtn.classList.add('disabled');
+            loadWarning.textContent = '';
+            return;
+        }
+        
+        // Check filename condition
+        const fileName = document.getElementById('fileName').value;
+        const fileValid = fileName.trim() !== '';
+        
+        if (!fileValid) {
+            loadBtn.classList.add('disabled');
+            loadWarning.textContent = '';
+            return;
+        }
+        
+        // Check database condition
+        const databaseMode = document.getElementById('databaseMode').value;
+        const database = document.getElementById('database').value;
+        const databaseValid = databaseMode === 'default' || (databaseMode === 'upload' && database.trim() !== '');
+        
+        if (!databaseValid) {
+            loadBtn.classList.add('disabled');
+            loadWarning.textContent = '';
+            return;
+        }
+        
+        // All conditions met - enable button
+        loadBtn.classList.remove('disabled');
+        loadWarning.textContent = '';
+    }
+    
+    function loadData() {
+        const loadBtn = document.getElementById('loadBtn');
+        const loadWarning = document.getElementById('load-warning');
+        
+        if (loadBtn.classList.contains('disabled')) {
+            // Check conditions and show appropriate warning
+            const jsonMode = document.getElementById('jsonMode').value;
+            const jsonFile = document.getElementById('jsonFile').value;
+            const jsonValid = jsonMode === 'default' || (jsonMode === 'upload' && jsonFile.trim() !== '');
+            
+            if (!jsonValid) {
+                loadWarning.textContent = 'no json supplied';
+                return;
+            }
+            
+            const fileName = document.getElementById('fileName').value;
+            const fileValid = fileName.trim() !== '';
+            
+            if (!fileValid) {
+                loadWarning.textContent = 'no file supplied';
+                return;
+            }
+            
+            const databaseMode = document.getElementById('databaseMode').value;
+            const database = document.getElementById('database').value;
+            const databaseValid = databaseMode === 'default' || (databaseMode === 'upload' && database.trim() !== '');
+            
+            if (!databaseValid) {
+                loadWarning.textContent = 'no database supplied';
+                return;
+            }
+        }
+        
+        // All conditions met - proceed with load
+        loadWarning.textContent = 'Loading...';
+        
+        // Prepare data for server
+        const formData = new FormData();
+        const token = document.querySelector('input[name="__RequestVerificationToken"]').value;
+        formData.append('__RequestVerificationToken', token);
+        formData.append('tmpdir', document.getElementById('tmpdir').value);
+        formData.append('fileName', document.getElementById('fileName').value);
+        
+        // Add JSON path
+        const jsonMode = document.getElementById('jsonMode').value;
+        if (jsonMode === 'default') {
+            formData.append('jsonPath', 'default');
+        } else {
+            formData.append('jsonPath', document.getElementById('jsonFile').value);
+        }
+        
+        // Add database path
+        const databaseMode = document.getElementById('databaseMode').value;
+        if (databaseMode === 'default') {
+            formData.append('databasePath', 'default');
+        } else {
+            formData.append('databasePath', document.getElementById('database').value);
+        }
+        
+        // Use fetch to call the load handler
+        fetch('/ClaimsDataImporter?handler=LoadData', {
+            method: 'POST',
+            body: formData
+        })
+        .then(response => response.text())
+        .then(result => {
+            loadWarning.textContent = result;
+        })
+        .catch(error => {
+            console.error('Load error:', error);
+            loadWarning.textContent = 'Load failed';
+        });
     }
     
     function uploadFile(fileType, inputElement) {
@@ -445,6 +588,9 @@
                     const uploadLog = document.getElementById('upload-log');
                     uploadLog.innerHTML = logEntry + '<br/>' + uploadLog.innerHTML;
                 }
+                
+                // Validate load button after upload
+                validateLoadButton();
             })
             .catch(error => {
                 console.error('Upload error:', error);
