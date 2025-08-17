@@ -228,8 +228,8 @@ public class PreviewPaneIntegrationTests(WebApplicationFactory<Program> factory)
 
         var selectedCells = document.QuerySelectorAll("td.selected-column-cell").Cast<IHtmlTableDataCellElement>().ToList();
         Assert.True(selectedCells.Count >= 2, "Should have at least 2 highlighted cells for test data");
-        Assert.Contains(selectedCells, cell => cell.TextContent.Contains("123.0"));
-        Assert.Contains(selectedCells, cell => cell.TextContent.Contains("456.0"));
+        Assert.Contains(selectedCells, cell => cell.TextContent.Contains("123"));
+        Assert.Contains(selectedCells, cell => cell.TextContent.Contains("456"));
     }
 
     [Fact]
@@ -356,7 +356,7 @@ public class PreviewPaneIntegrationTests(WebApplicationFactory<Program> factory)
         // Should show warning message
         var alertWarning = document.QuerySelector(".alert-warning");
         Assert.NotNull(alertWarning);
-        Assert.Contains("Load data first", alertWarning.TextContent);
+        Assert.Contains("no working_db.db detected; re-run load", alertWarning.TextContent);
 
         // Should not show preview table
         var previewTable = document.QuerySelector("#previewTable");

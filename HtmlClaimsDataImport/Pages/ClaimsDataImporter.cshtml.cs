@@ -20,110 +20,6 @@ namespace HtmlClaimsDataImport.Pages
         private readonly ITempDirectoryService tempDirectoryService = tempDirectoryService;
 
         /// <summary>
-        /// Formats a file size in bytes to a human-readable string.
-        /// </summary>
-        /// <param name="bytes">The file size in bytes.</param>
-        /// <returns>A formatted string representing the file size.</returns>
-        private static string FormatFileSize(long bytes)
-        {
-            string[] suffixes = { "B", "KiB", "MiB", "GiB", "TiB" };
-            int suffixIndex = 0;
-            double size = bytes;
-
-            while (size >= 1024 && suffixIndex < suffixes.Length - 1)
-            {
-                size /= 1024;
-                suffixIndex++;
-            }
-
-            return $"{size:0.##} {suffixes[suffixIndex]}";
-        }
-
-        /// <summary>
-        /// Validates if a JSON file is valid and readable.
-        /// </summary>
-        /// <param name="filePath">The path to the JSON file.</param>
-        /// <returns>True if the JSON file is valid, false otherwise.</returns>
-        private static bool IsValidJsonFile(string filePath)
-        {
-            try
-            {
-                if (!System.IO.File.Exists(filePath))
-                {
-                    return false;
-                }
-
-                var jsonContent = System.IO.File.ReadAllText(filePath);
-                JsonSerializer.Deserialize<object>(jsonContent);
-                return true;
-            }
-            catch
-            {
-                return false;
-            }
-        }
-
-        /// <summary>
-        /// Validates a text file for readability and existence.
-        /// </summary>
-        /// <param name="filePath">The path to the text file.</param>
-        /// <returns>A validation result containing success status and error message if applicable.</returns>
-        private static (bool IsValid, string ErrorMessage) ValidateTextFile(string filePath)
-        {
-            try
-            {
-                if (!System.IO.File.Exists(filePath))
-                {
-                    return (false, "File does not exist");
-                }
-
-                using var reader = new StreamReader(filePath);
-                reader.ReadLine(); // Try to read first line
-                return (true, string.Empty);
-            }
-            catch (Exception ex)
-            {
-                return (false, $"File validation failed: {ex.Message}");
-            }
-        }
-
-        /// <summary>
-        /// Validates a SQLite database file for readability and structure.
-        /// </summary>
-        /// <param name="filePath">The path to the SQLite database file.</param>
-        /// <returns>A validation result containing success status and error message if applicable.</returns>
-        private static (bool IsValid, string ErrorMessage) ValidateSqliteDatabase(string filePath)
-        {
-            try
-            {
-                if (!System.IO.File.Exists(filePath))
-                {
-                    return (false, "Database file does not exist");
-                }
-
-                using var connection = new SqliteConnection($"Data Source={filePath}");
-                connection.Open();
-                return (true, string.Empty);
-            }
-            catch (Exception ex)
-            {
-                return (false, $"Database validation failed: {ex.Message}");
-            }
-        }
-
-        /// <summary>
-        /// Generates a random table name for database operations.
-        /// </summary>
-        /// <param name="databasePath">The path to the database (used for validation).</param>
-        /// <returns>A randomly generated table name.</returns>
-        private static string GenerateRandomTableName(string databasePath)
-        {
-            var random = new Random();
-            var randomId = random.Next(10000, 99999);
-            return $"claims_import_{randomId}";
-        }
-
-        /// <summary>
         /// Gets or sets the path to the JSON file.
         /// </summary>
         [BindProperty]
@@ -248,21 +144,8 @@ namespace HtmlClaimsDataImport.Pages
                 tempDir = this.tempDirectoryService.GetSessionTempDirectory();
             }
 
-            var fileName = Path.GetFileName(uploadedFile.FileName);
-            var filePath = Path.Combine(tempDir, fileName);
-
-            using (var stream = new FileStream(filePath, FileMode.Create))
-            {
-                await uploadedFile.CopyToAsync(stream);
-            }
-
-            Console.WriteLine($"File saved to: {filePath}, exists: {System.IO.File.Exists(filePath)}");
-
-            var statusMessage = $"File uploaded: {fileName}";
-            var formattedSize = FormatFileSize(uploadedFile.Length);
-            var logEntry = $"File uploaded: {fileName}, {formattedSize}";
-
-            Console.WriteLine($"Log entry: {logEntry}");
+            // Use service for file upload
+            var (statusMessage, logEntry, filePath) = await FileUploadService.HandleFileUploadAsync(uploadedFile, fileType, tempDir);
 
             // Update the corresponding property and create model for partial view
             var model = new FileUploadResponseModel
@@ -350,7 +233,7 @@ namespace HtmlClaimsDataImport.Pages
         {
             try
             {
-                var previewModel = await this.GetPreviewDataAsync(tmpdir, mappingStep, selectedColumn);
+                var previewModel = await PreviewService.GetPreviewDataAsync(tmpdir, mappingStep, selectedColumn);
                 var partialView = await this.RenderPartialViewAsync("_PreviewContent", previewModel);
                 return this.Content(partialView, "text/html");
             }
@@ -381,31 +264,32 @@ namespace HtmlClaimsDataImport.Pages
             {
                 // Resolve paths
                 string actualJsonPath = this.ResolveJsonPath(jsonPath, tmpdir);
-                string actualDatabasePath = await this.ResolveDatabasePathAsync(databasePath, tmpdir);
+                string actualDatabasePath = await DataImportService.ResolveActualPath(databasePath, tmpdir, this.DefaultDatabase);
                 string actualFileName = Path.Combine(tmpdir, fileName);
 
                 // Validation step 1: Check if JSON is valid
-                if (!IsValidJsonFile(actualJsonPath))
+                var (jsonValid, jsonError) = ValidationService.ValidateJsonFile(actualJsonPath);
+                if (!jsonValid)
                 {
-                    return this.Content("json invalid");
+                    return this.Content($"json invalid: {jsonError}");
                 }
 
                 // Validation step 2: Check if file exists and is readable
-                var (isValid, errorMessage) = ValidateTextFile(actualFileName);
-                if (!isValid)
+                var (fileValid, fileError) = ValidationService.ValidateFile(actualFileName);
+                if (!fileValid)
                 {
-                    return this.Content(errorMessage);
+                    return this.Content(fileError);
                 }
 
                 // Validation step 3: Check if database exists and is readable as SQLite
-                var (isValid1, errorMessage1) = ValidateSqliteDatabase(actualDatabasePath);
-                if (!isValid1)
+                var (dbValid, dbError) = ValidationService.ValidateSqliteDatabase(actualDatabasePath);
+                if (!dbValid)
                 {
-                    return this.Content(errorMessage1);
+                    return this.Content(dbError);
                 }
 
                 // All validations passed - proceed with import
-                var result = await this.ProcessFileImport(actualFileName, actualJsonPath, actualDatabasePath);
+                var result = await DataImportService.ProcessFileImport(actualFileName, actualJsonPath, actualDatabasePath);
                 return this.Content(result);
             }
             catch (Exception ex)
@@ -423,189 +307,6 @@ namespace HtmlClaimsDataImport.Pages
             }
 
             return Path.IsPathRooted(path) ? path : Path.Combine(tmpdir, path);
-        }
-
-        private async Task<string> ResolveDatabasePathAsync(string path, string tmpdir)
-        {
-            if (path == "default")
-            {
-                // Copy default database to temp directory
-                string defaultDbPath = Path.Combine(Directory.GetCurrentDirectory(), this.DefaultDatabase);
-                string tempDbPath = Path.Combine(tmpdir, "working_db.db");
-
-                // Copy the default database to temp directory
-                await this.CopyFileAsync(defaultDbPath, tempDbPath);
-                return tempDbPath;
-            }
-            else
-            {
-                // For uploaded databases, copy to temp directory with a working copy name
-                string sourceDbPath = Path.IsPathRooted(path) ? path : Path.Combine(tmpdir, path);
-                string tempDbPath = Path.Combine(tmpdir, "working_db.db");
-
-                // Copy the uploaded database to a working copy
-                await this.CopyFileAsync(sourceDbPath, tempDbPath);
-                return tempDbPath;
-            }
-        }
-
-        private async Task<PreviewDataModel> GetPreviewDataAsync(string tmpdir, int mappingStep, string selectedColumn)
-        {
-            var model = new PreviewDataModel
-            {
-                CurrentMappingStep = mappingStep,
-                SelectedImportColumn = selectedColumn,
-            };
-
-            // Check if working_db.db exists
-            string workingDbPath = Path.Combine(tmpdir, "working_db.db");
-            if (!System.IO.File.Exists(workingDbPath))
-            {
-                model.StatusMessage = "Load data first, otherwise Preview does not work.";
-                model.IsPreviewAvailable = false;
-                return model;
-            }
-
-            try
-            {
-                using var connection = new SqliteConnection($"Data Source={workingDbPath}");
-                await connection.OpenAsync();
-
-                // Check if it's a valid SQLite database
-                var command = connection.CreateCommand();
-                command.CommandText = "SELECT name FROM sqlite_master WHERE type='table' ORDER BY name;";
-                var tables = new List<string>();
-                using (var reader = await command.ExecuteReaderAsync())
-                {
-                    while (await reader.ReadAsync())
-                    {
-                        tables.Add(reader.GetString(0));
-                    }
-                }
-
-                // Find claims_import_* table
-                var importTable = tables.FirstOrDefault(t => t.StartsWith("claims_import_"));
-                if (string.IsNullOrEmpty(importTable))
-                {
-                    model.StatusMessage = "no working_db.db detected; re-run load.";
-                    model.IsPreviewAvailable = false;
-                    return model;
-                }
-
-                model.ImportTableName = importTable;
-
-                // Get columns from import table
-                command.CommandText = $"PRAGMA table_info({importTable});";
-                using (var reader = await command.ExecuteReaderAsync())
-                {
-                    while (await reader.ReadAsync())
-                    {
-                        model.ImportColumns.Add(reader.GetString(1)); // column name is at index 1
-                    }
-                }
-
-                // Check if table has data
-                command.CommandText = $"SELECT COUNT(*) FROM {importTable};";
-                var rowCount = Convert.ToInt32(await command.ExecuteScalarAsync());
-                if (rowCount == 0)
-                {
-                    model.StatusMessage = $"Table {importTable} exists but contains no data.";
-                    model.IsPreviewAvailable = false;
-                    return model;
-                }
-
-                // Get columns from claims table (if it exists)
-                if (tables.Contains("claims"))
-                {
-                    command.CommandText = "PRAGMA table_info(claims);";
-                    using (var reader = await command.ExecuteReaderAsync())
-                    {
-                        while (await reader.ReadAsync())
-                        {
-                            model.ClaimsColumns.Add(reader.GetString(1)); // column name is at index 1
-                        }
-                    }
-                }
-                else
-                {
-                    // Default claims columns if table doesn't exist
-                    model.ClaimsColumns.AddRange(new[] { "id", "amount", "date", "description", "category" });
-                }
-
-                // Get first 10 rows of preview data
-                var columnList = string.Join(", ", model.ImportColumns.Select(c => $"[{c}]"));
-                command.CommandText = $"SELECT {columnList} FROM {importTable} LIMIT 10;";
-                using (var reader = await command.ExecuteReaderAsync())
-                {
-                    while (await reader.ReadAsync())
-                    {
-                        var row = new Dictionary<string, string>();
-                        for (int i = 0; i < model.ImportColumns.Count; i++)
-                        {
-                            row[model.ImportColumns[i]] = reader.IsDBNull(i) ? string.Empty : reader.GetString(i);
-                        }
-                        model.PreviewRows.Add(row);
-                    }
-                }
-
-                model.IsPreviewAvailable = true;
-                model.StatusMessage = $"Preview loaded: {rowCount} rows in {importTable}";
-
-                return model;
-            }
-            catch (SqliteException)
-            {
-                model.StatusMessage = "working_db.db exists but is not a sqlite db";
-                model.IsPreviewAvailable = false;
-                return model;
-            }
-        }
-
-        private async Task CopyFileAsync(string sourcePath, string destinationPath)
-        {
-            using var sourceStream = new FileStream(sourcePath, FileMode.Open, FileAccess.Read);
-            using var destinationStream = new FileStream(destinationPath, FileMode.Create, FileAccess.Write);
-            await sourceStream.CopyToAsync(destinationStream);
-        }
-
-        private async Task<string> ProcessFileImport(string fileName, string jsonPath, string databasePath)
-        {
-            try
-            {
-                // Step 4a: Setup stream reader
-                using var streamReader = new StreamReader(fileName);
-
-                // Step 4b: Setup FileSpec and scan
-                var scanCsvReader = CsvDataReader.Create(streamReader, new CsvDataReaderOptions { HasHeaders = true });
-                var fileSpec = new FileSpec(scanCsvReader);
-                fileSpec.Scan();
-
-                // Step 4c: Reset stream
-                streamReader.BaseStream.Seek(0, SeekOrigin.Begin);
-                streamReader.DiscardBufferedData();
-
-                // Step 4d: Load ImportConfig
-                ImportConfig? config = null;
-                if (jsonPath != "default")
-                {
-                    config = ImportConfig.LoadFromFile(jsonPath);
-                }
-
-                // Step 4e: Create File instance
-                var file = LibClaimsDataImport.Importer.File.New(streamReader, fileSpec, config);
-
-                // Step 4f: Generate random table name
-                string tableName = GenerateRandomTableName(databasePath);
-
-                // Step 4g: Write to database
-                await file.WriteToDb(databasePath, tableName);
-
-                return $"file imported to table '{tableName}' in temp database";
-            }
-            catch (Exception ex)
-            {
-                return $"Import failed: {ex.Message}";
-            }
         }
 
         private async Task<string> RenderPartialViewAsync<T>(string partialName, T model)
