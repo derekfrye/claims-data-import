@@ -72,12 +72,10 @@ roslynator analyze HtmlClaimsDataImport.Tests/HtmlClaimsDataImport.Tests.csproj
 roslynator analyze ClaimsDataImport.sln
 ```
 
-### StyleCop.Analyzers (Future Enhancement)
+### StyleCop.Analyzers
 ```bash
-# Add StyleCop.Analyzers for comprehensive C# style enforcement (aspiration)
-dotnet add LibClaimsDataImport/LibClaimsDataImport.csproj package StyleCop.Analyzers
-
-# Note: Currently produces 180+ violations that need addressing
+# StyleCop.Analyzers is implemented in HtmlClaimsDataImport project
+# Configured with custom suppressions for web application conventions
 # Works seamlessly with dotnet build and --warnaserror flag
 ```
 
@@ -105,9 +103,11 @@ dotnet add LibClaimsDataImport/LibClaimsDataImport.csproj package StyleCop.Analy
 - ASP.NET Core web application providing browser-based GUI for claims data import
 - Entry point: `Program.cs:1` - ASP.NET Core initialization with custom temp directory support
 - Main UI: `Pages/ClaimsDataImporter.cshtml` with file upload and import functionality
+- Components:
+  - **TempDirectoryCleanupService**: Secure temporary directory management with session-based isolation and automatic cleanup
 - Features:
   - File upload support for CSV, JSON config, and SQLite database files
-  - Session-based temporary file management with automatic cleanup
+  - Session-based temporary file management with automatic cleanup and security protections
   - Integration with core library for claims data processing
   - Self-contained deployment configuration for easy distribution
 
@@ -155,6 +155,10 @@ CmdClaimsDataImport --database claims.db --table claims_data --filename data.csv
     - **IntegrationTest.cs** & **IntTest2.cs**: Full end-to-end CSV import validation tests
   - **HtmlClaimsDataImport.Tests**: Web application integration tests
     - **FileSelectionIntegrationTests.cs**: Tests for web-based file upload and selection functionality
+    - **FileUploadPersistence_IntTest.cs**: Tests for file upload persistence across sessions
+    - **FileUploadSession_IntTest.cs**: Tests for session-based file upload functionality
+    - **HtmlDataAttributesIntegrationTests.cs**: Tests for HTML data attributes in web interface
+    - **TmpdirSecurityTests.cs**: Security tests for temporary directory path validation and malicious input protection
 - Database table must exist before import (library doesn't create tables)
 - All projects maintain zero Roslynator code analysis issues for consistent code quality
 
@@ -180,18 +184,27 @@ The web application (HtmlClaimsDataImport) includes StyleCop.Analyzers with the 
 
 **Suppressed Rules:**
 - **SA1633**: File header copyright text - Not required for internal web application files
-- **SA1513**: Closing brace followed by blank line - Conflicts with modern C# formatting preferences
 - **SA0001**: XML comment analysis disabled - Reduces noise from documentation analyzer
 - **CS1591**: Missing XML comment for publicly visible members - Web app internal classes don't require public API documentation
 - **SA1600**: Elements should be documented - Same rationale as CS1591 for internal web application
 - **SA1515**: Single-line comment preceded by blank line - Conflicts with natural commenting style
 - **SA1502**: Element should not be on single line - Allows concise property declarations
-- **SA1505**: Opening braces not followed by blank line - Modern C# style preference
-- **SA1508**: Closing braces not preceded by blank line - Modern C# style preference  
 - **SA1201**: Elements should appear in correct order - Allows logical grouping over strict ordering
+- **SA1009**: Closing parenthesis should be spaced correctly - Modern C# formatting preference
+- **SA1010**: Opening square brackets should be spaced correctly - Modern C# formatting preference
+- **SA1516**: Elements should be separated by blank line - Allows compact code organization
+- **SA1513**: Closing brace should be followed by blank line - Modern C# formatting preference
+- **SA1028**: Code should not contain trailing whitespace - IDE auto-formatting preference
+- **SA1413**: Use trailing comma in multi-line initializers - Optional formatting choice
+- **SA1122**: Use string.Empty for empty strings - Allow "" for readability in some contexts
 
 **Active Rules:**
 - All other StyleCop rules are active and enforced
+
+### Security Features
+- **Temporary Directory Protection**: The web application includes security tests and protections against malicious temporary directory path injection
+- **Session Isolation**: Each user session gets isolated temporary directories to prevent cross-session data leakage
+- **Path Validation**: Server-side validation prevents directory traversal and system path exploitation
 
 ### Future Code Quality Goals
 - **Consistent formatting**: Continue refining StyleCop configuration based on team preferences
