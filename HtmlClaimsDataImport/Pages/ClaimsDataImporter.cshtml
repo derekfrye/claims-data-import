@@ -283,7 +283,11 @@
         
         <div id="preview-content" class="hidden">
             <h3>Preview Content</h3>
-            <p>Preview functionality will be implemented here.</p>
+            <div id="preview-container">
+                <div class="alert alert-info">
+                    <p>Click the Preview tab and this content will be loaded automatically.</p>
+                </div>
+            </div>
         </div>
         
         <div id="developer-content" class="hidden">
@@ -327,6 +331,30 @@
         document.getElementById('config-content').classList.add('hidden');
         document.getElementById('preview-content').classList.remove('hidden');
         document.getElementById('developer-content').classList.add('hidden');
+        
+        // Load preview data automatically when preview tab is shown
+        loadPreviewData();
+    }
+    
+    function loadPreviewData() {
+        const tmpdir = document.getElementById('tmpdir').value;
+        const token = document.querySelector('input[name="__RequestVerificationToken"]').value;
+        
+        fetch('/ClaimsDataImporter?handler=Preview', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/x-www-form-urlencoded',
+            },
+            body: `tmpdir=${encodeURIComponent(tmpdir)}&mappingStep=0&selectedColumn=&__RequestVerificationToken=${encodeURIComponent(token)}`
+        })
+        .then(response => response.text())
+        .then(html => {
+            document.getElementById('preview-container').innerHTML = html;
+        })
+        .catch(error => {
+            console.error('Error loading preview:', error);
+            document.getElementById('preview-container').innerHTML = '<div class="alert alert-danger">Error loading preview data</div>';
+        });
     }
     
     function showDeveloper() {

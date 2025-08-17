@@ -176,12 +176,12 @@ namespace HtmlClaimsDataImport.Pages
         /// <summary>
         /// Gets the default JSON configuration file name.
         /// </summary>
-        public string DefaultJsonFile => "system.json";
+        public string DefaultJsonFile => "default.json";
 
         /// <summary>
         /// Gets the default database file name.
         /// </summary>
-        public string DefaultDatabase => "claims.db";
+        public string DefaultDatabase => "default.sqlite3.db";
 
         /// <summary>
         /// Handles GET requests to initialize the page.
@@ -340,6 +340,34 @@ namespace HtmlClaimsDataImport.Pages
         }
 
         /// <summary>
+        /// Handles the preview data action to show column mapping interface.
+        /// </summary>
+        /// <param name="tmpdir">The temporary directory path.</param>
+        /// <param name="mappingStep">The current mapping step (optional).</param>
+        /// <param name="selectedColumn">The selected import column (optional).</param>
+        /// <returns>An <see cref="IActionResult"/> representing the preview data.</returns>
+        public async Task<IActionResult> OnPostPreview(string tmpdir, int mappingStep = 0, string selectedColumn = "")
+        {
+            try
+            {
+                var previewModel = await this.GetPreviewDataAsync(tmpdir, mappingStep, selectedColumn);
+                var partialView = await this.RenderPartialViewAsync("_PreviewContent", previewModel);
+                return this.Content(partialView, "text/html");
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Error in Preview: {ex.Message}");
+                var errorModel = new PreviewDataModel
+                {
+                    StatusMessage = $"Error: {ex.Message}",
+                    IsPreviewAvailable = false,
+                };
+                var partialView = await this.RenderPartialViewAsync("_PreviewContent", errorModel);
+                return this.Content(partialView, "text/html");
+            }
+        }
+
+        /// <summary>
         /// Handles the load data action.
         /// </summary>
         /// <param name="tmpdir">The temporary directory path.</param>
@@ -363,17 +391,17 @@ namespace HtmlClaimsDataImport.Pages
                 }
 
                 // Validation step 2: Check if file exists and is readable
-                var fileValidation = ValidateTextFile(actualFileName);
-                if (!fileValidation.IsValid)
+                var (isValid, errorMessage) = ValidateTextFile(actualFileName);
+                if (!isValid)
                 {
-                    return this.Content(fileValidation.ErrorMessage);
+                    return this.Content(errorMessage);
                 }
 
                 // Validation step 3: Check if database exists and is readable as SQLite
-                var dbValidation = ValidateSqliteDatabase(actualDatabasePath);
-                if (!dbValidation.IsValid)
+                var (isValid1, errorMessage1) = ValidateSqliteDatabase(actualDatabasePath);
+                if (!isValid1)
                 {
-                    return this.Content(dbValidation.ErrorMessage);
+                    return this.Content(errorMessage1);
                 }
 
                 // All validations passed - proceed with import
@@ -403,8 +431,7 @@ namespace HtmlClaimsDataImport.Pages
             {
                 // Copy default database to temp directory
                 string defaultDbPath = Path.Combine(Directory.GetCurrentDirectory(), this.DefaultDatabase);
-                string tempDbFileName = $"working_db_{DateTime.Now:yyyyMMdd_HHmmss}.db";
-                string tempDbPath = Path.Combine(tmpdir, tempDbFileName);
+                string tempDbPath = Path.Combine(tmpdir, "working_db.db");
 
                 // Copy the default database to temp directory
                 await this.CopyFileAsync(defaultDbPath, tempDbPath);
@@ -414,12 +441,123 @@ namespace HtmlClaimsDataImport.Pages
             {
                 // For uploaded databases, copy to temp directory with a working copy name
                 string sourceDbPath = Path.IsPathRooted(path) ? path : Path.Combine(tmpdir, path);
-                string tempDbFileName = $"working_db_{DateTime.Now:yyyyMMdd_HHmmss}.db";
-                string tempDbPath = Path.Combine(tmpdir, tempDbFileName);
+                string tempDbPath = Path.Combine(tmpdir, "working_db.db");
 
                 // Copy the uploaded database to a working copy
                 await this.CopyFileAsync(sourceDbPath, tempDbPath);
                 return tempDbPath;
+            }
+        }
+
+        private async Task<PreviewDataModel> GetPreviewDataAsync(string tmpdir, int mappingStep, string selectedColumn)
+        {
+            var model = new PreviewDataModel
+            {
+                CurrentMappingStep = mappingStep,
+                SelectedImportColumn = selectedColumn,
+            };
+
+            // Check if working_db.db exists
+            string workingDbPath = Path.Combine(tmpdir, "working_db.db");
+            if (!System.IO.File.Exists(workingDbPath))
+            {
+                model.StatusMessage = "Load data first, otherwise Preview does not work.";
+                model.IsPreviewAvailable = false;
+                return model;
+            }
+
+            try
+            {
+                using var connection = new SqliteConnection($"Data Source={workingDbPath}");
+                await connection.OpenAsync();
+
+                // Check if it's a valid SQLite database
+                var command = connection.CreateCommand();
+                command.CommandText = "SELECT name FROM sqlite_master WHERE type='table' ORDER BY name;";
+                var tables = new List<string>();
+                using (var reader = await command.ExecuteReaderAsync())
+                {
+                    while (await reader.ReadAsync())
+                    {
+                        tables.Add(reader.GetString(0));
+                    }
+                }
+
+                // Find claims_import_* table
+                var importTable = tables.FirstOrDefault(t => t.StartsWith("claims_import_"));
+                if (string.IsNullOrEmpty(importTable))
+                {
+                    model.StatusMessage = "no working_db.db detected; re-run load.";
+                    model.IsPreviewAvailable = false;
+                    return model;
+                }
+
+                model.ImportTableName = importTable;
+
+                // Get columns from import table
+                command.CommandText = $"PRAGMA table_info({importTable});";
+                using (var reader = await command.ExecuteReaderAsync())
+                {
+                    while (await reader.ReadAsync())
+                    {
+                        model.ImportColumns.Add(reader.GetString(1)); // column name is at index 1
+                    }
+                }
+
+                // Check if table has data
+                command.CommandText = $"SELECT COUNT(*) FROM {importTable};";
+                var rowCount = Convert.ToInt32(await command.ExecuteScalarAsync());
+                if (rowCount == 0)
+                {
+                    model.StatusMessage = $"Table {importTable} exists but contains no data.";
+                    model.IsPreviewAvailable = false;
+                    return model;
+                }
+
+                // Get columns from claims table (if it exists)
+                if (tables.Contains("claims"))
+                {
+                    command.CommandText = "PRAGMA table_info(claims);";
+                    using (var reader = await command.ExecuteReaderAsync())
+                    {
+                        while (await reader.ReadAsync())
+                        {
+                            model.ClaimsColumns.Add(reader.GetString(1)); // column name is at index 1
+                        }
+                    }
+                }
+                else
+                {
+                    // Default claims columns if table doesn't exist
+                    model.ClaimsColumns.AddRange(new[] { "id", "amount", "date", "description", "category" });
+                }
+
+                // Get first 10 rows of preview data
+                var columnList = string.Join(", ", model.ImportColumns.Select(c => $"[{c}]"));
+                command.CommandText = $"SELECT {columnList} FROM {importTable} LIMIT 10;";
+                using (var reader = await command.ExecuteReaderAsync())
+                {
+                    while (await reader.ReadAsync())
+                    {
+                        var row = new Dictionary<string, string>();
+                        for (int i = 0; i < model.ImportColumns.Count; i++)
+                        {
+                            row[model.ImportColumns[i]] = reader.IsDBNull(i) ? string.Empty : reader.GetString(i);
+                        }
+                        model.PreviewRows.Add(row);
+                    }
+                }
+
+                model.IsPreviewAvailable = true;
+                model.StatusMessage = $"Preview loaded: {rowCount} rows in {importTable}";
+
+                return model;
+            }
+            catch (SqliteException)
+            {
+                model.StatusMessage = "working_db.db exists but is not a sqlite db";
+                model.IsPreviewAvailable = false;
+                return model;
             }
         }
 

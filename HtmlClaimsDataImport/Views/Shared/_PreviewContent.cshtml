@@ -1,0 +1,247 @@
+@model HtmlClaimsDataImport.Models.PreviewDataModel
+
+<div id="preview-container">
+    @if (!Model.IsPreviewAvailable)
+    {
+        <div class="alert alert-warning">
+            @Model.StatusMessage
+        </div>
+    }
+    else
+    {
+        <div class="preview-header">
+            <div class="mapping-instruction">
+                <strong>
+                    Which column will map to @(Model.ClaimsColumns.Count > Model.CurrentMappingStep ? Model.ClaimsColumns[Model.CurrentMappingStep] : "unknown")?
+                    @if (!string.IsNullOrEmpty(Model.SelectedImportColumn))
+                    {
+                        <span class="selected-column">@Model.SelectedImportColumn</span>
+                    }
+                </strong>
+            </div>
+            <div class="mapping-progress">
+                Step @(Model.CurrentMappingStep + 1) of @Model.ClaimsColumns.Count
+            </div>
+        </div>
+        
+        <div class="preview-table-container">
+            <table class="preview-table" id="previewTable">
+                <thead>
+                    <tr>
+                        @foreach (var column in Model.ImportColumns)
+                        {
+                            <th class="@(Model.SelectedImportColumn == column ? "selected-column-header" : "")" 
+                                onclick="selectColumn('@column')">
+                                @column
+                            </th>
+                        }
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var row in Model.PreviewRows)
+                    {
+                        <tr>
+                            @foreach (var column in Model.ImportColumns)
+                            {
+                                <td class="@(Model.SelectedImportColumn == column ? "selected-column-cell" : "")" 
+                                    onclick="selectColumn('@column')">
+                                    @(row.ContainsKey(column) ? row[column] : "")
+                                </td>
+                            }
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+        
+        <div class="mapping-controls">
+            <button type="button" 
+                    class="btn btn-secondary" 
+                    id="prevBtn" 
+                    onclick="previousMapping()" 
+                    @(Model.CurrentMappingStep <= 0 ? "disabled" : "")>
+                Previous
+            </button>
+            <button type="button" 
+                    class="btn btn-primary" 
+                    id="nextBtn" 
+                    onclick="nextMapping()" 
+                    @(string.IsNullOrEmpty(Model.SelectedImportColumn) ? "disabled" : "")>
+                Next
+            </button>
+        </div>
+        
+        <div class="preview-info">
+            <small class="text-muted">@Model.StatusMessage</small>
+        </div>
+    }
+</div>
+
+<style>
+    .preview-header {
+        margin-bottom: 20px;
+    }
+    
+    .mapping-instruction {
+        font-size: 16px;
+        margin-bottom: 10px;
+    }
+    
+    .selected-column {
+        color: #007bff;
+        font-weight: bold;
+    }
+    
+    .mapping-progress {
+        color: #6c757d;
+        font-size: 14px;
+    }
+    
+    .preview-table-container {
+        max-height: 400px;
+        overflow: auto;
+        border: 1px solid #dee2e6;
+        border-radius: 4px;
+        margin-bottom: 20px;
+    }
+    
+    .preview-table {
+        width: 100%;
+        border-collapse: collapse;
+        font-size: 12px;
+    }
+    
+    .preview-table th,
+    .preview-table td {
+        border: 1px solid #dee2e6;
+        padding: 8px;
+        text-align: left;
+        white-space: nowrap;
+        cursor: pointer;
+        min-width: 100px;
+    }
+    
+    .preview-table th {
+        background-color: #f8f9fa;
+        font-weight: bold;
+        position: sticky;
+        top: 0;
+        z-index: 1;
+    }
+    
+    .preview-table th:hover,
+    .preview-table td:hover {
+        background-color: #e9ecef;
+    }
+    
+    .selected-column-header {
+        background-color: #6495ED !important;
+        color: white;
+    }
+    
+    .selected-column-cell {
+        background-color: #6495ED !important;
+        color: white;
+    }
+    
+    .mapping-controls {
+        display: flex;
+        gap: 10px;
+        margin-bottom: 20px;
+    }
+    
+    .preview-info {
+        padding-top: 10px;
+        border-top: 1px solid #dee2e6;
+    }
+    
+    .alert {
+        padding: 12px;
+        border-radius: 4px;
+        margin-bottom: 20px;
+    }
+    
+    .alert-warning {
+        background-color: #fff3cd;
+        border-color: #ffeaa7;
+        color: #856404;
+    }
+</style>
+
+<script>
+    function selectColumn(columnName) {
+        // Update selected column via AJAX
+        const tmpdir = document.getElementById('tmpdir').value;
+        const currentStep = @Model.CurrentMappingStep;
+        
+        fetch('/ClaimsDataImporter?handler=Preview', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/x-www-form-urlencoded',
+                'RequestVerificationToken': document.querySelector('input[name="__RequestVerificationToken"]').value
+            },
+            body: `tmpdir=${encodeURIComponent(tmpdir)}&mappingStep=${currentStep}&selectedColumn=${encodeURIComponent(columnName)}&__RequestVerificationToken=${encodeURIComponent(document.querySelector('input[name="__RequestVerificationToken"]').value)}`
+        })
+        .then(response => response.text())
+        .then(html => {
+            document.getElementById('preview-content').innerHTML = html;
+        })
+        .catch(error => {
+            console.error('Error selecting column:', error);
+        });
+    }
+    
+    function nextMapping() {
+        const tmpdir = document.getElementById('tmpdir').value;
+        const currentStep = @Model.CurrentMappingStep;
+        const selectedColumn = '@Model.SelectedImportColumn';
+        
+        if (!selectedColumn) {
+            alert('Please select a column first.');
+            return;
+        }
+        
+        // Move to next mapping step
+        fetch('/ClaimsDataImporter?handler=Preview', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/x-www-form-urlencoded',
+                'RequestVerificationToken': document.querySelector('input[name="__RequestVerificationToken"]').value
+            },
+            body: `tmpdir=${encodeURIComponent(tmpdir)}&mappingStep=${currentStep + 1}&selectedColumn=&__RequestVerificationToken=${encodeURIComponent(document.querySelector('input[name="__RequestVerificationToken"]').value)}`
+        })
+        .then(response => response.text())
+        .then(html => {
+            document.getElementById('preview-content').innerHTML = html;
+        })
+        .catch(error => {
+            console.error('Error moving to next mapping:', error);
+        });
+    }
+    
+    function previousMapping() {
+        const tmpdir = document.getElementById('tmpdir').value;
+        const currentStep = @Model.CurrentMappingStep;
+        
+        if (currentStep <= 0) {
+            return;
+        }
+        
+        // Move to previous mapping step
+        fetch('/ClaimsDataImporter?handler=Preview', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/x-www-form-urlencoded',
+                'RequestVerificationToken': document.querySelector('input[name="__RequestVerificationToken"]').value
+            },
+            body: `tmpdir=${encodeURIComponent(tmpdir)}&mappingStep=${currentStep - 1}&selectedColumn=&__RequestVerificationToken=${encodeURIComponent(document.querySelector('input[name="__RequestVerificationToken"]').value)}`
+        })
+        .then(response => response.text())
+        .then(html => {
+            document.getElementById('preview-content').innerHTML = html;
+        })
+        .catch(error => {
+            console.error('Error moving to previous mapping:', error);
+        });
+    }
+</script>

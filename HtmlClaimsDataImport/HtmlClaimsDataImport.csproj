@@ -36,7 +36,7 @@
     
     <!-- StyleCop configuration -->
     <GenerateDocumentationFile>true</GenerateDocumentationFile>
-    <NoWarn>$(NoWarn);SA1633;SA0001;CS1591;SA1600;SA1515;SA1502;SA1201;SA1009;SA1010;SA1516</NoWarn>
+    <NoWarn>$(NoWarn);SA1633;SA0001;CS1591;SA1600;SA1515;SA1502;SA1201;SA1009;SA1010;SA1516;SA1513;SA1028;SA1413;SA1122</NoWarn>
   </PropertyGroup>
 
 </Project>
