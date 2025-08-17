@@ -2,10 +2,14 @@ namespace HtmlClaimsDataImport.Pages
 {
     using System;
     using System.IO;
+    using System.Text.Json;
     using HtmlClaimsDataImport.Models;
     using HtmlClaimsDataImport.Services;
+    using LibClaimsDataImport.Importer;
     using Microsoft.AspNetCore.Mvc;
     using Microsoft.AspNetCore.Mvc.RazorPages;
+    using Microsoft.Data.Sqlite;
+    using Sylvan.Data.Csv;
 
     /// <summary>
     /// Initializes a new instance of the <see cref="ClaimsDataImporter"/> class.
@@ -14,6 +18,110 @@ namespace HtmlClaimsDataImport.Pages
     public class ClaimsDataImporter(ITempDirectoryService tempDirectoryService) : PageModel
     {
         private readonly ITempDirectoryService tempDirectoryService = tempDirectoryService;
+
+        /// <summary>
+        /// Formats a file size in bytes to a human-readable string.
+        /// </summary>
+        /// <param name="bytes">The file size in bytes.</param>
+        /// <returns>A formatted string representing the file size.</returns>
+        private static string FormatFileSize(long bytes)
+        {
+            string[] suffixes = { "B", "KiB", "MiB", "GiB", "TiB" };
+            int suffixIndex = 0;
+            double size = bytes;
+
+            while (size >= 1024 && suffixIndex < suffixes.Length - 1)
+            {
+                size /= 1024;
+                suffixIndex++;
+            }
+
+            return $"{size:0.##} {suffixes[suffixIndex]}";
+        }
+
+        /// <summary>
+        /// Validates if a JSON file is valid and readable.
+        /// </summary>
+        /// <param name="filePath">The path to the JSON file.</param>
+        /// <returns>True if the JSON file is valid, false otherwise.</returns>
+        private static bool IsValidJsonFile(string filePath)
+        {
+            try
+            {
+                if (!System.IO.File.Exists(filePath))
+                {
+                    return false;
+                }
+
+                var jsonContent = System.IO.File.ReadAllText(filePath);
+                JsonSerializer.Deserialize<object>(jsonContent);
+                return true;
+            }
+            catch
+            {
+                return false;
+            }
+        }
+
+        /// <summary>
+        /// Validates a text file for readability and existence.
+        /// </summary>
+        /// <param name="filePath">The path to the text file.</param>
+        /// <returns>A validation result containing success status and error message if applicable.</returns>
+        private static (bool IsValid, string ErrorMessage) ValidateTextFile(string filePath)
+        {
+            try
+            {
+                if (!System.IO.File.Exists(filePath))
+                {
+                    return (false, "File does not exist");
+                }
+
+                using var reader = new StreamReader(filePath);
+                reader.ReadLine(); // Try to read first line
+                return (true, string.Empty);
+            }
+            catch (Exception ex)
+            {
+                return (false, $"File validation failed: {ex.Message}");
+            }
+        }
+
+        /// <summary>
+        /// Validates a SQLite database file for readability and structure.
+        /// </summary>
+        /// <param name="filePath">The path to the SQLite database file.</param>
+        /// <returns>A validation result containing success status and error message if applicable.</returns>
+        private static (bool IsValid, string ErrorMessage) ValidateSqliteDatabase(string filePath)
+        {
+            try
+            {
+                if (!System.IO.File.Exists(filePath))
+                {
+                    return (false, "Database file does not exist");
+                }
+
+                using var connection = new SqliteConnection($"Data Source={filePath}");
+                connection.Open();
+                return (true, string.Empty);
+            }
+            catch (Exception ex)
+            {
+                return (false, $"Database validation failed: {ex.Message}");
+            }
+        }
+
+        /// <summary>
+        /// Generates a random table name for database operations.
+        /// </summary>
+        /// <param name="databasePath">The path to the database (used for validation).</param>
+        /// <returns>A randomly generated table name.</returns>
+        private static string GenerateRandomTableName(string databasePath)
+        {
+            var random = new Random();
+            var randomId = random.Next(10000, 99999);
+            return $"claims_import_{randomId}";
+        }
 
         /// <summary>
         /// Gets or sets the path to the JSON file.
@@ -231,19 +339,135 @@ namespace HtmlClaimsDataImport.Pages
             return this.Content(statusMessage);
         }
 
-        private static string FormatFileSize(long bytes)
+        /// <summary>
+        /// Handles the load data action.
+        /// </summary>
+        /// <param name="tmpdir">The temporary directory path.</param>
+        /// <param name="fileName">The file name to load.</param>
+        /// <param name="jsonPath">The JSON configuration path.</param>
+        /// <param name="databasePath">The database path.</param>
+        /// <returns>An <see cref="IActionResult"/> representing the result of the operation.</returns>
+        public async Task<IActionResult> OnPostLoadData(string tmpdir, string fileName, string jsonPath, string databasePath)
         {
-            string[] suffixes = { "B", "KiB", "MiB", "GiB", "TiB" };
-            int suffixIndex = 0;
-            double size = bytes;
-
-            while (size >= 1024 && suffixIndex < suffixes.Length - 1)
+            try
             {
-                size /= 1024;
-                suffixIndex++;
+                // Resolve paths
+                string actualJsonPath = this.ResolveJsonPath(jsonPath, tmpdir);
+                string actualDatabasePath = await this.ResolveDatabasePathAsync(databasePath, tmpdir);
+                string actualFileName = Path.Combine(tmpdir, fileName);
+
+                // Validation step 1: Check if JSON is valid
+                if (!IsValidJsonFile(actualJsonPath))
+                {
+                    return this.Content("json invalid");
+                }
+
+                // Validation step 2: Check if file exists and is readable
+                var fileValidation = ValidateTextFile(actualFileName);
+                if (!fileValidation.IsValid)
+                {
+                    return this.Content(fileValidation.ErrorMessage);
+                }
+
+                // Validation step 3: Check if database exists and is readable as SQLite
+                var dbValidation = ValidateSqliteDatabase(actualDatabasePath);
+                if (!dbValidation.IsValid)
+                {
+                    return this.Content(dbValidation.ErrorMessage);
+                }
+
+                // All validations passed - proceed with import
+                var result = await this.ProcessFileImport(actualFileName, actualJsonPath, actualDatabasePath);
+                return this.Content(result);
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Error in LoadData: {ex.Message}");
+                return this.Content($"Error: {ex.Message}");
+            }
+        }
+
+        private string ResolveJsonPath(string path, string tmpdir)
+        {
+            if (path == "default")
+            {
+                return Path.Combine(Directory.GetCurrentDirectory(), this.DefaultJsonFile);
             }
 
-            return $"{size:0.##} {suffixes[suffixIndex]}";
+            return Path.IsPathRooted(path) ? path : Path.Combine(tmpdir, path);
+        }
+
+        private async Task<string> ResolveDatabasePathAsync(string path, string tmpdir)
+        {
+            if (path == "default")
+            {
+                // Copy default database to temp directory
+                string defaultDbPath = Path.Combine(Directory.GetCurrentDirectory(), this.DefaultDatabase);
+                string tempDbFileName = $"working_db_{DateTime.Now:yyyyMMdd_HHmmss}.db";
+                string tempDbPath = Path.Combine(tmpdir, tempDbFileName);
+
+                // Copy the default database to temp directory
+                await this.CopyFileAsync(defaultDbPath, tempDbPath);
+                return tempDbPath;
+            }
+            else
+            {
+                // For uploaded databases, copy to temp directory with a working copy name
+                string sourceDbPath = Path.IsPathRooted(path) ? path : Path.Combine(tmpdir, path);
+                string tempDbFileName = $"working_db_{DateTime.Now:yyyyMMdd_HHmmss}.db";
+                string tempDbPath = Path.Combine(tmpdir, tempDbFileName);
+
+                // Copy the uploaded database to a working copy
+                await this.CopyFileAsync(sourceDbPath, tempDbPath);
+                return tempDbPath;
+            }
+        }
+
+        private async Task CopyFileAsync(string sourcePath, string destinationPath)
+        {
+            using var sourceStream = new FileStream(sourcePath, FileMode.Open, FileAccess.Read);
+            using var destinationStream = new FileStream(destinationPath, FileMode.Create, FileAccess.Write);
+            await sourceStream.CopyToAsync(destinationStream);
+        }
+
+        private async Task<string> ProcessFileImport(string fileName, string jsonPath, string databasePath)
+        {
+            try
+            {
+                // Step 4a: Setup stream reader
+                using var streamReader = new StreamReader(fileName);
+
+                // Step 4b: Setup FileSpec and scan
+                var scanCsvReader = CsvDataReader.Create(streamReader, new CsvDataReaderOptions { HasHeaders = true });
+                var fileSpec = new FileSpec(scanCsvReader);
+                fileSpec.Scan();
+
+                // Step 4c: Reset stream
+                streamReader.BaseStream.Seek(0, SeekOrigin.Begin);
+                streamReader.DiscardBufferedData();
+
+                // Step 4d: Load ImportConfig
+                ImportConfig? config = null;
+                if (jsonPath != "default")
+                {
+                    config = ImportConfig.LoadFromFile(jsonPath);
+                }
+
+                // Step 4e: Create File instance
+                var file = LibClaimsDataImport.Importer.File.New(streamReader, fileSpec, config);
+
+                // Step 4f: Generate random table name
+                string tableName = GenerateRandomTableName(databasePath);
+
+                // Step 4g: Write to database
+                await file.WriteToDb(databasePath, tableName);
+
+                return $"file imported to table '{tableName}' in temp database";
+            }
+            catch (Exception ex)
+            {
+                return $"Import failed: {ex.Message}";
+            }
         }
 
         private async Task<string> RenderPartialViewAsync<T>(string partialName, T model)
