@@ -249,6 +249,9 @@
                     
                     <span id="database-status" class="file-status">@Model.DatabaseStatus</span>
                 </div>
+                
+                <!-- Hidden field to maintain temp directory across requests -->
+                <input type="hidden" id="tmpdir" name="tmpdir" value="@Model.TempDirectory" />
             </form>
         </div>
         
@@ -392,6 +395,12 @@
             
             const token = document.querySelector('input[name="__RequestVerificationToken"]').value;
             formData.append('__RequestVerificationToken', token);
+            
+            // Include temp directory to maintain session consistency
+            const tmpdir = document.querySelector('input[name="tmpdir"]').value;
+            if (tmpdir) {
+                formData.append('tmpdir', tmpdir);
+            }
             
             // Use fetch to upload file (HTMX doesn't handle FormData well in htmx.ajax)
             fetch('/ClaimsDataImporter?handler=FileUpload', {

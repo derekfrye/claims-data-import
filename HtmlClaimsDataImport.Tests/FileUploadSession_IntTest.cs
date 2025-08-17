@@ -1,6 +1,10 @@
+using System.IO;
 using System.Text;
 using System.Text.Json;
 using Microsoft.AspNetCore.Mvc.Testing;
+using System.Net;
+using HtmlClaimsDataImport.Services;
+using Microsoft.Extensions.DependencyInjection;
 
 namespace HtmlClaimsDataImport.Tests;
 
@@ -12,13 +16,19 @@ public class FileUploadSession_IntTest(WebApplicationFactory<Program> factory)
     [Fact]
     public async Task FileUploadSession_UploadJsonFile_ThenReloadAndUploadAgain_VerifiesOverwriteBehavior()
     {
-        // Use the standard factory client approach that works in other tests
+        // Use standard production configuration and specify tmpdir to control temp directory
         using var sessionClient = _factory.CreateClient();
+        
+        // Create a shared temp directory for this test to simulate browser session persistence
+        var testTempDir = Path.Combine(Path.GetTempPath(), $"test-session-{Guid.NewGuid():N}");
+        Directory.CreateDirectory(testTempDir);
         
         // Step 1: Get the page and extract anti-forgery token
         var getResponse = await sessionClient.GetAsync("/ClaimsDataImporter");
         getResponse.EnsureSuccessStatusCode();
         var getContent = await getResponse.Content.ReadAsStringAsync();
+        
+        Console.WriteLine($"=== USING FIXED TEMP DIR FOR TEST: {testTempDir} ===");
         
         // Extract anti-forgery token
         var tokenStart = getContent.IndexOf("__RequestVerificationToken\" type=\"hidden\" value=\"") + "__RequestVerificationToken\" type=\"hidden\" value=\"".Length;
@@ -46,10 +56,11 @@ public class FileUploadSession_IntTest(WebApplicationFactory<Program> factory)
         {
             { new StringContent("json"), "fileType" },
             { new StringContent(token), "__RequestVerificationToken" },
+            { new StringContent(testTempDir), "tmpdir" },
             { new ByteArrayContent(firstFileBytes), "uploadedFile", "config.json" }
         };
 
-        // Upload first file
+        // Upload first file with fixed session ID
         var firstUploadResponse = await sessionClient.PostAsync("/ClaimsDataImporter?handler=FileUpload", firstFormData);
         firstUploadResponse.EnsureSuccessStatusCode();
         
@@ -107,15 +118,16 @@ public class FileUploadSession_IntTest(WebApplicationFactory<Program> factory)
         var secondJsonContent = JsonSerializer.Serialize(secondJsonData, new JsonSerializerOptions { WriteIndented = true });
         var secondFileBytes = Encoding.UTF8.GetBytes(secondJsonContent);
 
-        // Prepare multipart form data for second file upload (use same token and client)
+        // Prepare multipart form data for second file upload (use same tmpdir)
         using var secondFormData = new MultipartFormDataContent
         {
             { new StringContent("json"), "fileType" },
             { new StringContent(token), "__RequestVerificationToken" },
+            { new StringContent(testTempDir), "tmpdir" },
             { new ByteArrayContent(secondFileBytes), "uploadedFile", "config.json" }
         };
 
-        // Upload second file
+        // Upload second file (should go to SAME temp directory because of tmpdir parameter)
         var secondUploadResponse = await sessionClient.PostAsync("/ClaimsDataImporter?handler=FileUpload", secondFormData);
         secondUploadResponse.EnsureSuccessStatusCode();
         
@@ -132,33 +144,46 @@ public class FileUploadSession_IntTest(WebApplicationFactory<Program> factory)
         
         Console.WriteLine($"Second upload temp directory: {secondTempDirectory}");
         
-        // Step 7: Verify both temp directories exist and contain files
-        // In integration tests, each request gets a new session, so we'll have two separate directories
-        Assert.True(Directory.Exists(tempDirectory), "First temp directory should still exist");
-        Assert.True(Directory.Exists(secondTempDirectory), "Second temp directory should exist");
+        // Step 7: With tmpdir parameter, both uploads should go to the SAME temp directory
+        Console.WriteLine($"Test temp directory: {testTempDir}");
+        Console.WriteLine($"First upload temp directory: {tempDirectory}");
+        Console.WriteLine($"Second upload temp directory: {secondTempDirectory}");
         
-        // Step 8: Verify both files exist and contain the correct content
-        var firstConfigFile = Path.Combine(tempDirectory, "config.json");
-        var secondConfigFile = Path.Combine(secondTempDirectory, "config.json");
+        // This is the key test - same tmpdir should mean same temp directory
+        Assert.Equal(testTempDir, tempDirectory);
+        Assert.Equal(testTempDir, secondTempDirectory);
         
-        Assert.True(File.Exists(firstConfigFile), "First config file should exist");
-        Assert.True(File.Exists(secondConfigFile), "Second config file should exist");
+        // Step 8: Verify the file was overwritten (not two separate files)
+        var configFile = Path.Combine(tempDirectory, "config.json");
+        Assert.True(File.Exists(configFile), "Config file should exist");
         
-        // Verify first file still contains original content
-        var firstFinalContent = await File.ReadAllTextAsync(firstConfigFile);
-        var firstFinalJson = JsonSerializer.Deserialize<JsonElement>(firstFinalContent);
-        Assert.Equal(originalJson.GetProperty("setting1").GetString(), firstFinalJson.GetProperty("setting1").GetString());
-        
-        // Verify second file contains second upload content
-        var secondFinalContent = await File.ReadAllTextAsync(secondConfigFile);
-        var secondFinalJson = JsonSerializer.Deserialize<JsonElement>(secondFinalContent);
+        // Step 9: Verify the content matches the SECOND upload (overwrite behavior)
+        var finalContent = await File.ReadAllTextAsync(configFile);
+        var finalJson = JsonSerializer.Deserialize<JsonElement>(finalContent);
         var secondOriginalJson = JsonSerializer.Deserialize<JsonElement>(secondJsonContent);
         
-        Assert.Equal(secondOriginalJson.GetProperty("setting1").GetString(), secondFinalJson.GetProperty("setting1").GetString());
-        Assert.Equal(secondOriginalJson.GetProperty("setting2").GetInt32(), secondFinalJson.GetProperty("setting2").GetInt32());
-        Assert.Equal(secondOriginalJson.GetProperty("setting4").GetString(), secondFinalJson.GetProperty("setting4").GetString());
+        // Should contain second upload content
+        Assert.Equal(secondOriginalJson.GetProperty("setting1").GetString(), finalJson.GetProperty("setting1").GetString());
+        Assert.Equal(secondOriginalJson.GetProperty("setting2").GetInt32(), finalJson.GetProperty("setting2").GetInt32());
+        Assert.Equal(secondOriginalJson.GetProperty("setting3").GetBoolean(), finalJson.GetProperty("setting3").GetBoolean());
+        Assert.Equal(secondOriginalJson.GetProperty("setting4").GetString(), finalJson.GetProperty("setting4").GetString());
         
-        Console.WriteLine($"✅ SUCCESS: Both temp directories exist and persist: {tempDirectory} and {secondTempDirectory}");
-        Console.WriteLine("✅ SUCCESS: Files persist through multiple requests (our bug fix works!)");
+        // Should NOT contain properties unique to first upload
+        Assert.False(finalJson.GetProperty("nested").TryGetProperty("property2", out _), 
+                    "property2 from first upload should not exist after overwrite");
+        
+        Console.WriteLine($"✅ SUCCESS: tmpdir parameter used same temp directory: {testTempDir}");
+        Console.WriteLine("✅ SUCCESS: Second file overwrote first file (real browser behavior simulated!)");
+        
+        // Clean up test temp directory
+        try
+        {
+            Directory.Delete(testTempDir, true);
+            Console.WriteLine($"✅ SUCCESS: Test temp directory cleaned up: {testTempDir}");
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"⚠️  WARNING: Failed to clean up test temp directory {testTempDir}: {ex.Message}");
+        }
     }
 }

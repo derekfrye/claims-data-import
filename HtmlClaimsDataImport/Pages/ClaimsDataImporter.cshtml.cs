@@ -1,5 +1,7 @@
 namespace HtmlClaimsDataImport.Pages
 {
+    using System;
+    using System.IO;
     using HtmlClaimsDataImport.Models;
     using HtmlClaimsDataImport.Services;
     using Microsoft.AspNetCore.Mvc;
@@ -97,8 +99,9 @@ namespace HtmlClaimsDataImport.Pages
         /// </summary>
         /// <param name="fileType">The type of the file being uploaded (e.g., json, filename, database).</param>
         /// <param name="uploadedFile">The uploaded file to process.</param>
+        /// <param name="tmpdir">Optional temp directory to use. If not specified, uses session-based logic.</param>
         /// <returns>An <see cref="IActionResult"/> representing the result of the operation.</returns>
-        public async Task<IActionResult> OnPostFileUpload(string fileType, IFormFile uploadedFile)
+        public async Task<IActionResult> OnPostFileUpload(string fileType, IFormFile uploadedFile, string? tmpdir = null)
         {
             Console.WriteLine($"OnPostFileUpload called: fileType={fileType}, file={uploadedFile?.FileName}, size={uploadedFile?.Length}");
 
@@ -108,8 +111,35 @@ namespace HtmlClaimsDataImport.Pages
                 return this.Content("No file selected");
             }
 
-            // Use the session temp directory and save file
-            var tempDir = this.tempDirectoryService.GetSessionTempDirectory();
+            // Use specified temp directory if provided, otherwise use session temp directory
+            string tempDir;
+            if (!string.IsNullOrEmpty(tmpdir))
+            {
+                // Security validation: ensure tmpdir is within authorized base path
+                var authorizedBasePath = Services.TempDirectoryCleanupService.GetTempBasePath();
+                var normalizedTmpdir = Path.GetFullPath(tmpdir);
+                var normalizedBasePath = Path.GetFullPath(authorizedBasePath);
+
+                if (!normalizedTmpdir.StartsWith(normalizedBasePath, StringComparison.OrdinalIgnoreCase))
+                {
+                    Console.WriteLine($"⚠️  SECURITY WARNING: tmpdir parameter '{tmpdir}' is outside authorized base path '{authorizedBasePath}'. Reverting to session-based logic.");
+                    tempDir = this.tempDirectoryService.GetSessionTempDirectory();
+                }
+                else
+                {
+                    tempDir = tmpdir;
+                    // Ensure the directory exists if tmpdir was specified and validated
+                    if (!Directory.Exists(tmpdir))
+                    {
+                        Directory.CreateDirectory(tmpdir);
+                    }
+                }
+            }
+            else
+            {
+                tempDir = this.tempDirectoryService.GetSessionTempDirectory();
+            }
+
             var fileName = Path.GetFileName(uploadedFile.FileName);
             var filePath = Path.Combine(tempDir, fileName);
 
