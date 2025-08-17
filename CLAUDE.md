@@ -16,7 +16,7 @@ This is a .NET 9.0 solution containing five projects:
 
 ### Building the Solution
 ```bash
-# Standard build (GUI requires MAUI workloads)
+# Standard build
 dotnet build ClaimsDataImport.sln
 
 # Recommended: Build with warnings as errors for code quality
@@ -101,13 +101,22 @@ roslynator analyze ClaimsDataImport.sln
 
 ### Web Application (HtmlClaimsDataImport)
 - ASP.NET Core web application providing browser-based GUI for claims data import
+- **Architecture**: Clean Architecture with CQRS/MediatR pattern
 - Entry point: `Program.cs:1` - ASP.NET Core initialization with custom temp directory support
 - Main UI: `Pages/ClaimsDataImporter.cshtml` with file upload and import functionality
-- Components:
-  - **TempDirectoryCleanupService**: Secure temporary directory management with session-based isolation and automatic cleanup
+- **Application Layer**: CQRS commands/queries with MediatR handlers
+  - Commands: `LoadDataCommand`, `UploadFileCommand`
+  - Queries: `GetPreviewDataQuery`
+  - Handlers: Command and query handlers for business logic
+- **Domain Layer**: Core business entities and value objects
+  - Entities: `ClaimsImportSession` - manages import session state
+  - Value Objects: `FileUploadResult`, `ValidationResult`
+- **Infrastructure Layer**: External concerns and service implementations
+  - Services: `DataImportService`, `FileUploadService`, `PreviewService`, `ValidationService`, `TempDirectoryCleanupService`
 - Features:
   - File upload support for CSV, JSON config, and SQLite database files
   - Session-based temporary file management with automatic cleanup and security protections
+  - Interactive preview pane with column selection and highlighting
   - Integration with core library for claims data processing
   - Self-contained deployment configuration for easy distribution
 
@@ -159,6 +168,7 @@ CmdClaimsDataImport --database claims.db --table claims_data --filename data.csv
     - **FileUploadSession_IntTest.cs**: Tests for session-based file upload functionality
     - **HtmlDataAttributesIntegrationTests.cs**: Tests for HTML data attributes in web interface
     - **TmpdirSecurityTests.cs**: Security tests for temporary directory path validation and malicious input protection
+    - **PreviewPane_IntTest.cs**: Tests for preview pane functionality including column selection, highlighting, and navigation
 - Database table must exist before import (library doesn't create tables)
 - All projects maintain zero Roslynator code analysis issues for consistent code quality
 

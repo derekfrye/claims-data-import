@@ -1,4 +1,4 @@
-namespace HtmlClaimsDataImport.Services;
+namespace HtmlClaimsDataImport.Infrastructure.Services;
 
 /// <summary>
 /// Defines methods for managing temporary directories, including creation, registration, and cleanup.

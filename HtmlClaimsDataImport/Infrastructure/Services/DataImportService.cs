@@ -1,12 +1,12 @@
-namespace HtmlClaimsDataImport.Services
+namespace HtmlClaimsDataImport.Infrastructure.Services
 {
+    using HtmlClaimsDataImport.Application.Interfaces;
     using LibClaimsDataImport.Importer;
-    using Microsoft.Data.Sqlite;
     using Sylvan.Data.Csv;
 
-    public static class DataImportService
+    public class DataImportService : IDataImportService
     {
-        public static async Task<string> ResolveActualPath(string path, string tmpdir, string defaultFileName)
+        public async Task<string> ResolveActualPath(string path, string tmpdir, string defaultFileName)
         {
             if (path == "default")
             {
@@ -30,7 +30,7 @@ namespace HtmlClaimsDataImport.Services
             }
         }
 
-        public static async Task<string> ProcessFileImport(string fileName, string jsonPath, string databasePath)
+        public async Task<string> ProcessFileImport(string fileName, string jsonPath, string databasePath)
         {
             try
             {

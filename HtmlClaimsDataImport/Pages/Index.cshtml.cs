@@ -1,6 +1,5 @@
 namespace HtmlClaimsDataImport.Pages;
 
-using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
 
 /// <summary>

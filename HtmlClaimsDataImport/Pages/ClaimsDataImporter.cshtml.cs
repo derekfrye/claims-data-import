@@ -2,22 +2,23 @@ namespace HtmlClaimsDataImport.Pages
 {
     using System;
     using System.IO;
-    using System.Text.Json;
+    using HtmlClaimsDataImport.Application.Commands;
+    using HtmlClaimsDataImport.Application.Queries;
+    using HtmlClaimsDataImport.Infrastructure.Services;
     using HtmlClaimsDataImport.Models;
-    using HtmlClaimsDataImport.Services;
-    using LibClaimsDataImport.Importer;
+    using MediatR;
     using Microsoft.AspNetCore.Mvc;
     using Microsoft.AspNetCore.Mvc.RazorPages;
-    using Microsoft.Data.Sqlite;
-    using Sylvan.Data.Csv;
 
     /// <summary>
     /// Initializes a new instance of the <see cref="ClaimsDataImporter"/> class.
     /// </summary>
     /// <param name="tempDirectoryService">The service for managing temporary directories.</param>
-    public class ClaimsDataImporter(ITempDirectoryService tempDirectoryService) : PageModel
+    /// <param name="mediator">The mediator for handling commands and queries.</param>
+    public class ClaimsDataImporter(ITempDirectoryService tempDirectoryService, IMediator mediator) : PageModel
     {
         private readonly ITempDirectoryService tempDirectoryService = tempDirectoryService;
+        private readonly IMediator mediator = mediator;
 
         /// <summary>
         /// Gets or sets the path to the JSON file.
@@ -107,72 +108,35 @@ namespace HtmlClaimsDataImport.Pages
         /// <returns>An <see cref="IActionResult"/> representing the result of the operation.</returns>
         public async Task<IActionResult> OnPostFileUpload(string fileType, IFormFile uploadedFile, string? tmpdir = null)
         {
-            Console.WriteLine($"OnPostFileUpload called: fileType={fileType}, file={uploadedFile?.FileName}, size={uploadedFile?.Length}");
-
-            if (uploadedFile == null || uploadedFile.Length == 0)
-            {
-                Console.WriteLine("No file uploaded");
-                return this.Content("No file selected");
-            }
-
-            // Use specified temp directory if provided, otherwise use session temp directory
-            string tempDir;
-            if (!string.IsNullOrEmpty(tmpdir))
-            {
-                // Security validation: ensure tmpdir is within authorized base path
-                var authorizedBasePath = Services.TempDirectoryCleanupService.GetTempBasePath();
-                var normalizedTmpdir = Path.GetFullPath(tmpdir);
-                var normalizedBasePath = Path.GetFullPath(authorizedBasePath);
-
-                if (!normalizedTmpdir.StartsWith(normalizedBasePath, StringComparison.OrdinalIgnoreCase))
-                {
-                    Console.WriteLine($"⚠️  SECURITY WARNING: tmpdir parameter '{tmpdir}' is outside authorized base path '{authorizedBasePath}'. Reverting to session-based logic.");
-                    tempDir = this.tempDirectoryService.GetSessionTempDirectory();
-                }
-                else
-                {
-                    tempDir = tmpdir;
-                    // Ensure the directory exists if tmpdir was specified and validated
-                    if (!Directory.Exists(tmpdir))
-                    {
-                        Directory.CreateDirectory(tmpdir);
-                    }
-                }
-            }
-            else
-            {
-                tempDir = this.tempDirectoryService.GetSessionTempDirectory();
-            }
-
-            // Use service for file upload
-            var (statusMessage, logEntry, filePath) = await FileUploadService.HandleFileUploadAsync(uploadedFile, fileType, tempDir);
+            var command = new UploadFileCommand(fileType, uploadedFile, tmpdir);
+            var result = await this.mediator.Send(command);
 
             // Update the corresponding property and create model for partial view
             var model = new FileUploadResponseModel
             {
                 FileType = fileType,
-                StatusMessage = statusMessage,
-                FilePath = filePath,
-                LogEntry = logEntry,
+                StatusMessage = result.statusMessage,
+                FilePath = result.filePath,
+                LogEntry = result.logEntry,
             };
 
             switch (fileType)
             {
                 case "json":
-                    this.JsonFile = filePath;
-                    this.JsonFileStatus = statusMessage;
+                    this.JsonFile = result.filePath;
+                    this.JsonFileStatus = result.statusMessage;
                     model.InputId = "jsonFile";
                     model.InputName = "JsonFile";
                     break;
                 case "filename":
-                    this.FileName = filePath;
-                    this.FileNameStatus = statusMessage;
+                    this.FileName = result.filePath;
+                    this.FileNameStatus = result.statusMessage;
                     model.InputId = "fileName";
                     model.InputName = "FileName";
                     break;
                 case "database":
-                    this.Database = filePath;
-                    this.DatabaseStatus = statusMessage;
+                    this.Database = result.filePath;
+                    this.DatabaseStatus = result.statusMessage;
                     model.InputId = "database";
                     model.InputName = "Database";
                     break;
@@ -233,7 +197,8 @@ namespace HtmlClaimsDataImport.Pages
         {
             try
             {
-                var previewModel = await PreviewService.GetPreviewDataAsync(tmpdir, mappingStep, selectedColumn);
+                var query = new GetPreviewDataQuery(tmpdir, mappingStep, selectedColumn);
+                var previewModel = await this.mediator.Send(query);
                 var partialView = await this.RenderPartialViewAsync("_PreviewContent", previewModel);
                 return this.Content(partialView, "text/html");
             }
@@ -260,53 +225,9 @@ namespace HtmlClaimsDataImport.Pages
         /// <returns>An <see cref="IActionResult"/> representing the result of the operation.</returns>
         public async Task<IActionResult> OnPostLoadData(string tmpdir, string fileName, string jsonPath, string databasePath)
         {
-            try
-            {
-                // Resolve paths
-                string actualJsonPath = this.ResolveJsonPath(jsonPath, tmpdir);
-                string actualDatabasePath = await DataImportService.ResolveActualPath(databasePath, tmpdir, this.DefaultDatabase);
-                string actualFileName = Path.Combine(tmpdir, fileName);
-
-                // Validation step 1: Check if JSON is valid
-                var (jsonValid, jsonError) = ValidationService.ValidateJsonFile(actualJsonPath);
-                if (!jsonValid)
-                {
-                    return this.Content($"json invalid: {jsonError}");
-                }
-
-                // Validation step 2: Check if file exists and is readable
-                var (fileValid, fileError) = ValidationService.ValidateFile(actualFileName);
-                if (!fileValid)
-                {
-                    return this.Content(fileError);
-                }
-
-                // Validation step 3: Check if database exists and is readable as SQLite
-                var (dbValid, dbError) = ValidationService.ValidateSqliteDatabase(actualDatabasePath);
-                if (!dbValid)
-                {
-                    return this.Content(dbError);
-                }
-
-                // All validations passed - proceed with import
-                var result = await DataImportService.ProcessFileImport(actualFileName, actualJsonPath, actualDatabasePath);
-                return this.Content(result);
-            }
-            catch (Exception ex)
-            {
-                Console.WriteLine($"Error in LoadData: {ex.Message}");
-                return this.Content($"Error: {ex.Message}");
-            }
-        }
-
-        private string ResolveJsonPath(string path, string tmpdir)
-        {
-            if (path == "default")
-            {
-                return Path.Combine(Directory.GetCurrentDirectory(), this.DefaultJsonFile);
-            }
-
-            return Path.IsPathRooted(path) ? path : Path.Combine(tmpdir, path);
+            var command = new LoadDataCommand(tmpdir, fileName, jsonPath, databasePath);
+            var result = await this.mediator.Send(command);
+            return this.Content(result);
         }
 
         private async Task<string> RenderPartialViewAsync<T>(string partialName, T model)

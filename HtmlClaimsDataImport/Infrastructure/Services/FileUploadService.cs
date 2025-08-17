@@ -1,10 +1,11 @@
-namespace HtmlClaimsDataImport.Services
+namespace HtmlClaimsDataImport.Infrastructure.Services
 {
-    using Microsoft.AspNetCore.Mvc;
+    using HtmlClaimsDataImport.Application.Interfaces;
+    using HtmlClaimsDataImport.Domain.ValueObjects;
 
-    public class FileUploadService
+    public class FileUploadService : IFileUploadService
     {
-    public static string FormatFileSize(long bytes)
+        public string FormatFileSize(long bytes)
     {
         string[] suffixes = ["B", "KiB", "MiB", "GiB", "TiB"];
         int suffixIndex = 0;
@@ -19,11 +20,11 @@ namespace HtmlClaimsDataImport.Services
         return $"{size:F1} {suffixes[suffixIndex]}";
     }
 
-    public static async Task<(string statusMessage, string logEntry, string filePath)> HandleFileUploadAsync(IFormFile uploadedFile, string fileType, string tmpdir)
+        public async Task<FileUploadResult> HandleFileUploadAsync(IFormFile uploadedFile, string fileType, string tmpdir)
     {
         if (uploadedFile == null || uploadedFile.Length == 0)
         {
-            return ("No file selected.", "", "");
+            return new FileUploadResult("No file selected.", "", "");
         }
 
         // Ensure temp directory exists
@@ -45,16 +46,16 @@ namespace HtmlClaimsDataImport.Services
         Console.WriteLine($"File saved to: {filePath}, exists: {File.Exists(filePath)}");
 
         var fileSize = new FileInfo(filePath).Length;
-        var formattedSize = FormatFileSize(fileSize);
+        var formattedSize = this.FormatFileSize(fileSize);
         var statusMessage = $"File uploaded: {fileName}";
         var logEntry = $"File uploaded: {fileName}, {formattedSize}";
 
         Console.WriteLine($"Log entry: {logEntry}");
 
-        return (statusMessage, logEntry, filePath);
+        return new FileUploadResult(statusMessage, logEntry, filePath);
     }
 
-    public static string GenerateFileStatusResponse(string fileType, string fileName, string action, string tmpdir, string status)
+        public string GenerateFileStatusResponse(string fileType, string fileName, string action, string tmpdir, string status)
     {
         if (action == "cancel")
         {
@@ -77,7 +78,7 @@ namespace HtmlClaimsDataImport.Services
 </div>";
     }
 
-    private static string GetInputId(string fileType) => fileType switch
+        private static string GetInputId(string fileType) => fileType switch
     {
         "json" => "jsonFile",
         "filename" => "fileName",
@@ -85,7 +86,7 @@ namespace HtmlClaimsDataImport.Services
         _ => throw new ArgumentException($"Unknown file type: {fileType}")
     };
 
-    private static string GetPropertyName(string fileType) => fileType switch
+        private static string GetPropertyName(string fileType) => fileType switch
     {
         "json" => "JsonFile",
         "filename" => "FileName",

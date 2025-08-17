@@ -1,31 +1,33 @@
-namespace HtmlClaimsDataImport.Services
+namespace HtmlClaimsDataImport.Infrastructure.Services
 {
+    using HtmlClaimsDataImport.Application.Interfaces;
+    using HtmlClaimsDataImport.Domain.ValueObjects;
     using Microsoft.Data.Sqlite;
 
-    public static class ValidationService
+    public class ValidationService : IValidationService
     {
-        public static (bool isValid, string errorMessage) ValidateFile(string filePath)
+        public ValidationResult ValidateFile(string filePath)
         {
             if (string.IsNullOrWhiteSpace(filePath))
             {
-                return (false, "File path cannot be empty.");
+                return ValidationResult.Failure("File path cannot be empty.");
             }
 
             if (!File.Exists(filePath))
             {
-                return (false, $"File not found: {filePath}");
+                return ValidationResult.Failure($"File not found: {filePath}");
             }
 
             var fileInfo = new FileInfo(filePath);
             if (fileInfo.Length == 0)
             {
-                return (false, "File is empty.");
+                return ValidationResult.Failure("File is empty.");
             }
 
-            return (true, string.Empty);
+            return ValidationResult.Success();
         }
 
-        public static (bool isValid, string errorMessage) ValidateJsonFile(string jsonPath)
+        public ValidationResult ValidateJsonFile(string jsonPath)
         {
             if (jsonPath == "default")
             {
@@ -33,10 +35,10 @@ namespace HtmlClaimsDataImport.Services
                 return ValidateFile(defaultJsonPath);
             }
             
-            var (isValid, errorMessage) = ValidateFile(jsonPath);
-            if (!isValid)
+            var validationResult = ValidateFile(jsonPath);
+            if (!validationResult.isValid)
             {
-                return (isValid, errorMessage);
+                return validationResult;
             }
 
             // Additional JSON-specific validation could go here
@@ -44,20 +46,20 @@ namespace HtmlClaimsDataImport.Services
             {
                 var jsonContent = File.ReadAllText(jsonPath);
                 System.Text.Json.JsonDocument.Parse(jsonContent);
-                return (true, string.Empty);
+                return ValidationResult.Success();
             }
             catch (System.Text.Json.JsonException ex)
             {
-                return (false, $"Invalid JSON format: {ex.Message}");
+                return ValidationResult.Failure($"Invalid JSON format: {ex.Message}");
             }
         }
 
-        public static (bool isValid, string errorMessage) ValidateSqliteDatabase(string databasePath)
+        public ValidationResult ValidateSqliteDatabase(string databasePath)
         {
-            var (isValid, errorMessage) = ValidateFile(databasePath);
-            if (!isValid)
+            var validationResult = ValidateFile(databasePath);
+            if (!validationResult.isValid)
             {
-                return (isValid, errorMessage);
+                return validationResult;
             }
 
             try
@@ -71,18 +73,18 @@ namespace HtmlClaimsDataImport.Services
                 
                 if (result == null)
                 {
-                    return (false, "Database does not contain a 'claims' table.");
+                    return ValidationResult.Failure("Database does not contain a 'claims' table.");
                 }
                 
-                return (true, string.Empty);
+                return ValidationResult.Success();
             }
             catch (SqliteException ex)
             {
-                return (false, $"Invalid SQLite database: {ex.Message}");
+                return ValidationResult.Failure($"Invalid SQLite database: {ex.Message}");
             }
             catch (Exception ex)
             {
-                return (false, $"Database validation error: {ex.Message}");
+                return ValidationResult.Failure($"Database validation error: {ex.Message}");
             }
         }
     }

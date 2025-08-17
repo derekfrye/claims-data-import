@@ -1,4 +1,5 @@
-using HtmlClaimsDataImport.Services;
+using HtmlClaimsDataImport.Application.Interfaces;
+using HtmlClaimsDataImport.Infrastructure.Services;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -19,6 +20,15 @@ builder.Services.AddRazorPages();
 builder.Services.AddSession();
 builder.Services.AddHttpContextAccessor();
 builder.Services.AddHostedService<TempDirectoryCleanupService>();
+
+// Register MediatR
+builder.Services.AddMediatR(cfg => cfg.RegisterServicesFromAssembly(typeof(Program).Assembly));
+
+// Register Clean Architecture services
+builder.Services.AddScoped<IFileUploadService, FileUploadService>();
+builder.Services.AddScoped<IValidationService, ValidationService>();
+builder.Services.AddScoped<IDataImportService, DataImportService>();
+builder.Services.AddScoped<IPreviewService, PreviewService>();
 
 // Register session-scoped temp directory service
 builder.Services.AddScoped<ITempDirectoryService>(provider =>
