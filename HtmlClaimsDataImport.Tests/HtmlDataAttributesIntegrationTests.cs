@@ -5,7 +5,8 @@ using System.Text;
 
 namespace HtmlClaimsDataImport.Tests;
 
-public class HtmlDataAttributesIntegrationTests : IClassFixture<WebApplicationFactory<Program>>
+[Collection("WebApp")]
+public class HtmlDataAttributesIntegrationTests
 {
     private readonly WebApplicationFactory<Program> _factory;
     private readonly HttpClient _client;
@@ -32,7 +33,7 @@ public class HtmlDataAttributesIntegrationTests : IClassFixture<WebApplicationFa
         
         var tokenStart = getContent.IndexOf("__RequestVerificationToken\" type=\"hidden\" value=\"") + "__RequestVerificationToken\" type=\"hidden\" value=\"".Length;
         var tokenEnd = getContent.IndexOf("\"", tokenStart);
-        return getContent.Substring(tokenStart, tokenEnd - tokenStart);
+        return getContent[tokenStart..tokenEnd];
     }
 
     [Fact]
@@ -86,7 +87,7 @@ public class HtmlDataAttributesIntegrationTests : IClassFixture<WebApplicationFa
         // Extract token
         var tokenStart = getContent.IndexOf("__RequestVerificationToken\" type=\"hidden\" value=\"") + "__RequestVerificationToken\" type=\"hidden\" value=\"".Length;
         var tokenEnd = getContent.IndexOf("\"", tokenStart);
-        var token = getContent.Substring(tokenStart, tokenEnd - tokenStart);
+        var token = getContent[tokenStart..tokenEnd];
         
         // Step 2: Upload file using the SAME session client  
         var jsonContent = """{"testKey": "testValue"}""";
@@ -126,7 +127,7 @@ public class HtmlDataAttributesIntegrationTests : IClassFixture<WebApplicationFa
         // Extract token
         var tokenStart = getContent.IndexOf("__RequestVerificationToken\" type=\"hidden\" value=\"") + "__RequestVerificationToken\" type=\"hidden\" value=\"".Length;
         var tokenEnd = getContent.IndexOf("\"", tokenStart);
-        var token = getContent.Substring(tokenStart, tokenEnd - tokenStart);
+        var token = getContent[tokenStart..tokenEnd];
         
         // Step 2: Upload file using the SAME session client (now with cookies!)
         var jsonContent = """{"testKey": "testValue"}""";
@@ -182,16 +183,18 @@ public class HtmlDataAttributesIntegrationTests : IClassFixture<WebApplicationFa
         // Extract token
         var tokenStart = getContent.IndexOf("__RequestVerificationToken\" type=\"hidden\" value=\"") + "__RequestVerificationToken\" type=\"hidden\" value=\"".Length;
         var tokenEnd = getContent.IndexOf("\"", tokenStart);
-        var token = getContent.Substring(tokenStart, tokenEnd - tokenStart);
+        var token = getContent[tokenStart..tokenEnd];
         
         // Create a test CSV file
         var csvContent = "Name,Age,City\nJohn,30,NYC\nJane,25,LA";
         var csvBytes = Encoding.UTF8.GetBytes(csvContent);
         
-        using var content = new MultipartFormDataContent();
-        content.Add(new StringContent("filename"), "fileType");
-        content.Add(new StringContent(token), "__RequestVerificationToken");
-        content.Add(new ByteArrayContent(csvBytes), "uploadedFile", "test-data.csv");
+        using var content = new MultipartFormDataContent
+        {
+            { new StringContent("filename"), "fileType" },
+            { new StringContent(token), "__RequestVerificationToken" },
+            { new ByteArrayContent(csvBytes), "uploadedFile", "test-data.csv" }
+        };
         
         // Act: Post file upload request using session client
         var response = await sessionClient.PostAsync("/ClaimsDataImporter?handler=FileUpload", content);

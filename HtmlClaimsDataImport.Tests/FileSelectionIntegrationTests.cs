@@ -3,7 +3,8 @@ using Microsoft.AspNetCore.Mvc.Testing;
 
 namespace HtmlClaimsDataImport.Tests;
 
-public class FileSelectionIntegrationTests : IClassFixture<WebApplicationFactory<Program>>
+[Collection("WebApp")]
+public class FileSelectionIntegrationTests
 {
     private readonly WebApplicationFactory<Program> _factory;
     private readonly HttpClient _client;
@@ -29,17 +30,19 @@ public class FileSelectionIntegrationTests : IClassFixture<WebApplicationFactory
         // Extract token
         var tokenStart = getContent.IndexOf("__RequestVerificationToken\" type=\"hidden\" value=\"") + "__RequestVerificationToken\" type=\"hidden\" value=\"".Length;
         var tokenEnd = getContent.IndexOf("\"", tokenStart);
-        var token = getContent.Substring(tokenStart, tokenEnd - tokenStart);
+        var token = getContent[tokenStart..tokenEnd];
         
         // Create a test CSV file content
         var testFileContent = "Name,Age,City\nJohn,25,New York\nJane,30,Boston";
         var fileBytes = Encoding.UTF8.GetBytes(testFileContent);
 
         // Prepare multipart form data for file upload
-        using var formData = new MultipartFormDataContent();
-        formData.Add(new StringContent("filename"), "fileType");
-        formData.Add(new StringContent(token), "__RequestVerificationToken");
-        formData.Add(new ByteArrayContent(fileBytes), "uploadedFile", "test.csv");
+        using var formData = new MultipartFormDataContent
+        {
+            { new StringContent("filename"), "fileType" },
+            { new StringContent(token), "__RequestVerificationToken" },
+            { new ByteArrayContent(fileBytes), "uploadedFile", "test.csv" }
+        };
 
         // Make the POST request to the file upload handler using session client
         var response = await sessionClient.PostAsync("/ClaimsDataImporter?handler=FileUpload", formData);
@@ -74,7 +77,7 @@ public class FileSelectionIntegrationTests : IClassFixture<WebApplicationFactory
         
         var tokenStart = getContent.IndexOf("__RequestVerificationToken\" type=\"hidden\" value=\"") + "__RequestVerificationToken\" type=\"hidden\" value=\"".Length;
         var tokenEnd = getContent.IndexOf("\"", tokenStart);
-        var token = getContent.Substring(tokenStart, tokenEnd - tokenStart);
+        var token = getContent[tokenStart..tokenEnd];
 
         // Test JSON file type (should return original filename, not "zzz")
         var formData = new List<KeyValuePair<string, string>>

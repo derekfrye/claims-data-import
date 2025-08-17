@@ -117,11 +117,12 @@ public class TempDirectoryService(string sessionId, string? basePath = null) : I
     }
 
     /// <summary>
-    /// Disposes the service by cleaning up all registered temporary directories.
+    /// Disposes the service. Cleanup only occurs on server termination, not on request disposal.
     /// </summary>
     public void Dispose()
     {
-        this.CleanupDirectories();
+        // Do not cleanup directories on dispose - only cleanup on server termination
+        // This allows files to persist across HTTP requests within the same session
     }
 }
 
