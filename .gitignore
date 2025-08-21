@@ -35,3 +35,4 @@ GuiClaimsDataImport/Platforms/
 data.db
 cookies.txt
 cookies_debug.txt
+build_artifacts
