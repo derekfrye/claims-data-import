@@ -14,6 +14,22 @@
 - Test all: `dotnet test` — runs unit/integration tests.
 - Coverage: `dotnet test --collect:"XPlat Code Coverage"` — emits coverage via coverlet.
 
+### Style/Analyzer Build + Summary
+- Script: `./build_and_analyze_style.sh` (zsh)
+  - Cleans and builds, saves logs to `build_artifacts/`, and prints summaries of analyzer diagnostics (Meziantou, StyleCop, etc.).
+  - Options:
+    - `-w`: build with `-warnaserror` (treat warnings as errors)
+    - `-s <solution.sln|project.csproj>`: scope to a solution or a single project (default: `ClaimsDataImport.sln`)
+    - `-p <project.csproj>`: show a per-project top-rules breakdown in addition to global summary
+  - Outputs (symlinks to latest run):
+    - `build_artifacts/clean.log`, `build_artifacts/build.log`
+    - `build_artifacts/warnings_by_id.txt`, `build_artifacts/warnings_by_project.txt`, `build_artifacts/warnings_by_id_for_project.txt`
+    - `build_artifacts/diagnostics_samples.txt`
+  - Examples:
+    - Whole solution: `./build_and_analyze_style.sh -w`
+    - Lib only: `./build_and_analyze_style.sh -w -s LibClaimsDataImport/LibClaimsDataImport.csproj`
+    - Web + per-project breakdown: `./build_and_analyze_style.sh -w -s HtmlClaimsDataImport/HtmlClaimsDataImport.csproj -p HtmlClaimsDataImport.csproj`
+
 ## Coding Style & Naming Conventions
 - Language: C# on .NET 9.0 with `<Nullable>enable</Nullable>` and implicit usings.
 - Analyzers: StyleCop enabled (see `HtmlClaimsDataImport/stylecop.json`). Fix warnings; file names should match top-level types.

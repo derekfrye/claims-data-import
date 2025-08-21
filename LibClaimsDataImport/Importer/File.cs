@@ -78,14 +78,14 @@
             };
 
             using var connection = new SqliteConnection(connectionStringBuilder.ConnectionString);
-            await connection.OpenAsync();
+            await connection.OpenAsync().ConfigureAwait(false);
 
             // Apply pragma settings from configuration
             if (!string.IsNullOrEmpty(this.config.SqliteSettings.ConnectionSettings.JournalMode))
             {
                 var journalCommand = connection.CreateCommand();
                 journalCommand.CommandText = $"PRAGMA journal_mode = {this.config.SqliteSettings.ConnectionSettings.JournalMode}";
-                await journalCommand.ExecuteNonQueryAsync();
+                await journalCommand.ExecuteNonQueryAsync().ConfigureAwait(false);
             }
 
             // Apply additional pragma settings
@@ -93,11 +93,11 @@
             {
                 var pragmaCommand = connection.CreateCommand();
                 pragmaCommand.CommandText = $"PRAGMA {pragma.Key} = {pragma.Value}";
-                await pragmaCommand.ExecuteNonQueryAsync();
+                await pragmaCommand.ExecuteNonQueryAsync().ConfigureAwait(false);
             }
 
             // Create table if it doesn't exist using configuration
-            await this.config.CreateTableIfNotExists(connection, table, this.fileSpec);
+            await this.config.CreateTableIfNotExists(connection, table, this.fileSpec).ConfigureAwait(false);
 
             // Reset the stream reader to the beginning
             this.streamReader.BaseStream.Seek(0, SeekOrigin.Begin);
@@ -141,7 +141,7 @@
                 // Read and insert data with batch processing
                 int rowCount = 0;
                 int errorCount = 0;
-                while (await this.csvReader.ReadAsync())
+                while (await this.csvReader.ReadAsync().ConfigureAwait(false))
                 {
                     try
                     {
@@ -163,7 +163,7 @@
                             }
                         }
 
-                        await insertCommand.ExecuteNonQueryAsync();
+                        await insertCommand.ExecuteNonQueryAsync().ConfigureAwait(false);
                         rowCount++;
 
                         // Commit batch if configured batch size is reached
@@ -171,7 +171,7 @@
                         {
                             if (transaction != null)
                             {
-                                await transaction.CommitAsync();
+                                await transaction.CommitAsync().ConfigureAwait(false);
                                 transaction = connection.BeginTransaction();
                                 insertCommand.Transaction = transaction;
                             }
@@ -201,14 +201,14 @@
                 // Final commit
                 if (transaction != null)
                 {
-                    await transaction.CommitAsync();
+                    await transaction.CommitAsync().ConfigureAwait(false);
                 }
             }
             catch
             {
                 if (transaction != null)
                 {
-                    await transaction.RollbackAsync();
+                    await transaction.RollbackAsync().ConfigureAwait(false);
                 }
                 throw;
             }

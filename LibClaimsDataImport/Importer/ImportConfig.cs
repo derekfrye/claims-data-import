@@ -121,7 +121,7 @@ public class ImportConfig
         tableExistsCommand.CommandText = "SELECT name FROM sqlite_master WHERE type='table' AND name=$table";
         tableExistsCommand.Parameters.AddWithValue("$table", tableName);
 
-        var tableExists = await tableExistsCommand.ExecuteScalarAsync();
+        var tableExists = await tableExistsCommand.ExecuteScalarAsync().ConfigureAwait(false);
         if (tableExists != null)
         {
             return; // Table already exists
@@ -131,7 +131,7 @@ public class ImportConfig
         var createTableSql = this.GenerateCreateTableSql(tableName, fileSpec);
 
         using var command = new SqliteCommand(createTableSql, connection);
-        await command.ExecuteNonQueryAsync();
+        await command.ExecuteNonQueryAsync().ConfigureAwait(false);
     }
 
     private string GenerateCreateTableSql(string tableName, FileSpec? fileSpec = null)
@@ -205,52 +205,4 @@ public class ImportConfig
     }
 }
 
-public class SqliteSettings
-{
-    public ConnectionSettings ConnectionSettings { get; set; } = new();
-    public ImportSettings ImportSettings { get; set; } = new();
-}
-
-public class ConnectionSettings
-{
-    public int DefaultTimeout { get; set; } = 30;
-    public bool EnableForeignKeys { get; set; } = true;
-    public string JournalMode { get; set; } = "WAL";
-    public IDictionary<string, object> Pragma { get; set; } = new Dictionary<string, object>();
-}
-
-public class ImportSettings
-{
-    public int BatchSize { get; set; } = 1000;
-    public bool EnableTransactions { get; set; } = true;
-    public bool ContinueOnError { get; set; } = false;
-    public string LogLevel { get; set; } = "info";
-}
-
-public class ColumnMappings
-{
-    public MoneyFormats MoneyFormats { get; set; } = new();
-}
-
-public class MoneyFormats
-{
-    public bool AllowParenthesesForNegative { get; set; } = true;
-    public bool StripCurrencySymbols { get; set; } = true;
-    public bool StripThousandsSeparators { get; set; } = true;
-    public string DefaultCurrency { get; set; } = "USD";
-}
-
-public class ValidationSettings
-{
-    public int MaxRowErrors { get; set; } = 100;
-}
-
-public class DestinationColumn
-{
-    public string ColumnName { get; set; } = string.Empty;
-    public string Nullable { get; set; } = "Y";
-    public string Datatype { get; set; } = string.Empty;
-    public IList<string> Values { get; set; } = new List<string>();
-    [JsonPropertyName("primary_key")]
-    public bool PrimaryKey { get; set; } = false;
-}
+// Note: Auxiliary classes moved to dedicated files to satisfy MA0048
