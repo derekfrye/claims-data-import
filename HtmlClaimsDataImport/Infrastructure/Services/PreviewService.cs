@@ -77,7 +77,10 @@ namespace HtmlClaimsDataImport.Infrastructure.Services
                 else
                 {
                     // Default claims columns if table doesn't exist
-                    model.ClaimsColumns.AddRange(["id", "amount", "date", "description", "category"]);
+                    foreach (var c in new[] { "id", "amount", "date", "description", "category" })
+                    {
+                        model.ClaimsColumns.Add(c);
+                    }
                 }
 
                 // Get first 10 rows of preview data

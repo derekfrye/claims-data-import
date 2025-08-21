@@ -18,17 +18,17 @@ namespace HtmlClaimsDataImport.Models
         /// <summary>
         /// Gets or sets the column names from the import table.
         /// </summary>
-        public List<string> ImportColumns { get; set; } = new List<string>();
+        public IList<string> ImportColumns { get; set; } = new List<string>();
 
         /// <summary>
         /// Gets or sets the column names from the claims table.
         /// </summary>
-        public List<string> ClaimsColumns { get; set; } = new List<string>();
+        public IList<string> ClaimsColumns { get; set; } = new List<string>();
 
         /// <summary>
         /// Gets or sets the preview data rows (first 10 rows).
         /// </summary>
-        public List<Dictionary<string, string>> PreviewRows { get; set; } = new List<Dictionary<string, string>>();
+        public IList<Dictionary<string, string>> PreviewRows { get; set; } = new List<Dictionary<string, string>>();
 
         /// <summary>
         /// Gets or sets the name of the import table found.
@@ -43,7 +43,7 @@ namespace HtmlClaimsDataImport.Models
         /// <summary>
         /// Gets or sets the current column mappings (ClaimsColumn -> ImportColumn).
         /// </summary>
-        public Dictionary<string, string> ColumnMappings { get; set; } = new Dictionary<string, string>();
+        public IDictionary<string, string> ColumnMappings { get; set; } = new Dictionary<string, string>();
 
         /// <summary>
         /// Gets or sets the currently selected import column for highlighting.

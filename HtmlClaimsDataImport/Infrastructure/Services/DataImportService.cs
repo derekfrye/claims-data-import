@@ -8,7 +8,7 @@ namespace HtmlClaimsDataImport.Infrastructure.Services
     {
         public async Task<string> ResolveActualPath(string path, string tmpdir, string defaultFileName)
         {
-            if (path == "default")
+            if (string.Equals(path, "default", StringComparison.OrdinalIgnoreCase))
             {
                 // Copy default file to temp directory
                 string defaultPath = Path.Combine(Directory.GetCurrentDirectory(), defaultFileName);
@@ -47,7 +47,7 @@ namespace HtmlClaimsDataImport.Infrastructure.Services
 
                 // Step 4d: Setup ImportConfig
                 ImportConfig? config = null;
-                if (jsonPath != "default")
+                if (!string.Equals(jsonPath, "default", StringComparison.OrdinalIgnoreCase))
                 {
                     config = ImportConfig.LoadFromFile(jsonPath);
                 }

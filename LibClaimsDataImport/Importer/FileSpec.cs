@@ -14,9 +14,11 @@ namespace LibClaimsDataImport.Importer
     public class FileSpec
     {
         private readonly CsvDataReader csvReader;
-        
-        public Dictionary<string, Type> ColumnTypes { get; private set; } = new();
-        public List<string> ColumnNames { get; private set; } = new();
+        private readonly Dictionary<string, Type> columnTypes = new();
+        private readonly List<string> columnNames = new();
+
+        public IReadOnlyDictionary<string, Type> ColumnTypes => this.columnTypes;
+        public IReadOnlyList<string> ColumnNames => this.columnNames;
 
         /// <summary>
         /// Initializes a new instance of the <see cref="FileSpec"/> class.
@@ -34,21 +36,21 @@ namespace LibClaimsDataImport.Importer
         {
             // Get column names from header and sanitize them
             var columnCount = this.csvReader.FieldCount;
-            var columnNames = new string[columnCount];
+            var headerNames = new string[columnCount];
             for (int i = 0; i < columnCount; i++)
             {
-                columnNames[i] = SanitizeColumnName(this.csvReader.GetName(i));
+                headerNames[i] = SanitizeColumnName(this.csvReader.GetName(i));
             }
-            this.ColumnNames.AddRange(columnNames);
+            this.columnNames.AddRange(headerNames);
 
             // Initialize column type arrays
-            var columnTypes = new TypeCode[columnCount];
+            var typeCodes = new TypeCode[columnCount];
             var hasData = new bool[columnCount];
             
             // Initialize all columns as unknown
             for (int i = 0; i < columnCount; i++)
             {
-                columnTypes[i] = TypeCode.Empty;
+                typeCodes[i] = TypeCode.Empty;
             }
 
             // Read through all records to determine column types
@@ -70,7 +72,7 @@ namespace LibClaimsDataImport.Importer
                     hasData[i] = true;
 
                     // Skip if we've already determined this is a string column
-                    if (columnTypes[i] == TypeCode.String)
+                    if (typeCodes[i] == TypeCode.String)
                     {
                         continue;
                     }
@@ -79,14 +81,14 @@ namespace LibClaimsDataImport.Importer
                     var detectedType = TypeCodeFromSystemType(DataTypeDetector.DetectType(value));
                     
                     // If this is the first non-null value, set the type
-                    if (columnTypes[i] == TypeCode.Empty)
+                    if (typeCodes[i] == TypeCode.Empty)
                     {
-                        columnTypes[i] = detectedType;
+                        typeCodes[i] = detectedType;
                     }
                     // If we detect a different type, demote to string
-                    else if (columnTypes[i] != detectedType)
+                    else if (typeCodes[i] != detectedType)
                     {
-                        columnTypes[i] = TypeCode.String;
+                        typeCodes[i] = TypeCode.String;
                     }
                 }
             }
@@ -94,8 +96,8 @@ namespace LibClaimsDataImport.Importer
             // Build the column types dictionary 
             for (int i = 0; i < columnCount; i++)
             {
-                var columnType = hasData[i] ? ConvertToSystemType(columnTypes[i]) : typeof(string);
-                this.ColumnTypes[columnNames[i]] = columnType;
+                var columnType = hasData[i] ? ConvertToSystemType(typeCodes[i]) : typeof(string);
+                this.columnTypes[headerNames[i]] = columnType;
             }
         }
 

@@ -29,7 +29,7 @@ namespace HtmlClaimsDataImport.Infrastructure.Services
 
         public ValidationResult ValidateJsonFile(string jsonPath)
         {
-            if (jsonPath == "default")
+            if (string.Equals(jsonPath, "default", StringComparison.OrdinalIgnoreCase))
             {
                 string defaultJsonPath = Path.Combine(Directory.GetCurrentDirectory(), "default_config.json");
                 return this.ValidateFile(defaultJsonPath);

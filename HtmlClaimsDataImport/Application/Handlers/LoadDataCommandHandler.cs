@@ -57,7 +57,7 @@ namespace HtmlClaimsDataImport.Application.Handlers
 
         private static string ResolveJsonPath(string path, string tmpdir)
         {
-            if (path == "default")
+            if (string.Equals(path, "default", StringComparison.OrdinalIgnoreCase))
             {
                 return Path.Combine(Directory.GetCurrentDirectory(), "default.json");
             }

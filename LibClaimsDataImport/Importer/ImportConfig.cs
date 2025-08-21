@@ -50,7 +50,7 @@ public class ImportConfig
         return $"CREATE TABLE [{tableName}] ({string.Join(", ", columns)})";
     }
 
-    private static string GetEnumCheckConstraint(List<string> enumValues, string columnName)
+    private static string GetEnumCheckConstraint(ICollection<string> enumValues, string columnName)
     {
         if (enumValues.Count == 0)
         {
@@ -71,8 +71,8 @@ public class ImportConfig
             "time" => "TIME",
             "datetime" => "DATETIME",
             "enum" => "TEXT", // Enum types become TEXT with CHECK constraints
-            var dt when dt.StartsWith("character(") => "TEXT",
-            var dt when dt.StartsWith("numeric(") => string.Concat("DECIMAL", dt.AsSpan(7)), // "numeric(10,2)" → .AsSpan(7) returns "10,2)"
+            var dt when dt.StartsWith("character(", StringComparison.Ordinal) => "TEXT",
+            var dt when dt.StartsWith("numeric(", StringComparison.Ordinal) => string.Concat("DECIMAL", dt.AsSpan(7)), // "numeric(10,2)" → .AsSpan(7) returns "10,2)"
             _ => "TEXT", // Default fallback
         };
     }
@@ -105,7 +105,7 @@ public class ImportConfig
     public SqliteSettings SqliteSettings { get; set; } = new();
     public ColumnMappings ColumnMappings { get; set; } = new();
     public ValidationSettings Validation { get; set; } = new();
-    public Dictionary<string, DestinationColumn> DestinationTable { get; set; } = new();
+    public IDictionary<string, DestinationColumn> DestinationTable { get; set; } = new Dictionary<string, DestinationColumn>();
 
     /// <summary>
     /// Creates the destination table if it does not exist, using either explicit schema or FileSpec autodetection.
@@ -158,7 +158,7 @@ public class ImportConfig
         {
             var columnDef = $"[{column.Value.ColumnName}] {MapDataTypeToSqlite(column.Value.Datatype)}";
 
-            if (column.Value.Nullable == "N")
+            if (string.Equals(column.Value.Nullable, "N", StringComparison.OrdinalIgnoreCase))
             {
                 columnDef += " NOT NULL";
             }
@@ -170,7 +170,7 @@ public class ImportConfig
             }
 
             // Add CHECK constraint for enum types
-            if (column.Value.Datatype == "enum" && column.Value.Values.Count > 0)
+            if (string.Equals(column.Value.Datatype, "enum", StringComparison.OrdinalIgnoreCase) && column.Value.Values.Count > 0)
             {
                 var checkConstraint = GetEnumCheckConstraint(column.Value.Values, column.Value.ColumnName);
                 columnDef += $" {checkConstraint}";
@@ -198,7 +198,7 @@ public class ImportConfig
         }
 
         var primaryKeyColumn = primaryKeyColumns.First();
-        if (primaryKeyColumn.Value.Datatype != "integer")
+        if (!string.Equals(primaryKeyColumn.Value.Datatype, "integer", StringComparison.OrdinalIgnoreCase))
         {
             throw new InvalidOperationException($"Primary key column '{primaryKeyColumn.Value.ColumnName}' must be of integer datatype, but was '{primaryKeyColumn.Value.Datatype}'");
         }
@@ -216,7 +216,7 @@ public class ConnectionSettings
     public int DefaultTimeout { get; set; } = 30;
     public bool EnableForeignKeys { get; set; } = true;
     public string JournalMode { get; set; } = "WAL";
-    public Dictionary<string, object> Pragma { get; set; } = new();
+    public IDictionary<string, object> Pragma { get; set; } = new Dictionary<string, object>();
 }
 
 public class ImportSettings
@@ -250,7 +250,7 @@ public class DestinationColumn
     public string ColumnName { get; set; } = string.Empty;
     public string Nullable { get; set; } = "Y";
     public string Datatype { get; set; } = string.Empty;
-    public List<string> Values { get; set; } = new();
+    public IList<string> Values { get; set; } = new List<string>();
     [JsonPropertyName("primary_key")]
     public bool PrimaryKey { get; set; } = false;
 }

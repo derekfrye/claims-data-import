@@ -57,7 +57,7 @@ namespace HtmlClaimsDataImport.Infrastructure.Services
 
         public string GenerateFileStatusResponse(string fileType, string fileName, string action, string tmpdir, string status)
     {
-        if (action == "cancel")
+        if (string.Equals(action, "cancel", StringComparison.OrdinalIgnoreCase))
         {
             return $"<span id=\"{fileType}-status\" class=\"file-status\">No file selected</span>";
         }

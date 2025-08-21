@@ -86,13 +86,13 @@ namespace HtmlClaimsDataImport.Pages
         public void OnGet()
         {
             // Initialize default values if not already set
-            if (string.IsNullOrEmpty(this.JsonFile) && this.JsonMode == "default")
+            if (string.IsNullOrEmpty(this.JsonFile) && string.Equals(this.JsonMode, "default", StringComparison.OrdinalIgnoreCase))
             {
                 this.JsonFile = this.DefaultJsonFile;
                 this.JsonFileStatus = "Using default configuration";
             }
 
-            if (string.IsNullOrEmpty(this.Database) && this.DatabaseMode == "default")
+            if (string.IsNullOrEmpty(this.Database) && string.Equals(this.DatabaseMode, "default", StringComparison.OrdinalIgnoreCase))
             {
                 this.Database = this.DefaultDatabase;
                 this.DatabaseStatus = "Using default database";
@@ -155,17 +155,17 @@ namespace HtmlClaimsDataImport.Pages
         /// <returns>An <see cref="IActionResult"/> representing the result of the operation.</returns>
         public async Task<IActionResult> OnPostFileSelected(string fileType, string fileName, string action)
         {
-            var statusMessage = action == "ok" ? "user pressed ok" : "user pressed cancel";
+            var statusMessage = string.Equals(action, "ok", StringComparison.OrdinalIgnoreCase) ? "user pressed ok" : "user pressed cancel";
 
             // Update the corresponding property based on file type
             switch (fileType)
             {
                 case "json":
-                    this.JsonFile = action == "ok" ? fileName : string.Empty;
+                    this.JsonFile = string.Equals(action, "ok", StringComparison.OrdinalIgnoreCase) ? fileName : string.Empty;
                     this.JsonFileStatus = statusMessage;
                     return this.Content(this.JsonFileStatus);
                 case "filename":
-                    this.FileName = action == "ok" ? fileName : string.Empty;
+                    this.FileName = string.Equals(action, "ok", StringComparison.OrdinalIgnoreCase) ? fileName : string.Empty;
                     this.FileNameStatus = statusMessage;
                     var fileSelectedModel = new FileSelectedResponseModel
                     {
@@ -178,7 +178,7 @@ namespace HtmlClaimsDataImport.Pages
                     var partialView = await this.RenderPartialViewAsync("_FileSelectedResponse", fileSelectedModel);
                     return this.Content(partialView, "text/html");
                 case "database":
-                    this.Database = action == "ok" ? fileName : string.Empty;
+                    this.Database = string.Equals(action, "ok", StringComparison.OrdinalIgnoreCase) ? fileName : string.Empty;
                     this.DatabaseStatus = statusMessage;
                     return this.Content(this.DatabaseStatus);
             }

@@ -5,7 +5,7 @@ var builder = WebApplication.CreateBuilder(args);
 
 // Check for custom temp directory argument
 string? customTempDir = null;
-if (args.Length > 0 && args[0].StartsWith("--temp-dir="))
+if (args.Length > 0 && args[0].StartsWith("--temp-dir=", StringComparison.Ordinal))
 {
     customTempDir = args[0].Substring("--temp-dir=".Length);
     if (!string.IsNullOrEmpty(customTempDir))
