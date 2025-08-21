@@ -1,10 +1,10 @@
 namespace HtmlClaimsDataImport.Application.Queries
 {
-    using HtmlClaimsDataImport.Models;
+    using HtmlClaimsDataImport.Application.Queries.Dtos;
     using MediatR;
 
     public record GetPreviewDataQuery(
         string tmpDir,
         int mappingStep = 0,
-        string selectedColumn = "") : IRequest<PreviewDataModel>;
+        string selectedColumn = "") : IRequest<PreviewDataDto>;
 }

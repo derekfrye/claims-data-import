@@ -1,9 +1,9 @@
 namespace HtmlClaimsDataImport.Application.Interfaces
 {
-    using HtmlClaimsDataImport.Models;
+    using HtmlClaimsDataImport.Application.Queries.Dtos;
 
     public interface IPreviewService
     {
-        Task<PreviewDataModel> GetPreviewDataAsync(string tmpdir, int mappingStep, string selectedColumn);
+        Task<PreviewDataDto> GetPreviewDataAsync(string tmpdir, int mappingStep, string selectedColumn);
     }
 }

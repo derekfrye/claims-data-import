@@ -1,14 +1,14 @@
 namespace HtmlClaimsDataImport.Infrastructure.Services
 {
     using HtmlClaimsDataImport.Application.Interfaces;
-    using HtmlClaimsDataImport.Models;
+    using HtmlClaimsDataImport.Application.Queries.Dtos;
     using Microsoft.Data.Sqlite;
 
     public class PreviewService : IPreviewService
     {
-        public async Task<PreviewDataModel> GetPreviewDataAsync(string tmpdir, int mappingStep, string selectedColumn)
+        public async Task<PreviewDataDto> GetPreviewDataAsync(string tmpdir, int mappingStep, string selectedColumn)
         {
-            var model = new PreviewDataModel
+            var model = new PreviewDataDto
             {
                 CurrentMappingStep = mappingStep,
                 SelectedImportColumn = selectedColumn,
@@ -69,7 +69,7 @@ namespace HtmlClaimsDataImport.Infrastructure.Services
             return await GetScalarStringAsync(command).ConfigureAwait(false);
         }
 
-        private async Task LoadImportColumnsAsync(SqliteConnection connection, string importTable, PreviewDataModel model)
+        private async Task LoadImportColumnsAsync(SqliteConnection connection, string importTable, PreviewDataDto model)
         {
             using var command = connection.CreateCommand();
             command.CommandText = $"PRAGMA table_info({importTable});";
@@ -80,7 +80,7 @@ namespace HtmlClaimsDataImport.Infrastructure.Services
             }
         }
 
-        private async Task LoadClaimsColumnsAsync(SqliteConnection connection, PreviewDataModel model)
+        private async Task LoadClaimsColumnsAsync(SqliteConnection connection, PreviewDataDto model)
         {
             using var command = connection.CreateCommand();
             command.CommandText = "SELECT name FROM sqlite_master WHERE type='table' AND name='claims';";
@@ -103,7 +103,7 @@ namespace HtmlClaimsDataImport.Infrastructure.Services
             }
         }
 
-        private async Task LoadPreviewRowsAsync(SqliteConnection connection, string importTable, PreviewDataModel model)
+        private async Task LoadPreviewRowsAsync(SqliteConnection connection, string importTable, PreviewDataDto model)
         {
             var columnList = string.Join(", ", model.ImportColumns.Select(c => $"[{c}]"));
             using var command = connection.CreateCommand();

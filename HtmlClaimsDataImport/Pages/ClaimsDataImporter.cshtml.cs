@@ -6,6 +6,7 @@ namespace HtmlClaimsDataImport.Pages
     using HtmlClaimsDataImport.Application.Queries;
     using HtmlClaimsDataImport.Infrastructure.Services;
     using HtmlClaimsDataImport.Models;
+    using HtmlClaimsDataImport.Application.Queries.Dtos;
     using MediatR;
     using Microsoft.AspNetCore.Mvc;
     using Microsoft.AspNetCore.Mvc.RazorPages;
@@ -198,7 +199,8 @@ namespace HtmlClaimsDataImport.Pages
             try
             {
                 var query = new GetPreviewDataQuery(tmpdir, mappingStep, selectedColumn);
-                var previewModel = await this.mediator.Send(query);
+                var previewDto = await this.mediator.Send(query);
+                var previewModel = MapToPreviewDataModel(previewDto);
                 var partialView = await this.RenderPartialViewAsync("_PreviewContent", previewModel);
                 return this.Content(partialView, "text/html");
             }
@@ -253,6 +255,22 @@ namespace HtmlClaimsDataImport.Pages
 
             await viewResult.View.RenderAsync(viewContext);
             return writer.ToString();
+        }
+
+        private static PreviewDataModel MapToPreviewDataModel(PreviewDataDto dto)
+        {
+            return new PreviewDataModel
+            {
+                StatusMessage = dto.StatusMessage,
+                IsPreviewAvailable = dto.IsPreviewAvailable,
+                ImportColumns = dto.ImportColumns.ToList(),
+                ClaimsColumns = dto.ClaimsColumns.ToList(),
+                PreviewRows = dto.PreviewRows.ToList(),
+                ImportTableName = dto.ImportTableName,
+                CurrentMappingStep = dto.CurrentMappingStep,
+                ColumnMappings = new Dictionary<string, string>(dto.ColumnMappings, StringComparer.Ordinal),
+                SelectedImportColumn = dto.SelectedImportColumn,
+            };
         }
     }
 }

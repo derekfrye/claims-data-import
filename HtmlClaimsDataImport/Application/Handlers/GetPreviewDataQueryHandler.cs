@@ -2,10 +2,10 @@ namespace HtmlClaimsDataImport.Application.Handlers
 {
     using HtmlClaimsDataImport.Application.Interfaces;
     using HtmlClaimsDataImport.Application.Queries;
-    using HtmlClaimsDataImport.Models;
+    using HtmlClaimsDataImport.Application.Queries.Dtos;
     using MediatR;
 
-    public class GetPreviewDataQueryHandler : IRequestHandler<GetPreviewDataQuery, PreviewDataModel>
+    public class GetPreviewDataQueryHandler : IRequestHandler<GetPreviewDataQuery, PreviewDataDto>
     {
         private readonly IPreviewService previewService;
 
@@ -14,7 +14,7 @@ namespace HtmlClaimsDataImport.Application.Handlers
             this.previewService = previewService;
         }
 
-        public async Task<PreviewDataModel> Handle(GetPreviewDataQuery request, CancellationToken cancellationToken)
+        public async Task<PreviewDataDto> Handle(GetPreviewDataQuery request, CancellationToken cancellationToken)
         {
             return await this.previewService.GetPreviewDataAsync(request.tmpDir, request.mappingStep, request.selectedColumn).ConfigureAwait(false);
         }

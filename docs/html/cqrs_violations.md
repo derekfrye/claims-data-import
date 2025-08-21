@@ -16,6 +16,18 @@ This document tracks current CQRS design deviations in the `HtmlClaimsDataImport
 - Risk: Coupling of Application to Presentation prevents reuse and complicates testing.
 - Suggested fix: Create an Application DTO (e.g., `PreviewDataDto` under `Application/Queries/Dto`). Change `IPreviewService` and the query to use that DTO; map to `PreviewDataModel` in the Razor layer.
 
+## 2a) Fix implemented: Application DTO for preview query
+- Summary: Replaced UI `PreviewDataModel` usage in the Application/Infrastructure layers with an Application DTO and mapped it in the Razor Page.
+- Files added: `HtmlClaimsDataImport/Application/Queries/Dtos/PreviewDataDto.cs`.
+- Files updated:
+  - `HtmlClaimsDataImport/Application/Interfaces/IPreviewService.cs` → returns `Task<PreviewDataDto>`.
+  - `HtmlClaimsDataImport/Application/Queries/GetPreviewDataQuery.cs` → `IRequest<PreviewDataDto>`.
+  - `HtmlClaimsDataImport/Application/Handlers/GetPreviewDataQueryHandler.cs` → handles and returns `PreviewDataDto`.
+  - `HtmlClaimsDataImport/Infrastructure/Services/PreviewService.cs` → constructs and returns `PreviewDataDto` (no UI model references).
+  - `HtmlClaimsDataImport/Pages/ClaimsDataImporter.cshtml.cs` → maps `PreviewDataDto` to existing UI `PreviewDataModel` before rendering.
+- Behavior impact: No functional change; views remain unchanged. Improves layering and testability.
+- Build status: Solution builds cleanly (0 warnings, 0 errors).
+
 ## 3) ASP.NET types leak into Application contracts
 - Location: `Application/Interfaces/IFileUploadService.cs` (uses `IFormFile`), `Application/Commands/UploadFileCommand.cs` (takes `IFormFile`).
 - Issue: Application interfaces and commands depend on ASP.NET abstractions.
