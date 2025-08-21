@@ -71,34 +71,37 @@ projects_all_latest="${ARTIFACT_DIR}/warnings_by_project.txt"
 rules_by_project_latest="${ARTIFACT_DIR}/warnings_by_id_for_project.txt"
 samples_file="${ARTIFACT_DIR}/diagnostics_samples_${ts}.txt"
 
-# Capture some samples
+# Capture some samples (always create file)
 if (( have_rg )); then
   rg -N "(warning|error)\s+[A-Z]{2}\d{3,4}" "${BUILD_LOG}" | head -n 40 > "${samples_file}" || true
 else
   grep -E "(warning|error) [A-Z]{2}[0-9]{3,4}" "${BUILD_LOG}" | head -n 40 > "${samples_file}" || true
 fi
+touch "${samples_file}"
 ln -sf "${samples_file}" "${ARTIFACT_DIR}/diagnostics_samples.txt"
 
-# Top rules across the solution
+# Top rules across the solution (always create file)
 if (( have_rg )); then
   rg -N -o -e '(warning|error)\s+([A-Z]{2}\d{3,4})' --replace '$2' "${BUILD_LOG}" \
-    | sort | uniq -c | sort -nr > "${rules_all}"
+    | sort | uniq -c | sort -nr > "${rules_all}" || true
 else
   grep -Eo "(warning|error) [A-Z]{2}[0-9]{3,4}" "${BUILD_LOG}" \
-    | awk '{print $2}' | sort | uniq -c | sort -nr > "${rules_all}"
+    | awk '{print $2}' | sort | uniq -c | sort -nr > "${rules_all}" || true
 fi
+touch "${rules_all}"
 ln -sf "${rules_all}" "${rules_all_latest}"
 
-# Top projects by diagnostics
+# Top projects by diagnostics (always create file)
 if (( have_rg )); then
   rg -N -o -e '(warning|error)\s+[A-Z]{2}\d{3,4}.*\[([^\]]+\.csproj)\]' --replace '$2' "${BUILD_LOG}" \
-    | xargs -r -n1 basename | sort | uniq -c | sort -nr > "${projects_all}"
+    | xargs -r -n1 basename | sort | uniq -c | sort -nr > "${projects_all}" || true
 else
   # Fallback: best-effort extract content in brackets ending with .csproj
   grep -E "(warning|error) [A-Z]{2}[0-9]{3,4}.*\[[^]]+\.csproj\]" "${BUILD_LOG}" \
     | sed -E 's/.*\[([^]]+\.csproj)\].*/\1/' | xargs -r -n1 basename \
-    | sort | uniq -c | sort -nr > "${projects_all}"
+    | sort | uniq -c | sort -nr > "${projects_all}" || true
 fi
+touch "${projects_all}"
 ln -sf "${projects_all}" "${projects_all_latest}"
 
 # If a project is passed, compute top rules for that project
@@ -106,12 +109,13 @@ if [[ -n "${proj}" ]]; then
   proj_name=$(basename -- "${proj}")
   if (( have_rg )); then
     rg -N -o -e "(warning|error)\s+([A-Z]{2}\\d{3,4}).*\\[[^]]*${proj_name}\\]" --replace '$2' "${BUILD_LOG}" \
-      | sort | uniq -c | sort -nr > "${rules_by_project}"
+      | sort | uniq -c | sort -nr > "${rules_by_project}" || true
   else
     grep -E "(warning|error) [A-Z]{2}[0-9]{3,4}.*\[[^]]*${proj_name}\]" "${BUILD_LOG}" \
       | sed -E 's/.*(warning|error) ([A-Z]{2}[0-9]{3,4}).*/\2/' \
-      | sort | uniq -c | sort -nr > "${rules_by_project}"
+      | sort | uniq -c | sort -nr > "${rules_by_project}" || true
   fi
+  touch "${rules_by_project}"
   ln -sf "${rules_by_project}" "${rules_by_project_latest}"
 fi
 
@@ -131,6 +135,14 @@ if [[ -n "${proj}" ]]; then
 fi
 
 echo
-echo "Logs: ${CLEAN_LOG} | ${BUILD_LOG}"
-echo "Summaries: ${rules_all} | ${projects_all}${proj:+ | ${rules_by_project}}"
-
+# Resolved paths to avoid transient lookup pain
+res_clean=$(readlink -f "${ARTIFACT_DIR}/clean.log" 2>/dev/null || echo "${CLEAN_LOG}")
+res_build=$(readlink -f "${ARTIFACT_DIR}/build.log" 2>/dev/null || echo "${BUILD_LOG}")
+res_rules=$(readlink -f "${ARTIFACT_DIR}/warnings_by_id.txt" 2>/dev/null || echo "${rules_all}")
+res_projects=$(readlink -f "${ARTIFACT_DIR}/warnings_by_project.txt" 2>/dev/null || echo "${projects_all}")
+res_rules_proj=""
+if [[ -n "${proj}" ]]; then
+  res_rules_proj=$(readlink -f "${ARTIFACT_DIR}/warnings_by_id_for_project.txt" 2>/dev/null || echo "${rules_by_project}")
+fi
+echo "Logs (resolved): ${res_clean} | ${res_build}"
+echo "Summaries (resolved): ${res_rules} | ${res_projects}${proj:+ | ${res_rules_proj}}"

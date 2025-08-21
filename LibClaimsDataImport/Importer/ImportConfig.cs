@@ -105,7 +105,7 @@ public class ImportConfig
     public SqliteSettings SqliteSettings { get; set; } = new();
     public ColumnMappings ColumnMappings { get; set; } = new();
     public ValidationSettings Validation { get; set; } = new();
-    public IDictionary<string, DestinationColumn> DestinationTable { get; set; } = new Dictionary<string, DestinationColumn>();
+    public IDictionary<string, DestinationColumn> DestinationTable { get; set; } = new Dictionary<string, DestinationColumn>(StringComparer.OrdinalIgnoreCase);
 
     /// <summary>
     /// Creates the destination table if it does not exist, using either explicit schema or FileSpec autodetection.
