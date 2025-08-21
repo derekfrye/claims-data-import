@@ -41,7 +41,7 @@ public class TempDirectoryService(string sessionId, string? basePath = null) : I
 {
     private readonly List<string> tempDirectories = [];
 
-    private readonly object lockObject = new ();
+    private readonly object lockObject = new();
 
     private readonly string basePath = basePath ?? Path.GetTempPath();
     private readonly string sessionId = sessionId;
@@ -132,7 +132,7 @@ public class TempDirectoryService(string sessionId, string? basePath = null) : I
 public class TempDirectoryCleanupService : IHostedService
 {
     private static readonly List<ITempDirectoryService> ActiveServices = [];
-    private static readonly object LockObject = new ();
+    private static readonly object LockObject = new();
     private static string? overrideTempBasePath;
 
     /// <summary>

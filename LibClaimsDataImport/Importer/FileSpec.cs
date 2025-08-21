@@ -1,152 +1,179 @@
-using Sylvan.Data.Csv;
 using System.Globalization;
 using System.Runtime.CompilerServices;
+using System.Text;
 
 [assembly: InternalsVisibleTo("LibClaimsDataImport.Tests")]
 
-namespace LibClaimsDataImport.Importer;
-
-public class FileSpec
+namespace LibClaimsDataImport.Importer
 {
-    private readonly CsvDataReader _csvReader;
-    
-    public Dictionary<string, Type> ColumnTypes { get; private set; } = new();
-    public List<string> ColumnNames { get; private set; } = new();
+    using Sylvan.Data.Csv;
 
-    public FileSpec(CsvDataReader csvReader)
+    /// <summary>
+    /// Scans CSV headers and data to infer column names and types.
+    /// </summary>
+    public class FileSpec
     {
-        _csvReader = csvReader ?? throw new ArgumentNullException(nameof(csvReader));
-    }
-
-    public void Scan()
-    {
-        // Get column names from header and sanitize them
-        var columnCount = _csvReader.FieldCount;
-        var columnNames = new string[columnCount];
-        for (int i = 0; i < columnCount; i++)
-        {
-            columnNames[i] = SanitizeColumnName(_csvReader.GetName(i));
-        }
-        ColumnNames.AddRange(columnNames);
-
-        // Initialize column type arrays
-        var columnTypes = new TypeCode[columnCount];
-        var hasData = new bool[columnCount];
+        private readonly CsvDataReader csvReader;
         
-        // Initialize all columns as unknown
-        for (int i = 0; i < columnCount; i++)
+        public Dictionary<string, Type> ColumnTypes { get; private set; } = new();
+        public List<string> ColumnNames { get; private set; } = new();
+
+        /// <summary>
+        /// Initializes a new instance of the <see cref="FileSpec"/> class.
+        /// </summary>
+        /// <param name="csvReader">The CSV reader positioned at the start of the file.</param>
+        public FileSpec(CsvDataReader csvReader)
         {
-            columnTypes[i] = TypeCode.Empty;
+            this.csvReader = csvReader ?? throw new ArgumentNullException(nameof(csvReader));
         }
 
-        // Read through all records to determine column types
-        while (_csvReader.Read())
+        /// <summary>
+        /// Scans the CSV to populate <see cref="ColumnNames"/> and inferred <see cref="ColumnTypes"/>.
+        /// </summary>
+        public void Scan()
         {
+            // Get column names from header and sanitize them
+            var columnCount = this.csvReader.FieldCount;
+            var columnNames = new string[columnCount];
             for (int i = 0; i < columnCount; i++)
             {
-                if (_csvReader.IsDBNull(i))
-                    continue;
+                columnNames[i] = SanitizeColumnName(this.csvReader.GetName(i));
+            }
+            this.ColumnNames.AddRange(columnNames);
 
-                var value = _csvReader.GetString(i);
-                if (string.IsNullOrWhiteSpace(value))
-                    continue;
+            // Initialize column type arrays
+            var columnTypes = new TypeCode[columnCount];
+            var hasData = new bool[columnCount];
+            
+            // Initialize all columns as unknown
+            for (int i = 0; i < columnCount; i++)
+            {
+                columnTypes[i] = TypeCode.Empty;
+            }
 
-                hasData[i] = true;
-
-                // Skip if we've already determined this is a string column
-                if (columnTypes[i] == TypeCode.String)
-                    continue;
-
-                // Try to determine the most appropriate type
-                var detectedType = TypeCodeFromSystemType(DataTypeDetector.DetectType(value));
-                
-                // If this is the first non-null value, set the type
-                if (columnTypes[i] == TypeCode.Empty)
+            // Read through all records to determine column types
+            while (this.csvReader.Read())
+            {
+                for (int i = 0; i < columnCount; i++)
                 {
-                    columnTypes[i] = detectedType;
+                    if (this.csvReader.IsDBNull(i))
+                    {
+                        continue;
+                    }
+
+                    var value = this.csvReader.GetString(i);
+                    if (string.IsNullOrWhiteSpace(value))
+                    {
+                        continue;
+                    }
+
+                    hasData[i] = true;
+
+                    // Skip if we've already determined this is a string column
+                    if (columnTypes[i] == TypeCode.String)
+                    {
+                        continue;
+                    }
+
+                    // Try to determine the most appropriate type
+                    var detectedType = TypeCodeFromSystemType(DataTypeDetector.DetectType(value));
+                    
+                    // If this is the first non-null value, set the type
+                    if (columnTypes[i] == TypeCode.Empty)
+                    {
+                        columnTypes[i] = detectedType;
+                    }
+                    // If we detect a different type, demote to string
+                    else if (columnTypes[i] != detectedType)
+                    {
+                        columnTypes[i] = TypeCode.String;
+                    }
                 }
-                // If we detect a different type, demote to string
-                else if (columnTypes[i] != detectedType)
-                {
-                    columnTypes[i] = TypeCode.String;
-                }
+            }
+
+            // Build the column types dictionary 
+            for (int i = 0; i < columnCount; i++)
+            {
+                var columnType = hasData[i] ? ConvertToSystemType(columnTypes[i]) : typeof(string);
+                this.ColumnTypes[columnNames[i]] = columnType;
             }
         }
 
-        // Build the column types dictionary 
-        for (int i = 0; i < columnCount; i++)
+        private static Type ConvertToSystemType(TypeCode typeCode)
         {
-            var columnType = hasData[i] ? ConvertToSystemType(columnTypes[i]) : typeof(string);
-            ColumnTypes[columnNames[i]] = columnType;
+            return typeCode switch
+            {
+                TypeCode.Int32 => typeof(int),
+                TypeCode.Int64 => typeof(long),
+                TypeCode.Decimal => typeof(decimal),
+                TypeCode.DateTime => typeof(DateTime),
+                _ => typeof(string),
+            };
         }
-    }
 
-
-
-    private static Type ConvertToSystemType(TypeCode typeCode)
-    {
-        return typeCode switch
+        private static TypeCode TypeCodeFromSystemType(Type systemType)
         {
-            TypeCode.Int32 => typeof(int),
-            TypeCode.Int64 => typeof(long),
-            TypeCode.Decimal => typeof(decimal),
-            TypeCode.DateTime => typeof(DateTime),
-            _ => typeof(string)
-        };
-    }
+            if (systemType == typeof(int))
+            {
+                return TypeCode.Int32;
+            }
+            if (systemType == typeof(long))
+            {
+                return TypeCode.Int64;
+            }
+            if (systemType == typeof(decimal))
+            {
+                return TypeCode.Decimal;
+            }
+            if (systemType == typeof(DateTime) || systemType == typeof(DateOnly) || systemType == typeof(TimeOnly))
+            {
+                return TypeCode.DateTime;
+            }
+            return TypeCode.String;
+        }
 
-    private static TypeCode TypeCodeFromSystemType(Type systemType)
-    {
-        if (systemType == typeof(int))
-            return TypeCode.Int32;
-        if (systemType == typeof(long))
-            return TypeCode.Int64;
-        if (systemType == typeof(decimal))
-            return TypeCode.Decimal;
-        if (systemType == typeof(DateTime) || systemType == typeof(DateOnly) || systemType == typeof(TimeOnly))
-            return TypeCode.DateTime;
-        return TypeCode.String;
-    }
-
-    private static string SanitizeColumnName(string columnName)
-    {
-        if (string.IsNullOrWhiteSpace(columnName))
-            return "column";
+        private static string SanitizeColumnName(string columnName)
+        {
+            if (string.IsNullOrWhiteSpace(columnName))
+            {
+                return "column";
+            }
 
         // Trim whitespace
-        var sanitized = columnName.Trim();
+            var sanitized = columnName.Trim();
         
         // Remove non-ASCII characters and convert non-alphanumeric to underscores
-        var result = new System.Text.StringBuilder();
-        foreach (char c in sanitized)
-        {
-            if (char.IsAsciiLetter(c) || char.IsAsciiDigit(c))
+            var result = new StringBuilder();
+            foreach (char c in sanitized)
             {
-                result.Append(char.ToLowerInvariant(c));
+                if (char.IsAsciiLetter(c) || char.IsAsciiDigit(c))
+                {
+                    result.Append(char.ToLowerInvariant(c));
+                }
+                else
+                {
+                    result.Append('_');
+                }
             }
-            else
-            {
-                result.Append('_');
-            }
-        }
         
-        var finalResult = result.ToString();
+            var finalResult = result.ToString();
         
         // Ensure it doesn't start with a number or underscore
-        if (string.IsNullOrEmpty(finalResult) || char.IsAsciiDigit(finalResult[0]))
-        {
-            finalResult = "col_" + finalResult;
-        }
+            if (string.IsNullOrEmpty(finalResult) || char.IsAsciiDigit(finalResult[0]))
+            {
+                finalResult = "col_" + finalResult;
+            }
         
         // Remove consecutive underscores
-        while (finalResult.Contains("__"))
-        {
-            finalResult = finalResult.Replace("__", "_");
-        }
+            while (finalResult.Contains("__"))
+            {
+                finalResult = finalResult.Replace("__", "_");
+            }
         
         // Remove trailing underscores
-        finalResult = finalResult.TrimEnd('_');
+            finalResult = finalResult.TrimEnd('_');
         
-        return string.IsNullOrEmpty(finalResult) ? "column" : finalResult;
+            return string.IsNullOrEmpty(finalResult) ? "column" : finalResult;
+        }
     }
 }

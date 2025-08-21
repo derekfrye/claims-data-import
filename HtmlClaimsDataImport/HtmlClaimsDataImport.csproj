@@ -6,9 +6,9 @@
 
   <ItemGroup>
     <PackageReference Include="MediatR" Version="13.0.0" />
-    <PackageReference Include="StyleCop.Analyzers" Version="1.1.118">
-      <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+    <PackageReference Include="Meziantou.Analyzer" Version="2.0.212">
       <PrivateAssets>all</PrivateAssets>
+      <IncludeAssets>runtime; build; native; contentfiles; analyzers</IncludeAssets>
     </PackageReference>
   </ItemGroup>
 
@@ -37,7 +37,7 @@
     
     <!-- StyleCop configuration -->
     <GenerateDocumentationFile>true</GenerateDocumentationFile>
-    <NoWarn>$(NoWarn);SA1633;SA0001;CS1591;SA1600;SA1515;SA1502;SA1201;SA1009;SA1010;SA1516;SA1513;SA1028;SA1413;SA1122</NoWarn>
+    <NoWarn>$(NoWarn);SA1633;SA0001;CS1591;SA1600;SA1515;SA1502;SA1201;SA1009;SA1010;SA1516;SA1513;SA1028;SA1413;SA1122;SA1402;SA1300;SA1649</NoWarn>
   </PropertyGroup>
 
 </Project>

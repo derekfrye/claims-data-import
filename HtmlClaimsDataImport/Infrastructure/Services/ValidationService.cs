@@ -32,10 +32,10 @@ namespace HtmlClaimsDataImport.Infrastructure.Services
             if (jsonPath == "default")
             {
                 string defaultJsonPath = Path.Combine(Directory.GetCurrentDirectory(), "default_config.json");
-                return ValidateFile(defaultJsonPath);
+                return this.ValidateFile(defaultJsonPath);
             }
             
-            var validationResult = ValidateFile(jsonPath);
+            var validationResult = this.ValidateFile(jsonPath);
             if (!validationResult.isValid)
             {
                 return validationResult;
@@ -56,7 +56,7 @@ namespace HtmlClaimsDataImport.Infrastructure.Services
 
         public ValidationResult ValidateSqliteDatabase(string databasePath)
         {
-            var validationResult = ValidateFile(databasePath);
+            var validationResult = this.ValidateFile(databasePath);
             if (!validationResult.isValid)
             {
                 return validationResult;
