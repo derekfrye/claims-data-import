@@ -1,18 +1,10 @@
 namespace CmdClaimsDataImport;
 
-public class ImportArguments
-{
-    public string DatabasePath { get; set; } = string.Empty;
-    public string TableName { get; set; } = string.Empty;
-    public string CsvFileName { get; set; } = string.Empty;
-    public string? ConfigPath { get; set; }
-}
-
 public static class ArgumentParser
 {
     public static ImportArguments Parse(string[] args)
     {
-        if (args.Length == 0 || args.Contains("--help") || args.Contains("-h"))
+        if (args.Length == 0 || args.Contains("--help", StringComparer.Ordinal) || args.Contains("-h", StringComparer.Ordinal))
         {
             ShowUsage();
             Environment.Exit(0);

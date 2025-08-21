@@ -83,7 +83,7 @@ namespace HtmlClaimsDataImport.Infrastructure.Services
         "json" => "jsonFile",
         "filename" => "fileName",
         "database" => "database",
-        _ => throw new ArgumentException($"Unknown file type: {fileType}")
+        _ => throw new ArgumentException("Unknown file type", nameof(fileType))
     };
 
         private static string GetPropertyName(string fileType) => fileType switch
@@ -91,7 +91,7 @@ namespace HtmlClaimsDataImport.Infrastructure.Services
         "json" => "JsonFile",
         "filename" => "FileName",
         "database" => "Database",
-        _ => throw new ArgumentException($"Unknown file type: {fileType}")
+        _ => throw new ArgumentException("Unknown file type", nameof(fileType))
     };
     }
 }

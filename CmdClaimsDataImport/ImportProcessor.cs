@@ -41,7 +41,7 @@ public static class ImportProcessor
         // Create File instance and import data
         var file = LibClaimsDataImport.Importer.File.New(streamReader, fileSpec, config);
         Console.WriteLine("Importing data to database...");
-        await file.WriteToDb(arguments.DatabasePath, arguments.TableName);
+        await file.WriteToDb(arguments.DatabasePath, arguments.TableName).ConfigureAwait(false);
         
         Console.WriteLine("Import completed successfully!");
     }

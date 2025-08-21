@@ -43,7 +43,7 @@ namespace HtmlClaimsDataImport.Models
         /// <summary>
         /// Gets or sets the current column mappings (ClaimsColumn -> ImportColumn).
         /// </summary>
-        public IDictionary<string, string> ColumnMappings { get; set; } = new Dictionary<string, string>();
+        public IDictionary<string, string> ColumnMappings { get; set; } = new Dictionary<string, string>(StringComparer.Ordinal);
 
         /// <summary>
         /// Gets or sets the currently selected import column for highlighting.
