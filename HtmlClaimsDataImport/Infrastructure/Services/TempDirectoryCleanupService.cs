@@ -1,5 +1,7 @@
 namespace HtmlClaimsDataImport.Infrastructure.Services;
 
+using HtmlClaimsDataImport.Application.Interfaces;
+
 // ITempDirectoryService and TempDirectoryService moved to dedicated files to satisfy MA0048
 
 /// <summary>

@@ -3,7 +3,6 @@ namespace HtmlClaimsDataImport.Application.Handlers
     using HtmlClaimsDataImport.Application.Commands;
     using HtmlClaimsDataImport.Application.Interfaces;
     using HtmlClaimsDataImport.Domain.ValueObjects;
-    using HtmlClaimsDataImport.Infrastructure.Services;
     using MediatR;
 
     public class UploadFileCommandHandler : IRequestHandler<UploadFileCommand, FileUploadResult>
@@ -24,34 +23,8 @@ namespace HtmlClaimsDataImport.Application.Handlers
                 return new FileUploadResult("No file selected", "", "");
             }
 
-            // Use specified temp directory if provided, otherwise use session temp directory
-            string tempDir;
-            if (!string.IsNullOrEmpty(request.tmpDir))
-            {
-                // Security validation: ensure tmpdir is within authorized base path
-                var authorizedBasePath = TempDirectoryCleanupService.GetTempBasePath();
-                var normalizedTmpdir = Path.GetFullPath(request.tmpDir);
-                var normalizedBasePath = Path.GetFullPath(authorizedBasePath);
-
-                if (!normalizedTmpdir.StartsWith(normalizedBasePath, StringComparison.OrdinalIgnoreCase))
-                {
-                    Console.WriteLine($"⚠️  SECURITY WARNING: tmpdir parameter '{request.tmpDir}' is outside authorized base path '{authorizedBasePath}'. Reverting to session-based logic.");
-                    tempDir = this.tempDirectoryService.GetSessionTempDirectory();
-                }
-                else
-                {
-                    tempDir = request.tmpDir;
-                    // Ensure the directory exists if tmpdir was specified and validated
-                    if (!Directory.Exists(request.tmpDir))
-                    {
-                        Directory.CreateDirectory(request.tmpDir);
-                    }
-                }
-            }
-            else
-            {
-                tempDir = this.tempDirectoryService.GetSessionTempDirectory();
-            }
+            // Resolve which temp directory to use with policy encapsulated in temp service
+            string tempDir = this.tempDirectoryService.ResolveUploadTempDirectory(request.tmpDir);
 
             return await this.fileUploadService.HandleFileUploadAsync(request.uploadedFile, request.fileType, tempDir).ConfigureAwait(false);
         }

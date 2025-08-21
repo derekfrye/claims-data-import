@@ -1,5 +1,7 @@
 namespace HtmlClaimsDataImport.Infrastructure.Services;
 
+using HtmlClaimsDataImport.Application.Interfaces;
+
 /// <summary>
 /// Provides functionality for managing temporary directories, including creation, registration, and cleanup.
 /// </summary>
@@ -71,5 +73,29 @@ public class TempDirectoryService(string sessionId, string? basePath = null) : I
         // Do not cleanup directories on dispose - only cleanup on server termination
         // This allows files to persist across HTTP requests within the same session
     }
-}
 
+    public string ResolveUploadTempDirectory(string? requestedTmpDir)
+    {
+        if (string.IsNullOrEmpty(requestedTmpDir))
+        {
+            return this.GetSessionTempDirectory();
+        }
+
+        var normalizedRequested = Path.GetFullPath(requestedTmpDir);
+        var normalizedBase = Path.GetFullPath(this.basePath);
+
+        if (!normalizedRequested.StartsWith(normalizedBase, StringComparison.OrdinalIgnoreCase))
+        {
+            Console.WriteLine($"⚠️  SECURITY WARNING: tmpdir parameter '{requestedTmpDir}' is outside authorized base path '{this.basePath}'. Reverting to session-based logic.");
+            return this.GetSessionTempDirectory();
+        }
+
+        if (!Directory.Exists(requestedTmpDir))
+        {
+            Directory.CreateDirectory(requestedTmpDir);
+        }
+
+        this.RegisterTempDirectory(requestedTmpDir);
+        return requestedTmpDir;
+    }
+}

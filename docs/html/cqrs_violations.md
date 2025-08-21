@@ -9,6 +9,17 @@ This document tracks current CQRS design deviations in the `HtmlClaimsDataImport
 - Risk: Tight coupling blocks reuse/testing and complicates future infrastructure changes.
 - Suggested fix: Introduce an Application-level abstraction (e.g., `ITempDirectoryPolicy` or extend `ITempDirectoryService` with `ResolveValidatedTempDir(...)`) and implement it in Infrastructure. Remove all infrastructure references from the handler.
 
+## 1a) Fix implemented: Remove Application → Infrastructure dependency
+- Summary: Moved the temp directory interface into Application and encapsulated tmpdir validation/resolution behind that interface. The handler no longer references infrastructure types.
+- Files added: `HtmlClaimsDataImport/Application/Interfaces/ITempDirectoryService.cs` (now includes `ResolveUploadTempDirectory(string?)`).
+- Files updated:
+  - `HtmlClaimsDataImport/Application/Handlers/UploadFileCommandHandler.cs` → uses `ResolveUploadTempDirectory` and no longer references `TempDirectoryCleanupService`.
+  - `HtmlClaimsDataImport/Infrastructure/Services/TempDirectoryService.cs` → implements the new Application interface and provides validation against the base path; ensures directory exists and registers it.
+  - `HtmlClaimsDataImport/Infrastructure/Services/TempDirectoryCleanupService.cs` → references the Application interface type for registrations.
+  - `HtmlClaimsDataImport/Pages/ClaimsDataImporter.cshtml.cs` and `HtmlClaimsDataImport/Program.cs` → updated usings to reference the Application interface where needed.
+- Files removed: `HtmlClaimsDataImport/Infrastructure/Services/ITempDirectoryService.cs` (interface relocated to Application).
+- Behavior impact: No functional change; validation is now encapsulated in the implementation. Layering is corrected.
+
 ## 2) Query returns UI model instead of Application DTO
 - Location: `Application/Interfaces/IPreviewService.cs`, `Application/Queries/GetPreviewDataQuery.cs`, `Infrastructure/Services/PreviewService.cs`
 - Issue: Query handler returns `HtmlClaimsDataImport.Models.PreviewDataModel`, a UI view model defined in the web project.
