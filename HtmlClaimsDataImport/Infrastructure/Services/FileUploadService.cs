@@ -40,7 +40,7 @@ namespace HtmlClaimsDataImport.Infrastructure.Services
 
         using (var stream = new FileStream(filePath, FileMode.Create))
         {
-            await uploadedFile.CopyToAsync(stream);
+            await uploadedFile.CopyToAsync(stream).ConfigureAwait(false);
         }
 
         Console.WriteLine($"File saved to: {filePath}, exists: {File.Exists(filePath)}");

@@ -29,14 +29,14 @@ namespace HtmlClaimsDataImport.Infrastructure.Services
             try
             {
                 using var connection = new SqliteConnection($"Data Source={workingDbPath}");
-                await connection.OpenAsync();
+                await connection.OpenAsync().ConfigureAwait(false);
 
                 using var command = connection.CreateCommand();
                 command.CommandText = "SELECT name FROM sqlite_master WHERE type='table' AND name LIKE 'claims_import_%' ORDER BY name DESC LIMIT 1;";
                 
-                using (var reader = await command.ExecuteReaderAsync())
+                using (var reader = await command.ExecuteReaderAsync().ConfigureAwait(false))
                 {
-                    if (await reader.ReadAsync())
+                    if (await reader.ReadAsync().ConfigureAwait(false))
                     {
                         importTable = reader.GetString(0);
                     }
@@ -51,9 +51,9 @@ namespace HtmlClaimsDataImport.Infrastructure.Services
 
                 // Get column names from import table
                 command.CommandText = $"PRAGMA table_info({importTable});";
-                using (var reader = await command.ExecuteReaderAsync())
+                using (var reader = await command.ExecuteReaderAsync().ConfigureAwait(false))
                 {
-                    while (await reader.ReadAsync())
+                    while (await reader.ReadAsync().ConfigureAwait(false))
                     {
                         model.ImportColumns.Add(reader.GetString(1)); // column name is at index 1
                     }
@@ -61,14 +61,14 @@ namespace HtmlClaimsDataImport.Infrastructure.Services
 
                 // Get column names from claims table (if it exists)
                 command.CommandText = "SELECT name FROM sqlite_master WHERE type='table' AND name='claims';";
-                var claimsTableExists = await command.ExecuteScalarAsync() != null;
+                var claimsTableExists = await command.ExecuteScalarAsync().ConfigureAwait(false) != null;
                 
                 if (claimsTableExists)
                 {
                     command.CommandText = "PRAGMA table_info(claims);";
-                    using (var reader = await command.ExecuteReaderAsync())
+                    using (var reader = await command.ExecuteReaderAsync().ConfigureAwait(false))
                     {
-                        while (await reader.ReadAsync())
+                        while (await reader.ReadAsync().ConfigureAwait(false))
                         {
                             model.ClaimsColumns.Add(reader.GetString(1)); // column name is at index 1
                         }
@@ -83,9 +83,9 @@ namespace HtmlClaimsDataImport.Infrastructure.Services
                 // Get first 10 rows of preview data
                 var columnList = string.Join(", ", model.ImportColumns.Select(c => $"[{c}]"));
                 command.CommandText = $"SELECT {columnList} FROM {importTable} LIMIT 10;";
-                using (var reader = await command.ExecuteReaderAsync())
+                using (var reader = await command.ExecuteReaderAsync().ConfigureAwait(false))
                 {
-                    while (await reader.ReadAsync())
+                    while (await reader.ReadAsync().ConfigureAwait(false))
                     {
                         var row = new Dictionary<string, string>();
                         for (int i = 0; i < reader.FieldCount; i++)

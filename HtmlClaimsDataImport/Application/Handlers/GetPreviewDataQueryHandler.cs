@@ -16,7 +16,7 @@ namespace HtmlClaimsDataImport.Application.Handlers
 
         public async Task<PreviewDataModel> Handle(GetPreviewDataQuery request, CancellationToken cancellationToken)
         {
-            return await this.previewService.GetPreviewDataAsync(request.tmpDir, request.mappingStep, request.selectedColumn);
+            return await this.previewService.GetPreviewDataAsync(request.tmpDir, request.mappingStep, request.selectedColumn).ConfigureAwait(false);
         }
     }
 }

@@ -15,7 +15,7 @@ namespace HtmlClaimsDataImport.Infrastructure.Services
                 string tempPath = Path.Combine(tmpdir, "working_db.db");
 
                 // Copy the default file to temp directory
-                await CopyFileAsync(defaultPath, tempPath);
+                await CopyFileAsync(defaultPath, tempPath).ConfigureAwait(false);
                 return tempPath;
             }
             else
@@ -25,7 +25,7 @@ namespace HtmlClaimsDataImport.Infrastructure.Services
                 string tempPath = Path.Combine(tmpdir, "working_db.db");
 
                 // Copy the uploaded file to a working copy
-                await CopyFileAsync(sourcePath, tempPath);
+                await CopyFileAsync(sourcePath, tempPath).ConfigureAwait(false);
                 return tempPath;
             }
         }
@@ -62,7 +62,7 @@ namespace HtmlClaimsDataImport.Infrastructure.Services
                 var importTableName = $"claims_import_{timestamp}";
 
                 // Import to database (WriteToDb handles transactions internally)
-                await file.WriteToDb(databasePath, importTableName);
+                await file.WriteToDb(databasePath, importTableName).ConfigureAwait(false);
                 
                 return $"file imported to table '{importTableName}' in temp database";
             }
@@ -77,7 +77,7 @@ namespace HtmlClaimsDataImport.Infrastructure.Services
         {
             using var sourceStream = new FileStream(sourcePath, FileMode.Open, FileAccess.Read);
             using var destinationStream = new FileStream(destinationPath, FileMode.Create, FileAccess.Write);
-            await sourceStream.CopyToAsync(destinationStream);
+            await sourceStream.CopyToAsync(destinationStream).ConfigureAwait(false);
         }
     }
 }

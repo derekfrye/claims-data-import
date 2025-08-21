@@ -41,7 +41,7 @@ public class TempDirectoryService(string sessionId, string? basePath = null) : I
 {
     private readonly List<string> tempDirectories = [];
 
-    private readonly object lockObject = new();
+    private readonly System.Threading.Lock lockObject = new();
 
     private readonly string basePath = basePath ?? Path.GetTempPath();
     private readonly string sessionId = sessionId;
@@ -55,7 +55,7 @@ public class TempDirectoryService(string sessionId, string? basePath = null) : I
     {
         if (this.sessionTempDirectory == null)
         {
-            lock (this.lockObject)
+            using (this.lockObject.EnterScope())
             {
                 this.sessionTempDirectory ??= this.CreateTempDirectory();
             }
@@ -83,7 +83,7 @@ public class TempDirectoryService(string sessionId, string? basePath = null) : I
     /// <param name="path">The path to the temporary directory to register.</param>
     public void RegisterTempDirectory(string path)
     {
-        lock (this.lockObject)
+        using (this.lockObject.EnterScope())
         {
             this.tempDirectories.Add(path);
         }
@@ -94,7 +94,7 @@ public class TempDirectoryService(string sessionId, string? basePath = null) : I
     /// </summary>
     public void CleanupDirectories()
     {
-        lock (this.lockObject)
+        using (this.lockObject.EnterScope())
         {
             foreach (var dir in this.tempDirectories)
             {
@@ -132,7 +132,7 @@ public class TempDirectoryService(string sessionId, string? basePath = null) : I
 public class TempDirectoryCleanupService : IHostedService
 {
     private static readonly List<ITempDirectoryService> ActiveServices = [];
-    private static readonly object LockObject = new();
+    private static readonly System.Threading.Lock LockObject = new();
     private static string? overrideTempBasePath;
 
     /// <summary>
@@ -150,7 +150,7 @@ public class TempDirectoryCleanupService : IHostedService
     /// <param name="service">The temporary directory service to register.</param>
     public static void RegisterService(ITempDirectoryService service)
     {
-        lock (LockObject)
+        using (LockObject.EnterScope())
         {
             ActiveServices.Add(service);
         }
@@ -162,7 +162,7 @@ public class TempDirectoryCleanupService : IHostedService
     /// <param name="service">The temporary directory service to unregister.</param>
     public static void UnregisterService(ITempDirectoryService service)
     {
-        lock (LockObject)
+        using (LockObject.EnterScope())
         {
             ActiveServices.Remove(service);
         }
@@ -182,7 +182,7 @@ public class TempDirectoryCleanupService : IHostedService
     /// </summary>
     public static void CleanupAllDirectories()
     {
-        lock (LockObject)
+        using (LockObject.EnterScope())
         {
             var servicesToCleanup = new List<ITempDirectoryService>(ActiveServices);
             foreach (var service in servicesToCleanup)

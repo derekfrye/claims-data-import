@@ -35,9 +35,10 @@
     <PublishTrimmed>false</PublishTrimmed>
     <PublishReadyToRun>true</PublishReadyToRun>
     
-    <!-- StyleCop configuration -->
+    <!-- Generate XML documentation for API -->
     <GenerateDocumentationFile>true</GenerateDocumentationFile>
-    <NoWarn>$(NoWarn);SA1633;SA0001;CS1591;SA1600;SA1515;SA1502;SA1201;SA1009;SA1010;SA1516;SA1513;SA1028;SA1413;SA1122;SA1402;SA1300;SA1649</NoWarn>
+    <!-- Suppress XML documentation warnings for now -->
+    <NoWarn>$(NoWarn);CS1591</NoWarn>
   </PropertyGroup>
 
 </Project>

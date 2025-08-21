@@ -21,7 +21,7 @@ namespace HtmlClaimsDataImport.Application.Handlers
             {
                 // Resolve paths
                 string actualJsonPath = ResolveJsonPath(request.jsonPath, request.tmpDir);
-                string actualDatabasePath = await this.dataImportService.ResolveActualPath(request.databasePath, request.tmpDir, "default.sqlite3.db");
+                string actualDatabasePath = await this.dataImportService.ResolveActualPath(request.databasePath, request.tmpDir, "default.sqlite3.db").ConfigureAwait(false);
                 string actualFileName = Path.Combine(request.tmpDir, request.fileName);
 
                 // Validation step 1: Check if JSON is valid
@@ -46,7 +46,7 @@ namespace HtmlClaimsDataImport.Application.Handlers
                 }
 
                 // All validations passed - proceed with import
-                return await this.dataImportService.ProcessFileImport(actualFileName, actualJsonPath, actualDatabasePath);
+                return await this.dataImportService.ProcessFileImport(actualFileName, actualJsonPath, actualDatabasePath).ConfigureAwait(false);
             }
             catch (Exception ex)
             {

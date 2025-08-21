@@ -5,15 +5,16 @@
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
     <GenerateDocumentationFile>true</GenerateDocumentationFile>
-    <NoWarn>$(NoWarn);SA1633;SA0001;CS1591;SA1600;SA1515;SA1502;SA1201;SA1200;SA1009;SA1010;SA1516;SA1513;SA1028;SA1413;SA1122;SA1402</NoWarn>
+    <!-- Suppress XML documentation warnings for library -->
+    <NoWarn>$(NoWarn);CS1591</NoWarn>
   </PropertyGroup>
 
   <ItemGroup>
     <PackageReference Include="Microsoft.Data.Sqlite" Version="9.0.8" />
     <PackageReference Include="Sylvan.Data.Csv" Version="1.4.2" />
-    <PackageReference Include="StyleCop.Analyzers" Version="1.2.0-beta.556">
-      <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+    <PackageReference Include="Meziantou.Analyzer" Version="2.0.212">
       <PrivateAssets>all</PrivateAssets>
+      <IncludeAssets>runtime; build; native; contentfiles; analyzers</IncludeAssets>
     </PackageReference>
   </ItemGroup>
 

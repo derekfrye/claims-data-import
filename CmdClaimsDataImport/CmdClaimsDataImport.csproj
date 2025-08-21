@@ -5,9 +5,9 @@
   </ItemGroup>
 
   <ItemGroup>
-    <PackageReference Include="StyleCop.Analyzers" Version="1.2.0-beta.556">
-      <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+    <PackageReference Include="Meziantou.Analyzer" Version="2.0.212">
       <PrivateAssets>all</PrivateAssets>
+      <IncludeAssets>runtime; build; native; contentfiles; analyzers</IncludeAssets>
     </PackageReference>
   </ItemGroup>
 
@@ -17,9 +17,10 @@
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
     
-    <!-- StyleCop configuration -->
+    <!-- Generate XML documentation -->
     <GenerateDocumentationFile>true</GenerateDocumentationFile>
-    <NoWarn>$(NoWarn);SA1633;SA0001;CS1591;SA1600;SA1515;SA1502;SA1201;SA1009;SA1010;SA1516;SA1513;SA1028;SA1413;SA1122;SA1200;SA1402;SA1204;SA1649</NoWarn>
+    <!-- Suppress XML documentation warnings for console app -->
+    <NoWarn>$(NoWarn);CS1591</NoWarn>
   </PropertyGroup>
 
   <ItemGroup>

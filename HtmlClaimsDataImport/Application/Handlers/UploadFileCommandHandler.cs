@@ -53,7 +53,7 @@ namespace HtmlClaimsDataImport.Application.Handlers
                 tempDir = this.tempDirectoryService.GetSessionTempDirectory();
             }
 
-            return await this.fileUploadService.HandleFileUploadAsync(request.uploadedFile, request.fileType, tempDir);
+            return await this.fileUploadService.HandleFileUploadAsync(request.uploadedFile, request.fileType, tempDir).ConfigureAwait(false);
         }
     }
 }
