@@ -1,6 +1,8 @@
 using System.IO;
 using System.Text;
 using Microsoft.AspNetCore.Mvc.Testing;
+using AngleSharp;
+using AngleSharp.Html.Dom;
 
 namespace HtmlClaimsDataImport.Tests;
 
@@ -22,11 +24,7 @@ public class TmpdirSecurityTests(WebApplicationFactory<Program> factory)
         // Get the page and extract anti-forgery token
         var getResponse = await client.GetAsync("/ClaimsDataImporter");
         getResponse.EnsureSuccessStatusCode();
-        var getContent = await getResponse.Content.ReadAsStringAsync();
-        
-        var tokenStart = getContent.IndexOf("__RequestVerificationToken\" type=\"hidden\" value=\"") + "__RequestVerificationToken\" type=\"hidden\" value=\"".Length;
-        var tokenEnd = getContent.IndexOf("\"", tokenStart);
-        var token = getContent[tokenStart..tokenEnd];
+        var token = await TestHtmlHelpers.GetAntiForgeryTokenAsync(client);
         
         // Create test file
         var testFileContent = "{\"test\": \"security\"}";
@@ -46,15 +44,10 @@ public class TmpdirSecurityTests(WebApplicationFactory<Program> factory)
         response.EnsureSuccessStatusCode();
         
         var responseContent = await response.Content.ReadAsStringAsync();
-        
-        // Verify file was uploaded successfully (should use session logic, not malicious path)
-        Assert.Contains("test.json", responseContent);
-        Assert.Contains("data-file-path", responseContent);
-        
-        // Extract the actual file path from response
-        var filePathStart = responseContent.IndexOf("data-file-path=\"") + "data-file-path=\"".Length;
-        var filePathEnd = responseContent.IndexOf("\"", filePathStart);
-        var actualFilePath = responseContent[filePathStart..filePathEnd];
+        var responseDoc = await TestHtmlHelpers.ParseDocumentAsync(responseContent);
+        var inputEl = responseDoc.QuerySelector("input[data-file-path]") as IHtmlInputElement;
+        Assert.NotNull(inputEl);
+        var actualFilePath = inputEl!.GetAttribute("data-file-path")!;
         
         // Verify the file path does NOT contain the malicious path
         Assert.DoesNotContain(maliciousTmpdir, actualFilePath);

@@ -25,16 +25,7 @@ public class HtmlDataAttributesIntegrationTests
     }
 
 
-    private async Task<string> GetAntiForgeryTokenAsync()
-    {
-        var getResponse = await _client.GetAsync("/ClaimsDataImporter");
-        getResponse.EnsureSuccessStatusCode();
-        var getContent = await getResponse.Content.ReadAsStringAsync();
-        
-        var tokenStart = getContent.IndexOf("__RequestVerificationToken\" type=\"hidden\" value=\"") + "__RequestVerificationToken\" type=\"hidden\" value=\"".Length;
-        var tokenEnd = getContent.IndexOf("\"", tokenStart);
-        return getContent[tokenStart..tokenEnd];
-    }
+    private Task<string> GetAntiForgeryTokenAsync() => TestHtmlHelpers.GetAntiForgeryTokenAsync(_client);
 
     [Fact]
     public async Task FileUpload_JsonFile_ReturnsCorrectDataAttributes_Debug()
@@ -146,9 +137,7 @@ public class HtmlDataAttributesIntegrationTests
         var responseHtml = await response.Content.ReadAsStringAsync();
         
         // Parse HTML using AngleSharp
-        var config = Configuration.Default;
-        var context = BrowsingContext.New(config);
-        var document = await context.OpenAsync(req => req.Content(responseHtml));
+        var document = await TestHtmlHelpers.ParseDocumentAsync(responseHtml);
         
         // Verify status span has correct data attribute
         var statusSpan = document.QuerySelector("#json-status") as IHtmlSpanElement;
@@ -204,9 +193,7 @@ public class HtmlDataAttributesIntegrationTests
         var responseHtml = await response.Content.ReadAsStringAsync();
         
         // Parse HTML using AngleSharp
-        var config = Configuration.Default;
-        var context = BrowsingContext.New(config);
-        var document = await context.OpenAsync(req => req.Content(responseHtml));
+        var document = await TestHtmlHelpers.ParseDocumentAsync(responseHtml);
         
         // Verify status span has correct data attribute
         var statusSpan = document.QuerySelector("#filename-status") as IHtmlSpanElement;
@@ -245,9 +232,7 @@ public class HtmlDataAttributesIntegrationTests
         var responseHtml = await response.Content.ReadAsStringAsync();
         
         // Parse HTML using AngleSharp
-        var config = Configuration.Default;
-        var context = BrowsingContext.New(config);
-        var document = await context.OpenAsync(req => req.Content(responseHtml));
+        var document = await TestHtmlHelpers.ParseDocumentAsync(responseHtml);
         
         // Verify status span has correct data attribute
         var statusSpan = document.QuerySelector("#database-status") as IHtmlSpanElement;
@@ -291,9 +276,7 @@ public class HtmlDataAttributesIntegrationTests
         Assert.Contains("hx-swap-oob=\"afterbegin:#upload-log\"", responseHtml);
         
         // Parse and verify structure
-        var config = Configuration.Default;
-        var context = BrowsingContext.New(config);
-        var document = await context.OpenAsync(req => req.Content(responseHtml));
+        var document = await TestHtmlHelpers.ParseDocumentAsync(responseHtml);
         
         // Verify input has hx-swap-oob attribute
         var inputElement = document.QuerySelector("input[hx-swap-oob]");
@@ -323,9 +306,13 @@ public class HtmlDataAttributesIntegrationTests
         // Act: Post file upload request
         var response = await _client.PostAsync("/ClaimsDataImporter?handler=FileUpload", content);
         
-        // Assert: Should return error message
+        // Assert: Should return error message via DOM status span
         var responseContent = await response.Content.ReadAsStringAsync();
-        Assert.Contains("No file selected", responseContent);
+        var context = BrowsingContext.New(Configuration.Default);
+        var document = await context.OpenAsync(req => req.Content(responseContent));
+        var statusSpan = document.QuerySelector("#json-status") as IHtmlSpanElement;
+        Assert.NotNull(statusSpan);
+        Assert.Contains("No file selected", statusSpan!.TextContent);
     }
 
     [Theory]

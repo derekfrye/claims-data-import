@@ -1,6 +1,8 @@
 using System.Text;
 using System.Text.Json;
 using Microsoft.AspNetCore.Mvc.Testing;
+using AngleSharp;
+using AngleSharp.Html.Dom;
 
 namespace HtmlClaimsDataImport.Tests;
 
@@ -17,12 +19,7 @@ public class FileUploadPersistence_IntTest(WebApplicationFactory<Program> factor
         // Step 1: Get the page and extract anti-forgery token
         var getResponse = await sessionClient.GetAsync("/ClaimsDataImporter");
         getResponse.EnsureSuccessStatusCode();
-        var getContent = await getResponse.Content.ReadAsStringAsync();
-        
-        // Extract anti-forgery token
-        var tokenStart = getContent.IndexOf("__RequestVerificationToken\" type=\"hidden\" value=\"") + "__RequestVerificationToken\" type=\"hidden\" value=\"".Length;
-        var tokenEnd = getContent.IndexOf("\"", tokenStart);
-        var token = getContent[tokenStart..tokenEnd];
+        var token = await TestHtmlHelpers.GetAntiForgeryTokenAsync(sessionClient);
         
         // Step 2: Create dummy JSON file with test data
         var jsonData = new
@@ -48,15 +45,13 @@ public class FileUploadPersistence_IntTest(WebApplicationFactory<Program> factor
         uploadResponse.EnsureSuccessStatusCode();
         
         var responseContent = await uploadResponse.Content.ReadAsStringAsync();
-        
-        // Verify upload response contains expected elements
-        Assert.Contains("config.json", responseContent);
-        Assert.Contains("data-file-path", responseContent);
-        
-        // Step 4: Extract temp directory path from response
-        var filePathStart = responseContent.IndexOf("data-file-path=\"") + "data-file-path=\"".Length;
-        var filePathEnd = responseContent.IndexOf("\"", filePathStart);
-        var uploadedFilePath = responseContent[filePathStart..filePathEnd];
+        var responseDom = await TestHtmlHelpers.ParseDocumentAsync(responseContent);
+        var statusSpan = responseDom.QuerySelector("span[data-status]") as IHtmlSpanElement;
+        Assert.NotNull(statusSpan);
+        Assert.Contains("config.json", statusSpan!.TextContent);
+        var fileInput = responseDom.QuerySelector("input[data-file-path]") as IHtmlInputElement;
+        Assert.NotNull(fileInput);
+        var uploadedFilePath = fileInput!.GetAttribute("data-file-path")!;
         
         // Extract temp directory from the file path
         var tempDirectory = Path.GetDirectoryName(uploadedFilePath);

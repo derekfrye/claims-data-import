@@ -10,16 +10,7 @@ public class PreviewPaneIntegrationTests(WebApplicationFactory<Program> factory)
 {
     private readonly WebApplicationFactory<Program> _factory = factory;
 
-    private static async Task<string> GetAntiForgeryTokenAsync(HttpClient client)
-    {
-        var getResponse = await client.GetAsync("/ClaimsDataImporter");
-        getResponse.EnsureSuccessStatusCode();
-        var getContent = await getResponse.Content.ReadAsStringAsync();
-        
-        var tokenStart = getContent.IndexOf("__RequestVerificationToken\" type=\"hidden\" value=\"") + "__RequestVerificationToken\" type=\"hidden\" value=\"".Length;
-        var tokenEnd = getContent.IndexOf("\"", tokenStart);
-        return getContent[tokenStart..tokenEnd];
-    }
+    private static Task<string> GetAntiForgeryTokenAsync(HttpClient client) => TestHtmlHelpers.GetAntiForgeryTokenAsync(client);
 
     private static async Task<(string responseHtml, string tmpdir)> UploadTestFileAsync(HttpClient client, string fileType, string fileName, string content, string? tmpdir = null)
     {
@@ -100,9 +91,7 @@ public class PreviewPaneIntegrationTests(WebApplicationFactory<Program> factory)
         var previewHtml = await GetPreviewAsync(sessionClient, tmpdir);
 
         // Step 4: Parse and verify preview content
-        var config = Configuration.Default;
-        var context = BrowsingContext.New(config);
-        var document = await context.OpenAsync(req => req.Content(previewHtml));
+        var document = await TestHtmlHelpers.ParseDocumentAsync(previewHtml);
 
         // Verify preview table exists
         var previewTable = document.QuerySelector("#previewTable") as IHtmlTableElement;
@@ -137,9 +126,7 @@ public class PreviewPaneIntegrationTests(WebApplicationFactory<Program> factory)
 
         // Step 2: Get initial preview (no column selected)
         var initialPreviewHtml = await GetPreviewAsync(sessionClient, tmpdir);
-        var config = Configuration.Default;
-        var context = BrowsingContext.New(config);
-        var initialDocument = await context.OpenAsync(req => req.Content(initialPreviewHtml));
+        var initialDocument = await TestHtmlHelpers.ParseDocumentAsync(initialPreviewHtml);
 
         // Verify no columns are initially highlighted
         var initialSelectedHeaders = initialDocument.QuerySelectorAll("th.selected-column-header");
@@ -149,7 +136,7 @@ public class PreviewPaneIntegrationTests(WebApplicationFactory<Program> factory)
 
         // Step 3: Simulate clicking the "amount" column (lowercase)
         var previewWithSelectionHtml = await GetPreviewAsync(sessionClient, tmpdir, 0, "amount");
-        var selectedDocument = await context.OpenAsync(req => req.Content(previewWithSelectionHtml));
+        var selectedDocument = await TestHtmlHelpers.ParseDocumentAsync(previewWithSelectionHtml);
 
         // Step 4: Verify column highlighting
         var selectedHeaders = selectedDocument.QuerySelectorAll("th.selected-column-header").Cast<IHtmlTableHeaderCellElement>().ToList();
@@ -181,9 +168,7 @@ public class PreviewPaneIntegrationTests(WebApplicationFactory<Program> factory)
         for (int step = 0; step < 3; step++)
         {
             var previewHtml = await GetPreviewAsync(sessionClient, tmpdir, step, "price");
-            var config = Configuration.Default;
-            var context = BrowsingContext.New(config);
-            var document = await context.OpenAsync(req => req.Content(previewHtml));
+            var document = await TestHtmlHelpers.ParseDocumentAsync(previewHtml);
 
             // Verify mapping step is displayed correctly
             var mappingProgress = document.QuerySelector(".mapping-progress");
@@ -217,9 +202,7 @@ public class PreviewPaneIntegrationTests(WebApplicationFactory<Program> factory)
         Assert.Contains("color: white", previewHtml);
 
         // Parse and verify DOM structure
-        var config = Configuration.Default;
-        var context = BrowsingContext.New(config);
-        var document = await context.OpenAsync(req => req.Content(previewHtml));
+        var document = await TestHtmlHelpers.ParseDocumentAsync(previewHtml);
 
         // Verify the selected column has the correct CSS classes
         var selectedHeader = document.QuerySelector("th.selected-column-header") as IHtmlTableHeaderCellElement;
@@ -245,9 +228,7 @@ public class PreviewPaneIntegrationTests(WebApplicationFactory<Program> factory)
         // Get preview without selection
         var previewHtml = await GetPreviewAsync(sessionClient, tmpdir);
 
-        var config = Configuration.Default;
-        var context = BrowsingContext.New(config);
-        var document = await context.OpenAsync(req => req.Content(previewHtml));
+        var document = await TestHtmlHelpers.ParseDocumentAsync(previewHtml);
 
         // Verify all headers have onclick attributes
         var headers = document.QuerySelectorAll("th").Cast<IHtmlTableHeaderCellElement>().ToList();
@@ -285,9 +266,7 @@ public class PreviewPaneIntegrationTests(WebApplicationFactory<Program> factory)
 
         // Test step 0 - Previous button should be disabled
         var step0Html = await GetPreviewAsync(sessionClient, tmpdir, 0, "field1");
-        var config = Configuration.Default;
-        var context = BrowsingContext.New(config);
-        var step0Doc = await context.OpenAsync(req => req.Content(step0Html));
+        var step0Doc = await TestHtmlHelpers.ParseDocumentAsync(step0Html);
 
         var prevBtn = step0Doc.QuerySelector("#prevBtn") as IHtmlButtonElement;
         Assert.NotNull(prevBtn);
@@ -299,7 +278,7 @@ public class PreviewPaneIntegrationTests(WebApplicationFactory<Program> factory)
 
         // Test step 1 - Both buttons should be enabled
         var step1Html = await GetPreviewAsync(sessionClient, tmpdir, 1, "field2");
-        var step1Doc = await context.OpenAsync(req => req.Content(step1Html));
+        var step1Doc = await TestHtmlHelpers.ParseDocumentAsync(step1Html);
 
         var step1PrevBtn = step1Doc.QuerySelector("#prevBtn") as IHtmlButtonElement;
         var step1NextBtn = step1Doc.QuerySelector("#nextBtn") as IHtmlButtonElement;
@@ -327,9 +306,7 @@ public class PreviewPaneIntegrationTests(WebApplicationFactory<Program> factory)
         // Get preview with no column selected
         var previewHtml = await GetPreviewAsync(sessionClient, tmpdir, 0, "");
 
-        var config = Configuration.Default;
-        var context = BrowsingContext.New(config);
-        var document = await context.OpenAsync(req => req.Content(previewHtml));
+        var document = await TestHtmlHelpers.ParseDocumentAsync(previewHtml);
 
         // Next button should be disabled when no column is selected
         var nextBtn = document.QuerySelector("#nextBtn") as IHtmlButtonElement;
@@ -349,9 +326,7 @@ public class PreviewPaneIntegrationTests(WebApplicationFactory<Program> factory)
         // Try to get preview without loading any data first
         var previewHtml = await GetPreviewAsync(sessionClient, tmpdir);
 
-        var config = Configuration.Default;
-        var context = BrowsingContext.New(config);
-        var document = await context.OpenAsync(req => req.Content(previewHtml));
+        var document = await TestHtmlHelpers.ParseDocumentAsync(previewHtml);
 
         // Should show warning message
         var alertWarning = document.QuerySelector(".alert-warning");
@@ -379,9 +354,7 @@ public class PreviewPaneIntegrationTests(WebApplicationFactory<Program> factory)
         // Select the specified column
         var previewHtml = await GetPreviewAsync(sessionClient, tmpdir, 0, columnToSelect);
 
-        var config = Configuration.Default;
-        var context = BrowsingContext.New(config);
-        var document = await context.OpenAsync(req => req.Content(previewHtml));
+        var document = await TestHtmlHelpers.ParseDocumentAsync(previewHtml);
 
         // Verify exactly one header is highlighted and it's the correct one
         var selectedHeaders = document.QuerySelectorAll("th.selected-column-header").Cast<IHtmlTableHeaderCellElement>().ToList();
