@@ -64,7 +64,7 @@
 
             try
             {
-                await BulkInsertAsync(connection, transaction, table).ConfigureAwait(false);
+                transaction = await BulkInsertAsync(connection, transaction, table).ConfigureAwait(false);
                 if (transaction != null)
                 {
                     await transaction.CommitAsync().ConfigureAwait(false);
@@ -164,7 +164,7 @@
             return insertCommand;
         }
 
-        private async Task BulkInsertAsync(SqliteConnection connection, SqliteTransaction? transaction, string table)
+        private async Task<SqliteTransaction?> BulkInsertAsync(SqliteConnection connection, SqliteTransaction? transaction, string table)
         {
             var insertCommand = CreateInsertCommand(connection, transaction, table);
             var reader = this.csvReader ?? throw new InvalidOperationException("CSV reader is not initialized");
@@ -223,6 +223,8 @@
                     }
                 }
             }
+
+            return transaction;
         }
     }
 }
