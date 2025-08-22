@@ -109,7 +109,7 @@ public class IntTest2
         var schema = schemaResult?.ToString();
         
         Assert.NotNull(schema);
-        Assert.Contains("[id] INTEGER PRIMARY KEY AUTOINCREMENT", schema); // Auto-generated ID column
+        Assert.Contains("[recid] INTEGER PRIMARY KEY AUTOINCREMENT", schema); // Auto-generated ID column
         Assert.Contains("[drug_awp_amt]", schema); // Sanitized column name
         Assert.Contains("REAL", schema); // Should detect money values as REAL/decimal
     }

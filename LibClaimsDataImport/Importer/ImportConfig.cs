@@ -36,8 +36,8 @@ public class ImportConfig
     {
         var columns = new List<string>();
 
-        // Add auto-increment primary key
-        columns.Add("[id] INTEGER PRIMARY KEY AUTOINCREMENT");
+        // Add auto-increment primary key using a name less likely to collide with source columns
+        columns.Add("[recid] INTEGER PRIMARY KEY AUTOINCREMENT");
 
         // Add columns based on FileSpec auto-detection
         foreach (var column in fileSpec.ColumnTypes)

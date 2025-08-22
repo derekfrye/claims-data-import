@@ -110,7 +110,7 @@ public class PreviewPaneIntegrationTests(WebApplicationFactory<Program> factory)
 
         // Verify table headers (database columns are lowercase)
         var headers = document.QuerySelectorAll("th").Cast<IHtmlTableHeaderCellElement>().ToList();
-        Assert.Contains(headers, h => h.TextContent.Contains("id"));
+        Assert.Contains(headers, h => h.TextContent.Contains("recid"));
         Assert.Contains(headers, h => h.TextContent.Contains("amount"));
         Assert.Contains(headers, h => h.TextContent.Contains("date"));
         Assert.Contains(headers, h => h.TextContent.Contains("description"));
