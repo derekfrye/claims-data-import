@@ -230,7 +230,12 @@ namespace HtmlClaimsDataImport.Pages
         {
             var command = new LoadDataCommand(tmpdir, fileName, jsonPath, databasePath);
             var result = await this.mediator.Send(command);
-            return this.Content(result);
+            return new JsonResult(new
+            {
+                success = result.Success,
+                importTableName = result.ImportTableName,
+                statusMessage = result.StatusMessage,
+            });
         }
 
         private async Task<string> RenderPartialViewAsync<T>(string partialName, T model)

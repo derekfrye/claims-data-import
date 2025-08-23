@@ -1,11 +1,19 @@
 namespace HtmlClaimsDataImport.Infrastructure.Services
 {
+    using HtmlClaimsDataImport.Application.Commands.Results;
     using HtmlClaimsDataImport.Application.Interfaces;
     using LibClaimsDataImport.Importer;
     using Sylvan.Data.Csv;
+    using Microsoft.Extensions.Logging;
 
     public class DataImportService : IDataImportService
     {
+        private readonly ILogger<DataImportService> logger;
+
+        public DataImportService(ILogger<DataImportService> logger)
+        {
+            this.logger = logger;
+        }
         public async Task<string> ResolveActualPath(string path, string tmpdir, string defaultFileName)
         {
             if (string.Equals(path, "default", StringComparison.OrdinalIgnoreCase))
@@ -30,7 +38,7 @@ namespace HtmlClaimsDataImport.Infrastructure.Services
             }
         }
 
-        public async Task<string> ProcessFileImport(string fileName, string jsonPath, string databasePath)
+        public async Task<LoadDataResult> ProcessFileImport(string fileName, string jsonPath, string databasePath)
         {
             try
             {
@@ -63,13 +71,13 @@ namespace HtmlClaimsDataImport.Infrastructure.Services
 
                 // Import to database (WriteToDb handles transactions internally)
                 await file.WriteToDb(databasePath, importTableName).ConfigureAwait(false);
-                
-                return $"file imported to table '{importTableName}' in temp database";
+
+                return LoadDataResult.Ok(importTableName, $"file imported to table '{importTableName}' in temp database");
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"Error in ProcessFileImport: {ex.Message}");
-                return $"Import failed: {ex.Message}";
+                this.logger.LogError(ex, "Error in ProcessFileImport");
+                return LoadDataResult.Fail($"Import failed: {ex.Message}");
             }
         }
 

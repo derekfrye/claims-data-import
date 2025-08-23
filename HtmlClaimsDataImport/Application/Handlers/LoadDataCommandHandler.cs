@@ -1,21 +1,25 @@
 namespace HtmlClaimsDataImport.Application.Handlers
 {
     using HtmlClaimsDataImport.Application.Commands;
+    using HtmlClaimsDataImport.Application.Commands.Results;
     using HtmlClaimsDataImport.Application.Interfaces;
     using MediatR;
+    using Microsoft.Extensions.Logging;
 
-    public class LoadDataCommandHandler : IRequestHandler<LoadDataCommand, string>
+    public class LoadDataCommandHandler : IRequestHandler<LoadDataCommand, LoadDataResult>
     {
         private readonly IValidationService validationService;
         private readonly IDataImportService dataImportService;
+        private readonly ILogger<LoadDataCommandHandler> logger;
 
-        public LoadDataCommandHandler(IValidationService validationService, IDataImportService dataImportService)
+        public LoadDataCommandHandler(IValidationService validationService, IDataImportService dataImportService, ILogger<LoadDataCommandHandler> logger)
         {
             this.validationService = validationService;
             this.dataImportService = dataImportService;
+            this.logger = logger;
         }
 
-        public async Task<string> Handle(LoadDataCommand request, CancellationToken cancellationToken)
+        public async Task<LoadDataResult> Handle(LoadDataCommand request, CancellationToken cancellationToken)
         {
             try
             {
@@ -28,21 +32,21 @@ namespace HtmlClaimsDataImport.Application.Handlers
                 var jsonValidation = this.validationService.ValidateJsonFile(actualJsonPath);
                 if (!jsonValidation.isValid)
                 {
-                    return $"json invalid: {jsonValidation.errorMessage}";
+                    return LoadDataResult.Fail($"json invalid: {jsonValidation.errorMessage}");
                 }
 
                 // Validation step 2: Check if file exists and is readable
                 var fileValidation = this.validationService.ValidateFile(actualFileName);
                 if (!fileValidation.isValid)
                 {
-                    return fileValidation.errorMessage;
+                    return LoadDataResult.Fail(fileValidation.errorMessage);
                 }
 
                 // Validation step 3: Check if database exists and is readable as SQLite
                 var dbValidation = this.validationService.ValidateSqliteDatabase(actualDatabasePath);
                 if (!dbValidation.isValid)
                 {
-                    return dbValidation.errorMessage;
+                    return LoadDataResult.Fail(dbValidation.errorMessage);
                 }
 
                 // All validations passed - proceed with import
@@ -50,8 +54,8 @@ namespace HtmlClaimsDataImport.Application.Handlers
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"Error in LoadData: {ex.Message}");
-                return $"Error: {ex.Message}";
+                this.logger.LogError(ex, "Error in LoadData");
+                return LoadDataResult.Fail($"Error: {ex.Message}");
             }
         }
 

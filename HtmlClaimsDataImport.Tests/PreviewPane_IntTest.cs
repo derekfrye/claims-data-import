@@ -54,7 +54,30 @@ public class PreviewPaneIntegrationTests(WebApplicationFactory<Program> factory)
 
         var response = await client.PostAsync("/ClaimsDataImporter?handler=LoadData", formData);
         response.EnsureSuccessStatusCode();
-        return await response.Content.ReadAsStringAsync();
+        var json = await response.Content.ReadAsStringAsync();
+        using var doc = System.Text.Json.JsonDocument.Parse(json);
+        var root = doc.RootElement;
+        // Return status message for compatibility with existing assertions
+        return root.TryGetProperty("statusMessage", out var msg) ? msg.GetString() ?? string.Empty : json;
+    }
+
+    private static async Task<System.Text.Json.JsonElement> LoadDataJsonAsync(HttpClient client, string tmpdir, string csvFileName, string jsonPath = "default", string databasePath = "default")
+    {
+        var token = await GetAntiForgeryTokenAsync(client);
+        var formData = new FormUrlEncodedContent(
+        [
+            new KeyValuePair<string, string>("tmpdir", tmpdir),
+            new KeyValuePair<string, string>("fileName", csvFileName),
+            new KeyValuePair<string, string>("jsonPath", jsonPath),
+            new KeyValuePair<string, string>("databasePath", databasePath),
+            new KeyValuePair<string, string>("__RequestVerificationToken", token)
+        ]);
+
+        var response = await client.PostAsync("/ClaimsDataImporter?handler=LoadData", formData);
+        response.EnsureSuccessStatusCode();
+        var json = await response.Content.ReadAsStringAsync();
+        using var doc = System.Text.Json.JsonDocument.Parse(json);
+        return doc.RootElement.Clone();
     }
 
     private static async Task<string> GetPreviewAsync(HttpClient client, string tmpdir, int mappingStep = 0, string selectedColumn = "")
@@ -84,7 +107,10 @@ public class PreviewPaneIntegrationTests(WebApplicationFactory<Program> factory)
         var (_, tmpdir) = await UploadTestFileAsync(sessionClient, "filename", "test-claims.csv", csvContent);
 
         // Step 2: Load data into database
-        var loadResult = await LoadDataAsync(sessionClient, tmpdir, "test-claims.csv");
+        var loadJson = await LoadDataJsonAsync(sessionClient, tmpdir, "test-claims.csv");
+        Assert.True(loadJson.GetProperty("success").GetBoolean());
+        Assert.True(loadJson.TryGetProperty("importTableName", out var tableNameEl) && tableNameEl.GetString()!.StartsWith("claims_import_"));
+        var loadResult = loadJson.GetProperty("statusMessage").GetString() ?? string.Empty;
         Assert.Contains("file imported to table", loadResult);
 
         // Step 3: Get preview data

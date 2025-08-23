@@ -60,6 +60,19 @@ This document tracks current CQRS design deviations in the `HtmlClaimsDataImport
 - Risk: Makes error handling brittle and UI-specific messages leak into Application.
 - Suggested fix: Introduce `LoadDataResult { bool Success; string? ImportTable; string? Error; }` (or equivalent). Return that from handler/service and let the PageModel map to user-facing strings.
 
+## 5a) Fix implemented: Structured result for LoadData
+- Summary: Replaced string returns with a structured `LoadDataResult` in the Application layer. The Razor Page maps the result to user-facing text, preserving current UI behavior.
+- Files added: `HtmlClaimsDataImport/Application/Commands/Results/LoadDataResult.cs`.
+- Files updated:
+  - `HtmlClaimsDataImport/Application/Interfaces/IDataImportService.cs` → `ProcessFileImport` returns `LoadDataResult`.
+  - `HtmlClaimsDataImport/Infrastructure/Services/DataImportService.cs` → returns `LoadDataResult.Ok/Fail` with `ImportTableName` and status.
+  - `HtmlClaimsDataImport/Application/Commands/LoadDataCommand.cs` → `IRequest<LoadDataResult>`.
+  - `HtmlClaimsDataImport/Application/Handlers/LoadDataCommandHandler.cs` → returns `LoadDataResult` for validations/errors/success.
+  - `HtmlClaimsDataImport/Pages/ClaimsDataImporter.cshtml.cs` → returns JSON `{ success, importTableName, statusMessage }`.
+  - `HtmlClaimsDataImport/wwwroot/js/dataLoading.js` → expects JSON and renders `statusMessage` client-side.
+  - Logging moved to `ILogger` in handler/service (no `Console.WriteLine`).
+- Behavior impact: Client now receives JSON; UI renders the message. Tests updated to assert `success` and `importTableName` in addition to `statusMessage`.
+
 ## 6) UI action bypasses mediator for stateful workflow
 - Location: `Pages/ClaimsDataImporter.cshtml.cs` — `OnPostFileSelected` updates state and returns HTML without a command.
 - Issue: Potentially stateful workflow step is handled in UI code only.

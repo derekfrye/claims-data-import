@@ -84,9 +84,13 @@ function loadData() {
         method: 'POST',
         body: formData
     })
-    .then(response => response.text())
+    .then(response => response.json())
     .then(result => {
-        loadWarning.textContent = result;
+        loadWarning.textContent = result.statusMessage || (result.success ? 'Load completed' : 'Load failed');
+        if (result.success) {
+            // Optionally, refresh preview after successful load
+            // loadPreviewData();
+        }
     })
     .catch(error => {
         console.error('Load error:', error);
