@@ -33,7 +33,7 @@ namespace HtmlClaimsDataImport.Infrastructure.Services
             var srcSchema = await GetColumnSchemaAsync(connection, importTable ?? string.Empty, selectedColumn).ConfigureAwait(false);
             var dstSchema = await GetColumnSchemaAsync(connection, "claims", destColumn).ConfigureAwait(false);
             var distinctValues = await GetDistinctValuesAsync(connection, importTable ?? string.Empty, selectedColumn, 10).ConfigureAwait(false);
-            string valuesCsv = string.Join(", ", distinctValues.Select(v => v is null ? "NULL" : $"\"{v.Replace("\"", "\\\"")}\""));
+            string valuesCsv = string.Join(", ", distinctValues.Select(v => v is null ? "NULL" : $"\"{v.Replace("\"", "\\\"", StringComparison.Ordinal)}\""));
 
             dto.ModelPrompt = ComposePrompt(selectedColumn, destColumn, srcSchema, dstSchema, valuesCsv);
             return dto;
@@ -48,10 +48,12 @@ namespace HtmlClaimsDataImport.Infrastructure.Services
         {
             var sb = new StringBuilder();
             sb.Append($"Please provide modern, c# .net code that could be pasted as-is into a public static void method, such that it could clearly translate from {selectedColumn} to {destColumn}. ");
-            sb.Append($"{{Source column}} is sqlite data type {srcSchema.dataType}, and {{destination column}} is sqlite data type {dstSchema.dataType}, with teh following data type constraints: (and list the constraints here, including whether nullable or not, unique or not ,and any check constraints). ");
-            sb.Append($"Source constraints: {DescribeConstraints(srcSchema)}. Destination constraints: {DescribeConstraints(dstSchema)}. ");
+            sb.Append($"{{Source column}} is sqlite data type {srcSchema.dataType}, and {{destination column}} is sqlite data type {dstSchema.dataType}. ");
+            sb.Append($"Source column constraints: {DescribeConstraints(srcSchema)}. Destination column constraints: {DescribeConstraints(dstSchema)}. ");
             sb.Append($"Here's the first 10 distinct values from {selectedColumn}: {valuesCsv}. ");
-            sb.Append("If you need \"using\" statments, include them. Rely on system.* using methods, and do not rely on third-party libraries that aren't bundled by .net runtime. document your code with comments if you think the typical senior in high school woudl not understand what a specific line of code is doing. Remember to respond with code that will compile without errors.");
+            sb.Append("In your code, refer to the source column as sourceColumn. Refer to the destination column as destinationColumn. ");
+            sb.Append("If you need \"using\" statements, include them. Rely on system.* using methods, and do not rely on third-party libraries that aren't bundled by .net runtime. ");
+            sb.Append("Document your code with comments if you think the typical high school student would not understand what a specific line of code is doing. Remember to respond with code that will compile without errors.");
             return sb.ToString();
         }
 
@@ -187,7 +189,7 @@ namespace HtmlClaimsDataImport.Infrastructure.Services
             cmd.CommandText = "SELECT sql FROM sqlite_master WHERE type='table' AND name=@t;";
             cmd.Parameters.AddWithValue("@t", tableName);
             var sql = (string?)await cmd.ExecuteScalarAsync().ConfigureAwait(false) ?? string.Empty;
-            if (!string.IsNullOrWhiteSpace(sql) && sql.IndexOf("CHECK", StringComparison.OrdinalIgnoreCase) >= 0)
+            if (!string.IsNullOrWhiteSpace(sql) && sql.Contains("CHECK", StringComparison.OrdinalIgnoreCase))
             {
                 bool mentionsCol = sql.IndexOf(columnName, StringComparison.OrdinalIgnoreCase) >= 0;
                 return mentionsCol ? $"CHECK constraint referencing '{columnName}' present" : "table-level CHECK present";

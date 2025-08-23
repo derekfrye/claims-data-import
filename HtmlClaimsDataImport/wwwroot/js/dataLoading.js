@@ -12,7 +12,12 @@ function loadPreviewData() {
     })
     .then(response => response.text())
     .then(html => {
-        document.getElementById('preview-container-outer').innerHTML = html;
+        const container = document.getElementById('preview-container-outer');
+        container.innerHTML = html;
+        if (window.htmx && typeof window.htmx.process === 'function') {
+            // Ensure htmx scans the newly injected preview content (for hx-post, etc.)
+            window.htmx.process(container);
+        }
     })
     .catch(error => {
         console.error('Error loading preview:', error);

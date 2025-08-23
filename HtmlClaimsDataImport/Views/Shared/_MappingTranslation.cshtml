@@ -1,12 +1,33 @@
 @model HtmlClaimsDataImport.Models.MappingTranslationModel
 
-<div class="ai-model-prompt-content">
-    <pre style="white-space: pre-wrap; font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, 'Liberation Mono', 'Courier New', monospace; font-size: 12px;">
-@Model.ModelPrompt
-    </pre>
-    <small class="text-muted">This is a generated prompt preview.</small>
-    <style>
-        .ai-model-prompt-content { border: 1px solid #e9ecef; border-radius: 6px; padding: 10px; background: #f8f9fa; }
-    </style>
+<!-- Collapsible model prompt UI -->
+<div class="model-prompt-container">
+    <div id="modelPromptCollapsed" class="model-prompt-collapsed" onclick="expandModelPrompt()">
+        expand to view prompt
+    </div>
+
+    <div id="modelPromptExpanded" class="model-prompt-expanded hidden">
+        <div class="model-prompt-controls">
+            <a href="#" onclick="return collapseModelPrompt()">hide prompt</a>
+            <button type="button" class="edit-btn" id="editModelPromptBtn" onclick="editModelPrompt()">edit prompt</button>
+            <button type="button" class="hidden save-btn" id="saveModelPromptBtn" onclick="saveModelPrompt()">save</button>
+            <button type="button" class="hidden cancel-btn" id="cancelModelPromptBtn" onclick="cancelEditModelPrompt()">cancel</button>
+        </div>
+        <div id="modelPromptReadonly" class="model-prompt-readonly">
+            <pre class="model-prompt-pre">@Model.ModelPrompt</pre>
+        </div>
+        <div id="modelPromptEditor" class="model-prompt-editor hidden">
+            <textarea id="modelPromptTextarea" class="model-prompt-textarea">@Model.ModelPrompt</textarea>
+        </div>
+    </div>
 </div>
 
+<style>
+    .hidden { display: none; }
+    .model-prompt-container { margin-top: 8px; }
+    .model-prompt-collapsed { cursor: pointer; color: #0d6efd; text-decoration: underline; font-size: 0.95em; }
+    .model-prompt-expanded { border: 1px solid #e9ecef; border-radius: 6px; padding: 10px; background: #f8f9fa; }
+    .model-prompt-controls { display: flex; gap: 10px; align-items: center; margin-bottom: 8px; }
+    .model-prompt-pre { white-space: pre-wrap; font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, 'Liberation Mono', 'Courier New', monospace; font-size: 12px; margin: 0; }
+    .model-prompt-textarea { width: 100%; min-height: 200px; font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, 'Liberation Mono', 'Courier New', monospace; font-size: 12px; }
+</style>

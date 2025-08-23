@@ -24,7 +24,11 @@ function selectColumn(columnName) {
     })
     .then(response => response.text())
     .then(html => {
-        document.getElementById('preview-container-outer').innerHTML = html;
+        const container = document.getElementById('preview-container-outer');
+        container.innerHTML = html;
+        if (window.htmx && typeof window.htmx.process === 'function') {
+            window.htmx.process(container);
+        }
     })
     .catch(error => {
         console.error('Error selecting column:', error);
@@ -64,7 +68,11 @@ function nextMapping() {
     })
     .then(response => response.text())
     .then(html => {
-        document.getElementById('preview-container-outer').innerHTML = html;
+        const container = document.getElementById('preview-container-outer');
+        container.innerHTML = html;
+        if (window.htmx && typeof window.htmx.process === 'function') {
+            window.htmx.process(container);
+        }
     })
     .catch(error => {
         console.error('Error moving to next mapping:', error);
@@ -100,7 +108,11 @@ function previousMapping() {
     })
     .then(response => response.text())
     .then(html => {
-        document.getElementById('preview-container-outer').innerHTML = html;
+        const container = document.getElementById('preview-container-outer');
+        container.innerHTML = html;
+        if (window.htmx && typeof window.htmx.process === 'function') {
+            window.htmx.process(container);
+        }
     })
     .catch(error => {
         console.error('Error moving to previous mapping:', error);
