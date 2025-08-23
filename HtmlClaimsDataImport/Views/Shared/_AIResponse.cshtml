@@ -1,0 +1,21 @@
+@model HtmlClaimsDataImport.Application.Queries.Dtos.AIResponseDto
+
+<div class="ai-response-container">
+    @if (Model.IsSimulated)
+    {
+        <div class="alert alert-info" role="alert">
+            Running in simulated mode (no API key detected). Showing generated example.
+        </div>
+    }
+    <div class="ai-response-content">
+        <pre class="ai-response-pre">@Model.ResponseText</pre>
+    </div>
+</div>
+
+<style>
+    .ai-response-container { margin-top: 12px; border: 1px solid #e9ecef; border-radius: 6px; background: #fff; }
+    .ai-response-content { padding: 10px; }
+    .ai-response-pre { white-space: pre-wrap; font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, 'Liberation Mono', 'Courier New', monospace; font-size: 12px; margin: 0; }
+    .alert { padding: 8px 10px; margin: 0; border-bottom: 1px solid #e9ecef; background: #eef6ff; color: #084298; }
+</style>
+

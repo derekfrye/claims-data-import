@@ -52,6 +52,11 @@ function saveModelPrompt() {
         if (pre) {
             pre.textContent = textarea.value;
         }
+        // Update hidden input for htmx submit
+        const hidden = document.getElementById('modelPromptHidden');
+        if (hidden) {
+            hidden.value = textarea.value;
+        }
         // Toggle back to readonly view
         editor.classList.add('hidden');
         readonly.classList.remove('hidden');
@@ -75,4 +80,3 @@ function cancelEditModelPrompt() {
         cancelBtn.classList.add('hidden');
     }
 }
-

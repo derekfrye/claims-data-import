@@ -302,5 +302,28 @@ namespace HtmlClaimsDataImport.Pages
                 SelectedImportColumn = dto.SelectedImportColumn,
             };
         }
+
+        /// <summary>
+        /// Submits the current prompt to the AI service and returns the response markup.
+        /// </summary>
+        /// <param name="tmpdir">The temporary directory path (for consistency, not used).</param>
+        /// <param name="promptText">The prompt text to send.</param>
+        /// <returns>Partial view with the AI response content.</returns>
+        public async Task<IActionResult> OnPostSubmitPromptToAI(string tmpdir, string promptText)
+        {
+            try
+            {
+                var cmd = new HtmlClaimsDataImport.Application.Commands.SubmitPromptToAICommand(tmpdir, promptText);
+                var dto = await this.mediator.Send(cmd);
+                var partialView = await this.RenderPartialViewAsync("_AIResponse", dto);
+                return this.Content(partialView, "text/html");
+            }
+            catch (Exception ex)
+            {
+                var err = new AIResponseDto { ResponseText = $"Error: {ex.Message}", IsSimulated = true };
+                var partialView = await this.RenderPartialViewAsync("_AIResponse", err);
+                return this.Content(partialView, "text/html");
+            }
+        }
     }
 }

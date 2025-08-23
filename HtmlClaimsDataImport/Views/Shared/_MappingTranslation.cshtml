@@ -12,6 +12,15 @@
             <button type="button" class="edit-btn" id="editModelPromptBtn" onclick="editModelPrompt()">edit prompt</button>
             <button type="button" class="hidden save-btn" id="saveModelPromptBtn" onclick="saveModelPrompt()">save</button>
             <button type="button" class="hidden cancel-btn" id="cancelModelPromptBtn" onclick="cancelEditModelPrompt()">cancel</button>
+            <button type="button"
+                    class="send-btn"
+                    id="sendModelPromptBtn"
+                    hx-post="/ClaimsDataImporter?handler=SubmitPromptToAI"
+                    hx-target="#column-translation-ai-response"
+                    hx-swap="innerHTML"
+                    hx-include="#tmpdir, input[name='__RequestVerificationToken'], #modelPromptHidden">
+                send to AI
+            </button>
         </div>
         <div id="modelPromptReadonly" class="model-prompt-readonly">
             <pre class="model-prompt-pre">@Model.ModelPrompt</pre>
@@ -19,6 +28,7 @@
         <div id="modelPromptEditor" class="model-prompt-editor hidden">
             <textarea id="modelPromptTextarea" class="model-prompt-textarea">@Model.ModelPrompt</textarea>
         </div>
+        <input type="hidden" id="modelPromptHidden" name="promptText" value="@Model.ModelPrompt" />
     </div>
 </div>
 
@@ -30,4 +40,5 @@
     .model-prompt-controls { display: flex; gap: 10px; align-items: center; margin-bottom: 8px; }
     .model-prompt-pre { white-space: pre-wrap; font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, 'Liberation Mono', 'Courier New', monospace; font-size: 12px; margin: 0; }
     .model-prompt-textarea { width: 100%; min-height: 200px; font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, 'Liberation Mono', 'Courier New', monospace; font-size: 12px; }
+    .send-btn { margin-left: auto; }
 </style>

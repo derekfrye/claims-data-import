@@ -91,17 +91,20 @@
             </button>
             <div id="model-prompt" class="model-prompt"></div>
         </div>
+
+        <!-- Placeholder for AI response below the column translation controls -->
+        <div id="column-translation-ai-response"></div>
     }
 </div>
 
 <style>
     .preview-header {
-        margin-bottom: 20px;
+        margin-bottom: 1.25em;
     }
     
     .mapping-instruction {
-        font-size: 16px;
-        margin-bottom: 10px;
+        font-size: 1em;
+        margin-bottom: 0.625em;
     }
     
     .selected-column {
@@ -111,31 +114,31 @@
     
     .mapping-progress {
         color: #6c757d;
-        font-size: 14px;
+        font-size: 0.875em;
     }
     
     .preview-table-container {
-        max-height: 400px;
+        max-height: 25em;
         overflow: auto;
-        border: 1px solid #dee2e6;
-        border-radius: 4px;
-        margin-bottom: 20px;
+        border: 0.0625em solid #dee2e6;
+        border-radius: 0.25em;
+        margin-bottom: 1.25em;
     }
     
     .preview-table {
         width: 100%;
         border-collapse: collapse;
-        font-size: 12px;
+        font-size: 0.75em;
     }
     
     .preview-table th,
     .preview-table td {
-        border: 1px solid #dee2e6;
-        padding: 8px;
+        border: 0.0625em solid #dee2e6;
+        padding: 0.5em;
         text-align: left;
         white-space: nowrap;
         cursor: pointer;
-        min-width: 100px;
+        min-width: 6.25em;
     }
     
     .preview-table th {
@@ -163,13 +166,13 @@
     
     .mapping-controls {
         display: flex;
-        gap: 10px;
-        margin-bottom: 20px;
+        gap: 0.625em;
+        margin-bottom: 1.25em;
     }
     
     .preview-info {
-        padding-top: 10px;
-        border-top: 1px solid #dee2e6;
+        padding-top: 0.625em;
+        border-top: 0.0625em solid #dee2e6;
     }
 
     .column-translation {
@@ -203,9 +206,9 @@
     }
     
     .alert {
-        padding: 12px;
-        border-radius: 4px;
-        margin-bottom: 20px;
+        padding: 0.75em;
+        border-radius: 0.25em;
+        margin-bottom: 1.25em;
     }
     
     .alert-warning {
