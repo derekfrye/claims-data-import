@@ -12,11 +12,11 @@ function loadPreviewData() {
     })
     .then(response => response.text())
     .then(html => {
-        document.getElementById('preview-container').innerHTML = html;
+        document.getElementById('preview-container-outer').innerHTML = html;
     })
     .catch(error => {
         console.error('Error loading preview:', error);
-        document.getElementById('preview-container').innerHTML = '<div class="alert alert-danger">Error loading preview data</div>';
+        document.getElementById('preview-container-outer').innerHTML = '<div class="alert alert-danger">Error loading preview data</div>';
     });
 }
 

@@ -238,6 +238,30 @@ namespace HtmlClaimsDataImport.Pages
             });
         }
 
+        /// <summary>
+        /// Generates a model prompt to translate from a selected import column to the current destination column.
+        /// </summary>
+        /// <param name="tmpdir">The temporary directory path.</param>
+        /// <param name="mappingStep">The current mapping step (0-based).</param>
+        /// <param name="selectedColumn">The selected import column name.</param>
+        /// <returns>Partial view containing the generated prompt.</returns>
+        public async Task<IActionResult> OnPostMappingTranslation(string tmpdir, int mappingStep, string selectedColumn)
+        {
+            try
+            {
+                var query = new GetMappingTranslationQuery(tmpdir, mappingStep, selectedColumn);
+                var dto = await this.mediator.Send(query);
+                var model = new MappingTranslationModel { ModelPrompt = dto.ModelPrompt };
+                var partialView = await this.RenderPartialViewAsync("_MappingTranslation", model);
+                return this.Content(partialView, "text/html");
+            }
+            catch (Exception ex)
+            {
+                return this.Content($"<div class=\"text-danger\">error: {System.Net.WebUtility.HtmlEncode(ex.Message)}</div>", "text/html");
+            }
+        }
+
+
         private async Task<string> RenderPartialViewAsync<T>(string partialName, T model)
         {
             var viewEngine = this.HttpContext.RequestServices.GetRequiredService<Microsoft.AspNetCore.Mvc.ViewEngines.ICompositeViewEngine>();

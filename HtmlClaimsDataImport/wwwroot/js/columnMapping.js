@@ -24,7 +24,7 @@ function selectColumn(columnName) {
     })
     .then(response => response.text())
     .then(html => {
-        document.getElementById('preview-container').innerHTML = html;
+        document.getElementById('preview-container-outer').innerHTML = html;
     })
     .catch(error => {
         console.error('Error selecting column:', error);
@@ -64,7 +64,7 @@ function nextMapping() {
     })
     .then(response => response.text())
     .then(html => {
-        document.getElementById('preview-container').innerHTML = html;
+        document.getElementById('preview-container-outer').innerHTML = html;
     })
     .catch(error => {
         console.error('Error moving to next mapping:', error);
@@ -100,7 +100,7 @@ function previousMapping() {
     })
     .then(response => response.text())
     .then(html => {
-        document.getElementById('preview-container').innerHTML = html;
+        document.getElementById('preview-container-outer').innerHTML = html;
     })
     .catch(error => {
         console.error('Error moving to previous mapping:', error);

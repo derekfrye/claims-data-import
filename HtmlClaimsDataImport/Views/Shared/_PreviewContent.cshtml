@@ -74,6 +74,23 @@
         <div class="preview-info">
             <small class="text-muted">@Model.StatusMessage</small>
         </div>
+
+        <div id="column-translation" class="column-translation">
+            <button type="button"
+                    id="ai-translate-btn"
+                    class="ai-btn"
+                    title="Generate AI mapping helper"
+                    @(string.IsNullOrEmpty(Model.SelectedImportColumn) ? "disabled" : "")
+                    hx-post="/ClaimsDataImporter?handler=MappingTranslation"
+                    hx-target="#model-prompt"
+                    hx-swap="innerHTML"
+                    hx-vals='{"mappingStep": @(Model.CurrentMappingStep), "selectedColumn": "@Model.SelectedImportColumn"}'
+                    hx-include="#tmpdir, input[name='__RequestVerificationToken']">
+                <span class="ai-icon" aria-hidden="true">🤖</span>
+                <span>Suggest translation</span>
+            </button>
+            <div id="model-prompt" class="model-prompt"></div>
+        </div>
     }
 </div>
 
@@ -154,6 +171,36 @@
         padding-top: 10px;
         border-top: 1px solid #dee2e6;
     }
+
+    .column-translation {
+        margin-top: 16px;
+        padding-top: 12px;
+        border-top: 1px dashed #ced4da;
+        display: flex;
+        flex-direction: column;
+        gap: 8px;
+    }
+
+    .ai-btn {
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        padding: 8px 12px;
+        border-radius: 6px;
+        border: 1px solid #ced4da;
+        background: #f1f3f5;
+        color: #212529;
+        cursor: pointer;
+    }
+
+    .ai-btn:disabled {
+        opacity: 0.5;
+        cursor: not-allowed;
+    }
+
+    .ai-icon {
+        font-size: 16px;
+    }
     
     .alert {
         padding: 12px;
@@ -167,4 +214,3 @@
         color: #856404;
     }
 </style>
-
