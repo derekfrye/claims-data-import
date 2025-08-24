@@ -13,14 +13,14 @@
 
 <style>
     .nav-header {
-        border-bottom: 1px solid #ddd;
-        padding: 10px 20px;
+        border-bottom: 0.0625em solid #ddd;
+        padding: 0.625em 1.25em;
         background-color: #f8f9fa;
     }
     
     .nav-menu {
         display: flex;
-        gap: 20px;
+        gap: 1.25em;
         margin: 0;
         padding: 0;
         list-style: none;
@@ -28,8 +28,8 @@
     
     .nav-menu li {
         cursor: pointer;
-        padding: 8px 16px;
-        border-radius: 4px;
+        padding: 0.5em 1em;
+        border-radius: 0.25em;
     }
     
     .nav-menu li.active {
@@ -43,14 +43,14 @@
     
     .main-container {
         display: flex;
-        height: calc(100vh - 60px);
+        height: calc(100vh - 3.75em);
     }
     
     .sidebar {
-        width: 200px;
-        border-right: 1px solid #ddd;
+        width: 12.5em;
+        border-right: 0.0625em solid #ddd;
         background-color: #f8f9fa;
-        padding: 20px;
+        padding: 1.25em;
     }
     
     .sidebar ul {
@@ -60,10 +60,10 @@
     }
     
     .sidebar li {
-        padding: 8px 12px;
+        padding: 0.5em 0.75em;
         cursor: pointer;
-        border-radius: 4px;
-        margin-bottom: 5px;
+        border-radius: 0.25em;
+        margin-bottom: 0.3125em;
     }
     
     .sidebar li.active {
@@ -77,43 +77,43 @@
     
     .content-area {
         flex: 1;
-        padding: 20px;
+        padding: 1.25em;
     }
     
     .form-group {
-        margin-bottom: 20px;
+        margin-bottom: 1.25em;
     }
     
     .form-group label {
         display: inline-block;
-        width: 80px;
+        width: 5em;
         font-weight: bold;
     }
     
     .form-group input {
-        width: 300px;
-        padding: 8px;
-        border: 1px solid #ccc;
-        border-radius: 4px;
+        width: 18.75em;
+        padding: 0.5em;
+        border: 0.0625em solid #ccc;
+        border-radius: 0.25em;
         font-size: 0.7em;
     }
     
     .mode-selector {
-        width: 150px;
-        padding: 8px;
-        border: 1px solid #ccc;
-        border-radius: 4px;
+        width: 9.375em;
+        padding: 0.5em;
+        border: 0.0625em solid #ccc;
+        border-radius: 0.25em;
         font-size: 0.8em;
-        margin-bottom: 10px;
+        margin-bottom: 0.625em;
     }
     
     .default-preview {
         background-color: #f8f9fa;
-        border: 1px solid #e9ecef;
-        border-radius: 4px;
-        padding: 10px;
-        margin-top: 5px;
-        margin-bottom: 10px;
+        border: 0.0625em solid #e9ecef;
+        border-radius: 0.25em;
+        padding: 0.625em;
+        margin-top: 0.3125em;
+        margin-bottom: 0.625em;
     }
     
     .default-text {
@@ -123,24 +123,24 @@
     }
     
     .upload-section {
-        margin-top: 5px;
+        margin-top: 0.3125em;
     }
     
     .file-path-input {
-        width: 300px;
-        padding: 8px;
-        border: 1px solid #ccc;
-        border-radius: 4px;
+        width: 18.75em;
+        padding: 0.5em;
+        border: 0.0625em solid #ccc;
+        border-radius: 0.25em;
         font-size: 0.7em;
     }
     
     .browse-btn {
-        margin-left: 10px;
-        padding: 8px 16px;
+        margin-left: 0.625em;
+        padding: 0.5em 1em;
         background-color: #6c757d;
         color: white;
         border: none;
-        border-radius: 4px;
+        border-radius: 0.25em;
         cursor: pointer;
     }
     
@@ -153,7 +153,7 @@
     }
     
     .file-status {
-        margin-left: 10px;
+        margin-left: 0.625em;
         color: #6c757d;
         font-style: italic;
     }
@@ -163,14 +163,14 @@
     }
     
     .load-btn {
-        padding: 10px 20px;
+        padding: 0.625em 1.25em;
         background-color: #007bff;
         color: white;
         border: none;
-        border-radius: 4px;
+        border-radius: 0.25em;
         cursor: pointer;
         font-size: 1em;
-        margin-right: 10px;
+        margin-right: 0.625em;
     }
     
     .load-btn:hover:not(.disabled) {
@@ -303,7 +303,7 @@
             <br />
             <div>
                 <strong>File Upload Log:</strong>
-                <div id="upload-log" style="font-family: monospace; background-color: #f8f9fa; padding: 10px; border: 1px solid #ddd; margin-top: 10px; max-height: 300px; overflow-y: auto;">
+                <div id="upload-log" style="font-family: monospace; background-color: #f8f9fa; padding: 0.625em; border: 0.0625em solid #ddd; margin-top: 0.625em; max-height: 18.75em; overflow-y: auto;">
                     <!-- Upload log entries will appear here -->
                 </div>
             </div>

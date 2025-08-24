@@ -47,12 +47,15 @@ namespace HtmlClaimsDataImport.Infrastructure.Services
             string valuesCsv)
         {
             var sb = new StringBuilder();
-            sb.Append($"Please provide modern, c# .net code that could be pasted as-is into a public static void method, such that it could clearly translate from {selectedColumn} to {destColumn}. ");
-            sb.Append($"{{Source column}} is sqlite data type {srcSchema.dataType}, and {{destination column}} is sqlite data type {dstSchema.dataType}. ");
+            sb.Append($"Please provide modern sqlite code that could be pasted as-is into a select query, such that it could clearly translate from {selectedColumn} to {destColumn}. ");
+            sb.Append($"{selectedColumn} is sqlite data type {srcSchema.dataType}, and {destColumn} is sqlite data type {dstSchema.dataType}. ");
             sb.Append($"Source column constraints: {DescribeConstraints(srcSchema)}. Destination column constraints: {DescribeConstraints(dstSchema)}. ");
             sb.Append($"Here's the first 10 distinct values from {selectedColumn}: {valuesCsv}. ");
-            sb.Append("In your code, refer to the source column as sourceColumn. Refer to the destination column as destinationColumn. ");
-            sb.Append("If you need \"using\" statements, include them. Rely on system.* using methods, and do not rely on third-party libraries that aren't bundled by .net runtime. ");
+            sb.Append($"In your code, refer to the source column as {selectedColumn}. Refer to the destination column as {destColumn}. ");
+            sb.Append("You do not need the keyword SELECT, nor do you need any FROM, WHERE, GROUP BY, LIMIT or any clause or keyword that wouldn't be pasted directly into the column-portion of a query's SELECT clause.");
+            sb.Append("You do not need a leading or trailing comma.");
+            sb.Append("You cannot create views, temporary tables, or any multi-part queries, you can only write code that would be pasted directly into the column-portion of a query's SELECT clause.");
+            sb.Append($"You do need to end your code with \"AS {destColumn}\". ");
             sb.Append("Document your code with comments if you think the typical high school student would not understand what a specific line of code is doing. Remember to respond with code that will compile without errors.");
             return sb.ToString();
         }
