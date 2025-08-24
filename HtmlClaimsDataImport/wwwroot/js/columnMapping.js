@@ -195,6 +195,7 @@ function goToMappingStep(stepIndex) {
         if (window.htmx && typeof window.htmx.process === 'function') {
             window.htmx.process(container);
         }
+        hydrateSidebarFromPreview(container);
     })
     .catch(e => console.error('goToMappingStep error:', e));
 }
