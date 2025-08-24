@@ -7,8 +7,8 @@ namespace LibClaimsDataImport.Importer;
 /// <summary>
 /// Configuration for the import pipeline and SQLite behaviors.
 /// </summary>
-public class ImportConfig
-{
+    public class ImportConfig
+    {
     private static readonly JsonSerializerOptions JsonOptions = new()
     {
         PropertyNameCaseInsensitive = true,
@@ -103,7 +103,9 @@ public class ImportConfig
     }
 
     public SqliteSettings SqliteSettings { get; set; } = new();
-    public ColumnMappings ColumnMappings { get; set; } = new();
+    // Renamed: columnMappings -> stagingColumnMappings (JSON)
+    [JsonPropertyName("stagingColumnMappings")]
+    public ColumnMappings StagingColumnMappings { get; set; } = new();
     public ValidationSettings Validation { get; set; } = new();
     public IDictionary<string, DestinationColumn> DestinationTable { get; set; } = new Dictionary<string, DestinationColumn>(StringComparer.OrdinalIgnoreCase);
 

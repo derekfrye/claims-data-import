@@ -74,6 +74,39 @@
     .sidebar li:hover:not(.active) {
         background-color: #e9ecef;
     }
+
+    /* Preview sidebar: claims columns list with red dots */
+    #claims-columns-list {
+        list-style: none;
+        margin: 0;
+        padding: 0;
+    }
+    #claims-columns-list li {
+        position: relative;
+        padding: 0.4em 0.75em 0.4em 1.4em; /* left pad for dot */
+        cursor: pointer;
+        border-radius: 0.25em;
+        margin-bottom: 0.25em;
+        user-select: none;
+    }
+    #claims-columns-list li::before {
+        content: '';
+        position: absolute;
+        left: 0.6em;
+        top: 50%;
+        transform: translateY(-50%);
+        width: 8px;
+        height: 8px;
+        border-radius: 50%;
+        background-color: #dc3545; /* red for unmapped */
+    }
+    #claims-columns-list li.mapped::before {
+        opacity: 0; /* hide dot once mapped */
+    }
+    #claims-columns-list li.active {
+        background-color: #007bff;
+        color: white;
+    }
     
     .content-area {
         flex: 1;
@@ -200,7 +233,7 @@
     </div>
     
     <div class="sidebar hidden" id="preview-sidebar">
-        <!-- Preview sidebar content would go here -->
+        <ul id="claims-columns-list" aria-label="Claims columns"></ul>
     </div>
     
     <div class="sidebar hidden" id="developer-sidebar">

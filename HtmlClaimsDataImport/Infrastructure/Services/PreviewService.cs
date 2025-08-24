@@ -42,6 +42,9 @@ namespace HtmlClaimsDataImport.Infrastructure.Services
 
                 model.StatusMessage = $"Preview loaded: {model.PreviewRows.Count} rows in {importTable}";
                 model.IsPreviewAvailable = true;
+
+                // Load any existing saved mappings from session config (if present)
+                TryLoadSavedMappings(tmpdir, model);
             }
             catch (SqliteException)
             {
@@ -50,6 +53,42 @@ namespace HtmlClaimsDataImport.Infrastructure.Services
             }
 
             return model;
+        }
+
+        private static void TryLoadSavedMappings(string tmpdir, PreviewDataDto model)
+        {
+            try
+            {
+                var configPath = Path.Combine(tmpdir, "ClaimsDataImportConfig.json");
+                if (!File.Exists(configPath))
+                {
+                    return;
+                }
+                using var stream = File.OpenRead(configPath);
+                using var doc = System.Text.Json.JsonDocument.Parse(stream);
+                var root = doc.RootElement;
+                if (root.TryGetProperty("translationMapping", out var arr) && arr.ValueKind == System.Text.Json.JsonValueKind.Array)
+                {
+                    foreach (var el in arr.EnumerateArray())
+                    {
+                        if (el.ValueKind != System.Text.Json.JsonValueKind.Object) continue;
+                        var input = el.TryGetProperty("inputColumn", out var i) ? i.GetString() : null;
+                        var output = el.TryGetProperty("outputColumn", out var o) ? o.GetString() : null;
+                        if (!string.IsNullOrWhiteSpace(input) && !string.IsNullOrWhiteSpace(output))
+                        {
+                            // Claims (dest) -> Import (src)
+                            if (!model.ColumnMappings.ContainsKey(output!))
+                            {
+                                model.ColumnMappings[output!] = input!;
+                            }
+                        }
+                    }
+                }
+            }
+            catch
+            {
+                // Ignore mapping load errors; preview still functions
+            }
         }
 
         private static async Task<string?> GetScalarStringAsync(SqliteCommand command)

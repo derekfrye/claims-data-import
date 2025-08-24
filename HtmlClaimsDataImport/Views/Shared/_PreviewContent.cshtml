@@ -1,4 +1,5 @@
 @model HtmlClaimsDataImport.Models.PreviewDataModel
+@using System.Text.Json
 
 <div id="preview-container">
     @if (!Model.IsPreviewAvailable)
@@ -217,3 +218,18 @@
         color: #856404;
     }
 </style>
+
+<script>
+    (function(){
+        if (window.updatePreviewSidebar) {
+            try {
+                const claimsCols = @Html.Raw(JsonSerializer.Serialize(Model.ClaimsColumns));
+                const mappings = @Html.Raw(JsonSerializer.Serialize(Model.ColumnMappings));
+                const step = @Model.CurrentMappingStep;
+                window.updatePreviewSidebar(claimsCols, mappings, step);
+            } catch (e) {
+                console.error('Failed to update preview sidebar', e);
+            }
+        }
+    })();
+    </script>

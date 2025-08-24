@@ -16,7 +16,7 @@
       "logLevel": "info"
     }
   },
-  "columnMappings": {
+  "stagingColumnMappings": {
     "moneyFormats": {
       "allowParenthesesForNegative": true,
       "stripCurrencySymbols": true,
