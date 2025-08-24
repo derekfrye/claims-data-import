@@ -404,5 +404,47 @@ namespace HtmlClaimsDataImport.Pages
                 return new JsonResult(new { success = false, message = ex.Message });
             }
         }
+
+        /// <summary>
+        /// Clears the saved mapping for the specified destination (claims) column from the session config.
+        /// </summary>
+        /// <param name="tmpdir">The temporary session directory.</param>
+        /// <param name="outputColumn">Destination claims column name to clear.</param>
+        /// <returns>JSON indicating success.</returns>
+        public async Task<IActionResult> OnPostClearMapping(string tmpdir, string outputColumn)
+        {
+            var cmd = new HtmlClaimsDataImport.Application.Commands.ClearMappingCommand(tmpdir, outputColumn);
+            var ok = await this.mediator.Send(cmd);
+            return new JsonResult(new { success = ok });
+        }
+
+        /// <summary>
+        /// Downloads the current session configuration JSON file.
+        /// </summary>
+        /// <param name="tmpdir">The temporary session directory.</param>
+        /// <returns>JSON file download.</returns>
+        public IActionResult OnGetDownloadConfig(string tmpdir)
+        {
+            try
+            {
+                if (string.IsNullOrWhiteSpace(tmpdir))
+                {
+                    return this.NotFound("missing tmpdir");
+                }
+
+                var configPath = Path.Combine(tmpdir, "ClaimsDataImportConfig.json");
+                if (!System.IO.File.Exists(configPath))
+                {
+                    var empty = System.Text.Encoding.UTF8.GetBytes("{}\n");
+                    return this.File(empty, "application/json", "ClaimsDataImportConfig.json");
+                }
+                var bytes = System.IO.File.ReadAllBytes(configPath);
+                return this.File(bytes, "application/json", "ClaimsDataImportConfig.json");
+            }
+            catch (Exception ex)
+            {
+                return this.Content($"download error: {System.Net.WebUtility.HtmlEncode(ex.Message)}");
+            }
+        }
     }
 }

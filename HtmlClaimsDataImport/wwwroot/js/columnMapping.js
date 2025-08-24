@@ -225,3 +225,47 @@ function hydrateSidebarFromPreview(container=document) {
 }
 
 window.hydrateSidebarFromPreview = hydrateSidebarFromPreview;
+
+// Clear current mapping for the active claims column
+function clearMapping() {
+    const tmpdir = document.getElementById('tmpdir').value;
+    const token = document.querySelector('input[name="__RequestVerificationToken"]').value;
+    const state = parsePreviewState();
+    if (!state || !Array.isArray(state.claimsColumns)) return;
+    const step = state.currentStep || 0;
+    const outputColumn = state.claimsColumns[step] || '';
+    if (!outputColumn) return;
+
+    fetch('/ClaimsDataImporter?handler=ClearMapping', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/x-www-form-urlencoded',
+            'RequestVerificationToken': token
+        },
+        body: `tmpdir=${encodeURIComponent(tmpdir)}&outputColumn=${encodeURIComponent(outputColumn)}&__RequestVerificationToken=${encodeURIComponent(token)}`
+    })
+    .then(r => r.ok ? r.json() : Promise.reject('clear failed'))
+    .then(() => {
+        // Reload current step with no selection
+        return fetch('/ClaimsDataImporter?handler=Preview', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/x-www-form-urlencoded',
+                'RequestVerificationToken': token
+            },
+            body: `tmpdir=${encodeURIComponent(tmpdir)}&mappingStep=${step}&selectedColumn=&__RequestVerificationToken=${encodeURIComponent(token)}`
+        });
+    })
+    .then(r => r.text())
+    .then(html => {
+        const container = document.getElementById('preview-container-outer');
+        container.innerHTML = html;
+        if (window.htmx && typeof window.htmx.process === 'function') {
+            window.htmx.process(container);
+        }
+        hydrateSidebarFromPreview(container);
+    })
+    .catch(e => console.error('clearMapping error:', e));
+}
+
+window.clearMapping = clearMapping;

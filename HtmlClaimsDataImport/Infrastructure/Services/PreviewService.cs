@@ -45,6 +45,18 @@ namespace HtmlClaimsDataImport.Infrastructure.Services
 
                 // Load any existing saved mappings from session config (if present)
                 TryLoadSavedMappings(tmpdir, model);
+
+                // If no explicit selection was provided, auto-select from saved mapping for current claims column
+                if (string.IsNullOrEmpty(model.SelectedImportColumn) &&
+                    model.CurrentMappingStep >= 0 &&
+                    model.CurrentMappingStep < model.ClaimsColumns.Count)
+                {
+                    var currentClaims = model.ClaimsColumns[model.CurrentMappingStep];
+                    if (model.ColumnMappings.TryGetValue(currentClaims, out var mappedImport))
+                    {
+                        model.SelectedImportColumn = mappedImport;
+                    }
+                }
             }
             catch (SqliteException)
             {

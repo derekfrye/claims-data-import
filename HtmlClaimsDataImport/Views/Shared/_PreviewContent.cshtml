@@ -63,6 +63,20 @@
                     @(Model.CurrentMappingStep <= 0 ? "disabled" : "")>
                 Previous
             </button>
+            <button type="button"
+                    class="btn btn-outline-secondary"
+                    id="clearBtn"
+                    onclick="clearMapping()"
+                    @{
+                        var currentClaims = Model.CurrentMappingStep >= 0 && Model.CurrentMappingStep < Model.ClaimsColumns.Count
+                            ? Model.ClaimsColumns[Model.CurrentMappingStep]
+                            : string.Empty;
+                        var hasSaved = !string.IsNullOrEmpty(currentClaims) && Model.ColumnMappings.ContainsKey(currentClaims);
+                        var hasSelected = !string.IsNullOrEmpty(Model.SelectedImportColumn);
+                    }
+                    @((hasSaved || hasSelected) ? "" : "disabled")>
+                Clear
+            </button>
             <button type="button" 
                     class="btn btn-primary" 
                     id="nextBtn" 
