@@ -18,6 +18,10 @@ function loadPreviewData() {
             // Ensure htmx scans the newly injected preview content (for hx-post, etc.)
             window.htmx.process(container);
         }
+        // Hydrate preview sidebar from the injected preview state JSON
+        if (typeof window.hydrateSidebarFromPreview === 'function') {
+            window.hydrateSidebarFromPreview(container);
+        }
     })
     .catch(error => {
         console.error('Error loading preview:', error);

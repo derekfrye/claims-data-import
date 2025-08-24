@@ -29,6 +29,7 @@ function selectColumn(columnName) {
         if (window.htmx && typeof window.htmx.process === 'function') {
             window.htmx.process(container);
         }
+        hydrateSidebarFromPreview(container);
     })
     .catch(error => {
         console.error('Error selecting column:', error);
@@ -58,8 +59,18 @@ function nextMapping() {
     }
 
     // Determine the current destination (claims) column name from the sidebar
+    let outputColumn = '';
     const activeClaim = document.querySelector('#claims-columns-list li.active');
-    const outputColumn = activeClaim ? (activeClaim.getAttribute('data-column') || activeClaim.textContent.trim()) : '';
+    if (activeClaim) {
+        outputColumn = activeClaim.getAttribute('data-column') || activeClaim.textContent.trim();
+    }
+    if (!outputColumn) {
+        // Fallback: try from preview state JSON
+        const state = parsePreviewState();
+        if (state && Array.isArray(state.claimsColumns)) {
+            outputColumn = state.claimsColumns[currentStep] || '';
+        }
+    }
     if (!outputColumn) {
         console.error('Unable to resolve destination column for mapping.');
         return;
@@ -93,6 +104,7 @@ function nextMapping() {
         if (window.htmx && typeof window.htmx.process === 'function') {
             window.htmx.process(container);
         }
+        hydrateSidebarFromPreview(container);
     })
     .catch(error => {
         console.error('Error moving to next mapping:', error);
@@ -133,6 +145,7 @@ function previousMapping() {
         if (window.htmx && typeof window.htmx.process === 'function') {
             window.htmx.process(container);
         }
+        hydrateSidebarFromPreview(container);
     })
     .catch(error => {
         console.error('Error moving to previous mapping:', error);
@@ -189,3 +202,25 @@ function goToMappingStep(stepIndex) {
 // Expose functions to global scope for inline scripts
 window.updatePreviewSidebar = updatePreviewSidebar;
 window.goToMappingStep = goToMappingStep;
+
+function parsePreviewState(root=document) {
+    try {
+        const el = root.querySelector('#preview-state');
+        if (!el) return null;
+        const json = el.textContent || '{}';
+        return JSON.parse(json);
+    } catch {
+        return null;
+    }
+}
+
+function hydrateSidebarFromPreview(container=document) {
+    const state = parsePreviewState(container);
+    if (!state || !window.updatePreviewSidebar) return;
+    const claimsCols = state.claimsColumns || [];
+    const mappings = state.columnMappings || {};
+    const step = state.currentStep || 0;
+    window.updatePreviewSidebar(claimsCols, mappings, step);
+}
+
+window.hydrateSidebarFromPreview = hydrateSidebarFromPreview;

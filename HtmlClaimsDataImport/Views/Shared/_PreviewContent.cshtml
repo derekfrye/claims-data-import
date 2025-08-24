@@ -219,17 +219,10 @@
     }
 </style>
 
-<script>
-    (function(){
-        if (window.updatePreviewSidebar) {
-            try {
-                const claimsCols = @Html.Raw(JsonSerializer.Serialize(Model.ClaimsColumns));
-                const mappings = @Html.Raw(JsonSerializer.Serialize(Model.ColumnMappings));
-                const step = @Model.CurrentMappingStep;
-                window.updatePreviewSidebar(claimsCols, mappings, step);
-            } catch (e) {
-                console.error('Failed to update preview sidebar', e);
-            }
-        }
-    })();
-    </script>
+<script id="preview-state" type="application/json">
+@Html.Raw(JsonSerializer.Serialize(new {
+    claimsColumns = Model.ClaimsColumns,
+    columnMappings = Model.ColumnMappings,
+    currentStep = Model.CurrentMappingStep
+}))
+</script>
