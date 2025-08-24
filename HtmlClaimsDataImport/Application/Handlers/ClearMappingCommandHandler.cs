@@ -5,7 +5,7 @@ using Mediator;
 using System.Text.Json;
 using System.Text.Json.Nodes;
 
-public class ClearMappingCommandHandler : IRequestHandler<ClearMappingCommand, bool>
+public class ClearMappingCommandHandler : ICommandHandler<ClearMappingCommand, bool>
 {
     public ValueTask<bool> Handle(ClearMappingCommand request, CancellationToken cancellationToken)
     {

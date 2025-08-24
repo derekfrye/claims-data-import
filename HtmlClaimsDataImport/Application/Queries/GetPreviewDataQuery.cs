@@ -6,5 +6,5 @@ namespace HtmlClaimsDataImport.Application.Queries
     public record GetPreviewDataQuery(
         string tmpDir,
         int mappingStep = 0,
-        string selectedColumn = "") : IRequest<PreviewDataDto>;
+        string selectedColumn = "") : IQuery<PreviewDataDto>;
 }

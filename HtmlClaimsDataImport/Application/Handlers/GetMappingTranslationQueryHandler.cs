@@ -6,7 +6,7 @@ namespace HtmlClaimsDataImport.Application.Handlers
     using Mediator;
 
     public class GetMappingTranslationQueryHandler(IMappingTranslationService mappingService)
-        : IRequestHandler<GetMappingTranslationQuery, MappingTranslationDto>
+        : IQueryHandler<GetMappingTranslationQuery, MappingTranslationDto>
     {
         private readonly IMappingTranslationService mappingService = mappingService;
 

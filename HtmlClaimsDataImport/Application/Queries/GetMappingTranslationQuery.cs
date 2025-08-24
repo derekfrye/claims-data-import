@@ -6,5 +6,5 @@ namespace HtmlClaimsDataImport.Application.Queries
     public record GetMappingTranslationQuery(
         string tmpDir,
         int mappingStep,
-        string selectedColumn) : IRequest<MappingTranslationDto>;
+        string selectedColumn) : IQuery<MappingTranslationDto>;
 }

@@ -7,5 +7,5 @@ namespace HtmlClaimsDataImport.Application.Commands
         string tmpDir,
         string fileName,
         string jsonPath,
-        string databasePath) : IRequest<LoadDataResult>;
+        string databasePath) : ICommand<LoadDataResult>;
 }

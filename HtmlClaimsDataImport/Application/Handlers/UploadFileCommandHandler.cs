@@ -5,7 +5,7 @@ namespace HtmlClaimsDataImport.Application.Handlers
     using HtmlClaimsDataImport.Domain.ValueObjects;
     using Mediator;
 
-    public class UploadFileCommandHandler : IRequestHandler<UploadFileCommand, FileUploadResult>
+    public class UploadFileCommandHandler : ICommandHandler<UploadFileCommand, FileUploadResult>
     {
         private readonly IFileUploadService fileUploadService;
         private readonly ITempDirectoryService tempDirectoryService;

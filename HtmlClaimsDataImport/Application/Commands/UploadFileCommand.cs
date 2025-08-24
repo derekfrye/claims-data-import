@@ -6,5 +6,5 @@ namespace HtmlClaimsDataImport.Application.Commands
     public record UploadFileCommand(
         string fileType,
         IFormFile uploadedFile,
-        string? tmpDir = null) : IRequest<FileUploadResult>;
+        string? tmpDir = null) : ICommand<FileUploadResult>;
 }

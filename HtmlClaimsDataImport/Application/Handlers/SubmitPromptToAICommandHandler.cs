@@ -6,7 +6,7 @@ namespace HtmlClaimsDataImport.Application.Handlers
     using Mediator;
 
     public class SubmitPromptToAICommandHandler(IAICompletionService aiService)
-        : IRequestHandler<SubmitPromptToAICommand, AIResponseDto>
+        : ICommandHandler<SubmitPromptToAICommand, AIResponseDto>
     {
         private readonly IAICompletionService aiService = aiService;
 

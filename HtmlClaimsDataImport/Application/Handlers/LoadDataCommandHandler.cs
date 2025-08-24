@@ -6,7 +6,7 @@ namespace HtmlClaimsDataImport.Application.Handlers
     using Mediator;
     using Microsoft.Extensions.Logging;
 
-    public class LoadDataCommandHandler : IRequestHandler<LoadDataCommand, LoadDataResult>
+    public class LoadDataCommandHandler : ICommandHandler<LoadDataCommand, LoadDataResult>
     {
         private readonly IValidationService validationService;
         private readonly IDataImportService dataImportService;

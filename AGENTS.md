@@ -13,10 +13,11 @@
 - Run console: `dotnet run --project CmdClaimsDataImport -- <args>` — executes CLI import flows.
 - Test all: `dotnet test` — runs unit/integration tests.
 - Coverage: `dotnet test --collect:"XPlat Code Coverage"` — emits coverage via coverlet.
+ - Tip: if a focused test run shows no failure details, run `dotnet clean` before `dotnet test` to surface full diagnostics.
 
 ### Style/Analyzer Build + Summary
 - Script: `./build_and_analyze_style.sh` (zsh)
-  - Cleans and builds, saves logs to `build_artifacts/`, and prints summaries of analyzer diagnostics (Meziantou, StyleCop, etc.).
+  - Cleans and builds, saves logs to `build_artifacts/`, and prints summaries of analyzer diagnostics (Meziantou).
   - Options:
     - `-w`: build with `-warnaserror` (treat warnings as errors)
     - `-s <solution.sln|project.csproj>`: scope to a solution or a single project (default: `ClaimsDataImport.sln`)
@@ -32,10 +33,18 @@
 
 ## Coding Style & Naming Conventions
 - Language: C# on .NET 9.0 with `<Nullable>enable</Nullable>` and implicit usings.
-- Analyzers: StyleCop enabled (see `HtmlClaimsDataImport/stylecop.json`). Fix warnings; file names should match top-level types.
+- Analyzers: Meziantou.Analyzer enabled. Fix warnings; keep file names matching top-level types as a convention.
 - Indentation: 4 spaces; braces on new lines; `using` directives outside namespaces.
 - Naming: PascalCase for types/methods; camelCase for locals/params.
 - JS assets in `wwwroot/js/`: keep file names lowerCamelCase (e.g., `fileUpload.js`).
+
+### Mediator/CQRS
+- Library: `Mediator` v3 (martinothamar). Patterns: `ICommand<T>`/`IQuery<T>` with handlers returning `ValueTask<T>`.
+- Packages:
+  - Web app (`HtmlClaimsDataImport`): `Mediator.SourceGenerator` (PrivateAssets=all) and `Mediator.Abstractions`.
+  - Libraries/handlers: `Mediator.Abstractions` only. Do not add the source generator outside the edge app.
+- DI: call `builder.Services.AddMediator()` in `Program.cs`. Assembly options set via `[assembly: MediatorOptions(ServiceLifetime = ServiceLifetime.Scoped)]`.
+- Do not reference MediatR; we’ve migrated off it.
 
 ## Testing Guidelines
 - Framework: xUnit; additional packages include `Microsoft.AspNetCore.Mvc.Testing` for web integration tests.

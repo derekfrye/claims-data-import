@@ -5,7 +5,7 @@ namespace HtmlClaimsDataImport.Application.Handlers
     using HtmlClaimsDataImport.Application.Queries.Dtos;
     using Mediator;
 
-    public class GetPreviewDataQueryHandler : IRequestHandler<GetPreviewDataQuery, PreviewDataDto>
+    public class GetPreviewDataQueryHandler : IQueryHandler<GetPreviewDataQuery, PreviewDataDto>
     {
         private readonly IPreviewService previewService;
 
