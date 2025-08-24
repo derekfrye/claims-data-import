@@ -121,7 +121,7 @@ public class PreviewPane_AI(WebApplicationFactory<Program> factory)
 
         // After the MappingTranslation call, the partial would be injected into #model-prompt by htmx.
         // Validate the returned HTML contains the expected prompt text fragment.
-        Assert.Contains("Please provide modern, c#", mappingResponseHtml, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains("Please provide modern sqlite", mappingResponseHtml, StringComparison.OrdinalIgnoreCase);
         Assert.Contains("translate from amount", mappingResponseHtml, StringComparison.OrdinalIgnoreCase);
     }
 }

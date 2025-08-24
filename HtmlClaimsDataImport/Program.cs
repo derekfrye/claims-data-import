@@ -1,5 +1,6 @@
 using HtmlClaimsDataImport.Application.Interfaces;
 using HtmlClaimsDataImport.Infrastructure.Services;
+using Microsoft.AspNetCore.Mvc;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -16,7 +17,8 @@ if (args.Length > 0 && args[0].StartsWith("--temp-dir=", StringComparison.Ordina
 }
 
 // Add services to the container.
-builder.Services.AddRazorPages();
+builder.Services.AddRazorPages()
+    .AddMvcOptions(o => o.Filters.Add(new AutoValidateAntiforgeryTokenAttribute()));
 builder.Services.AddSession();
 builder.Services.AddHttpContextAccessor();
 builder.Services.AddHostedService<TempDirectoryCleanupService>();

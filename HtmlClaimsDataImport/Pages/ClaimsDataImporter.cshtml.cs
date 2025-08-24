@@ -333,7 +333,6 @@ namespace HtmlClaimsDataImport.Pages
         /// <param name="outputColumn">Destination claims column name.</param>
         /// <param name="importColumn">Selected import/source column name.</param>
         /// <returns>A simple OK response.</returns>
-        [ValidateAntiForgeryToken]
         public IActionResult OnPostSaveMapping(string tmpdir, string outputColumn, string importColumn)
         {
             if (string.IsNullOrWhiteSpace(tmpdir) || string.IsNullOrWhiteSpace(outputColumn) || string.IsNullOrWhiteSpace(importColumn))
