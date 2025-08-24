@@ -3,7 +3,7 @@ namespace HtmlClaimsDataImport.Application.Handlers
     using HtmlClaimsDataImport.Application.Commands;
     using HtmlClaimsDataImport.Application.Interfaces;
     using HtmlClaimsDataImport.Domain.ValueObjects;
-    using MediatR;
+    using Mediator;
 
     public class UploadFileCommandHandler : IRequestHandler<UploadFileCommand, FileUploadResult>
     {
@@ -16,7 +16,7 @@ namespace HtmlClaimsDataImport.Application.Handlers
             this.tempDirectoryService = tempDirectoryService;
         }
 
-        public async Task<FileUploadResult> Handle(UploadFileCommand request, CancellationToken cancellationToken)
+        public async ValueTask<FileUploadResult> Handle(UploadFileCommand request, CancellationToken cancellationToken)
         {
             if (request.uploadedFile == null || request.uploadedFile.Length == 0)
             {

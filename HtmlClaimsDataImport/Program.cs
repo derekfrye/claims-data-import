@@ -1,6 +1,7 @@
 using HtmlClaimsDataImport.Application.Interfaces;
 using HtmlClaimsDataImport.Infrastructure.Services;
 using Microsoft.AspNetCore.Mvc;
+using Mediator;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -23,8 +24,8 @@ builder.Services.AddSession();
 builder.Services.AddHttpContextAccessor();
 builder.Services.AddHostedService<TempDirectoryCleanupService>();
 
-// Register MediatR
-builder.Services.AddMediatR(cfg => cfg.RegisterServicesFromAssembly(typeof(Program).Assembly));
+// Register Mediator (source generator adds handlers and DI setup)
+builder.Services.AddMediator();
 
 // Register Clean Architecture services
 builder.Services.AddScoped<IFileUploadService, FileUploadService>();

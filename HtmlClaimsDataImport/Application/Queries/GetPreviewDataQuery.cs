@@ -1,7 +1,7 @@
 namespace HtmlClaimsDataImport.Application.Queries
 {
     using HtmlClaimsDataImport.Application.Queries.Dtos;
-    using MediatR;
+    using Mediator;
 
     public record GetPreviewDataQuery(
         string tmpDir,

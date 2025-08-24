@@ -1,7 +1,7 @@
 namespace HtmlClaimsDataImport.Application.Commands
 {
     using HtmlClaimsDataImport.Application.Commands.Results;
-    using MediatR;
+    using Mediator;
 
     public record LoadDataCommand(
         string tmpDir,

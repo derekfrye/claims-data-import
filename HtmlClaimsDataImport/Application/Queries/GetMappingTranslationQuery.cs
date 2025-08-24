@@ -1,11 +1,10 @@
 namespace HtmlClaimsDataImport.Application.Queries
 {
     using HtmlClaimsDataImport.Application.Queries.Dtos;
-    using MediatR;
+    using Mediator;
 
     public record GetMappingTranslationQuery(
         string tmpDir,
         int mappingStep,
         string selectedColumn) : IRequest<MappingTranslationDto>;
 }
-

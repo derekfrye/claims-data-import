@@ -3,7 +3,7 @@ namespace HtmlClaimsDataImport.Application.Handlers
     using HtmlClaimsDataImport.Application.Commands;
     using HtmlClaimsDataImport.Application.Commands.Results;
     using HtmlClaimsDataImport.Application.Interfaces;
-    using MediatR;
+    using Mediator;
     using Microsoft.Extensions.Logging;
 
     public class LoadDataCommandHandler : IRequestHandler<LoadDataCommand, LoadDataResult>
@@ -19,7 +19,7 @@ namespace HtmlClaimsDataImport.Application.Handlers
             this.logger = logger;
         }
 
-        public async Task<LoadDataResult> Handle(LoadDataCommand request, CancellationToken cancellationToken)
+        public async ValueTask<LoadDataResult> Handle(LoadDataCommand request, CancellationToken cancellationToken)
         {
             try
             {

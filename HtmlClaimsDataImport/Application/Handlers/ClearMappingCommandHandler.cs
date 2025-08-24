@@ -1,19 +1,19 @@
 namespace HtmlClaimsDataImport.Application.Handlers;
 
 using HtmlClaimsDataImport.Application.Commands;
-using MediatR;
+using Mediator;
 using System.Text.Json;
 using System.Text.Json.Nodes;
 
 public class ClearMappingCommandHandler : IRequestHandler<ClearMappingCommand, bool>
 {
-    public Task<bool> Handle(ClearMappingCommand request, CancellationToken cancellationToken)
+    public ValueTask<bool> Handle(ClearMappingCommand request, CancellationToken cancellationToken)
     {
         try
         {
             if (string.IsNullOrWhiteSpace(request.tmpDir) || string.IsNullOrWhiteSpace(request.outputColumn))
             {
-                return Task.FromResult(false);
+                return ValueTask.FromResult(false);
             }
 
             Directory.CreateDirectory(request.tmpDir);
@@ -32,7 +32,7 @@ public class ClearMappingCommandHandler : IRequestHandler<ClearMappingCommand, b
             var arr = root["translationMapping"] as JsonArray;
             if (arr is null)
             {
-                return Task.FromResult(true); // nothing to clear
+                return ValueTask.FromResult(true); // nothing to clear
             }
 
             var toRemove = new List<JsonNode?>();
@@ -54,12 +54,11 @@ public class ClearMappingCommandHandler : IRequestHandler<ClearMappingCommand, b
 
             var updated = root.ToJsonString(new JsonSerializerOptions { WriteIndented = true });
             File.WriteAllText(configPath, updated);
-            return Task.FromResult(true);
+            return ValueTask.FromResult(true);
         }
         catch
         {
-            return Task.FromResult(false);
+            return ValueTask.FromResult(false);
         }
     }
 }
-

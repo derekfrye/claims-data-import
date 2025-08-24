@@ -3,7 +3,7 @@ namespace HtmlClaimsDataImport.Application.Handlers
     using HtmlClaimsDataImport.Application.Interfaces;
     using HtmlClaimsDataImport.Application.Queries;
     using HtmlClaimsDataImport.Application.Queries.Dtos;
-    using MediatR;
+    using Mediator;
 
     public class GetPreviewDataQueryHandler : IRequestHandler<GetPreviewDataQuery, PreviewDataDto>
     {
@@ -14,7 +14,7 @@ namespace HtmlClaimsDataImport.Application.Handlers
             this.previewService = previewService;
         }
 
-        public async Task<PreviewDataDto> Handle(GetPreviewDataQuery request, CancellationToken cancellationToken)
+        public async ValueTask<PreviewDataDto> Handle(GetPreviewDataQuery request, CancellationToken cancellationToken)
         {
             return await this.previewService.GetPreviewDataAsync(request.tmpDir, request.mappingStep, request.selectedColumn).ConfigureAwait(false);
         }

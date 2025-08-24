@@ -1,7 +1,7 @@
 namespace HtmlClaimsDataImport.Application.Commands
 {
     using HtmlClaimsDataImport.Domain.ValueObjects;
-    using MediatR;
+    using Mediator;
 
     public record UploadFileCommand(
         string fileType,

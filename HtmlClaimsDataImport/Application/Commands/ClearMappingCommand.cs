@@ -1,6 +1,5 @@
 namespace HtmlClaimsDataImport.Application.Commands;
 
-using MediatR;
+using Mediator;
 
 public record ClearMappingCommand(string tmpDir, string outputColumn) : IRequest<bool>;
-
