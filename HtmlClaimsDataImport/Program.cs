@@ -34,6 +34,7 @@ builder.Services.AddScoped<IDataImportService, DataImportService>();
 builder.Services.AddScoped<IPreviewService, PreviewService>();
 builder.Services.AddScoped<IMappingTranslationService, MappingTranslationService>();
 builder.Services.AddScoped<IAICompletionService, AICompletionService>();
+builder.Services.AddScoped<IConfigService, ConfigService>();
 
 // Register session-scoped temp directory service
 builder.Services.AddScoped<ITempDirectoryService>(provider =>

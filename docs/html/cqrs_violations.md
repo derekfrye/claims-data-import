@@ -122,3 +122,18 @@ This document tracks current CQRS design deviations in the `HtmlClaimsDataImport
   - Introduce `IConfigService` (Application) and `ConfigService` (Infrastructure) to centralize `ClaimsDataImportConfig.json` read/write; reuse from preview and mapping handlers.
   - Update the page to call `mediator.Send(...)` for both save and download; remove direct file/JSON code.
   - Optional: inject `ISender` instead of `IMediator` in pages for clarity with the `Mediator` library.
+
+## 7a) Fix implemented: Route config I/O via Mediator
+- Summary: Moved config save/download logic behind CQRS and a dedicated config service; removed direct file/JSON operations from the Razor page.
+- Files added:
+  - `HtmlClaimsDataImport/Application/Interfaces/IConfigService.cs`
+  - `HtmlClaimsDataImport/Infrastructure/Services/ConfigService.cs`
+  - `HtmlClaimsDataImport/Application/Commands/SaveMappingCommand.cs`
+  - `HtmlClaimsDataImport/Application/Handlers/SaveMappingCommandHandler.cs`
+  - `HtmlClaimsDataImport/Application/Queries/GetConfigFileQuery.cs`
+  - `HtmlClaimsDataImport/Application/Handlers/GetConfigFileQueryHandler.cs`
+  - `HtmlClaimsDataImport/Application/Queries/Dtos/GetConfigFileResult.cs`
+- Files updated:
+  - `HtmlClaimsDataImport/Program.cs` → DI registration `AddScoped<IConfigService, ConfigService>()`.
+  - `HtmlClaimsDataImport/Pages/ClaimsDataImporter.cshtml.cs` → `OnPostSaveMapping` and `OnGetDownloadConfig` now use `mediator.Send(...)` and no longer perform direct file I/O.
+- Behavior impact: No functional changes; endpoints behave the same. Improves testability and layering consistency. All tests pass.

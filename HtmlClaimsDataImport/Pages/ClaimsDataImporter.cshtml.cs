@@ -346,76 +346,11 @@ namespace HtmlClaimsDataImport.Pages
         /// <param name="outputColumn">Destination claims column name.</param>
         /// <param name="importColumn">Selected import/source column name.</param>
         /// <returns>A simple OK response.</returns>
-        public IActionResult OnPostSaveMapping(string tmpdir, string outputColumn, string importColumn)
+        public async Task<IActionResult> OnPostSaveMapping(string tmpdir, string outputColumn, string importColumn)
         {
-            if (string.IsNullOrWhiteSpace(tmpdir) || string.IsNullOrWhiteSpace(outputColumn) || string.IsNullOrWhiteSpace(importColumn))
-            {
-                return new JsonResult(new { success = false, message = "invalid parameters" });
-            }
-
-            try
-            {
-                Directory.CreateDirectory(tmpdir);
-                var configPath = Path.Combine(tmpdir, "ClaimsDataImportConfig.json");
-
-                System.Text.Json.Nodes.JsonObject root;
-                if (System.IO.File.Exists(configPath))
-                {
-                    var json = System.IO.File.ReadAllText(configPath);
-                    root = System.Text.Json.Nodes.JsonNode.Parse(json) as System.Text.Json.Nodes.JsonObject ?? new System.Text.Json.Nodes.JsonObject();
-                }
-                else
-                {
-                    root = new System.Text.Json.Nodes.JsonObject();
-                }
-
-                // Migrate legacy property name if present
-                if (root.ContainsKey("columnMappings") && !root.ContainsKey("stagingColumnMappings"))
-                {
-                    root["stagingColumnMappings"] = root["columnMappings"];
-                    root.Remove("columnMappings");
-                }
-
-                // Ensure translationMapping array exists
-                var arr = root["translationMapping"] as System.Text.Json.Nodes.JsonArray;
-                if (arr is null)
-                {
-                    arr = new System.Text.Json.Nodes.JsonArray();
-                    root["translationMapping"] = arr;
-                }
-
-                // Remove existing entry for the same outputColumn
-                var toRemove = new List<System.Text.Json.Nodes.JsonNode?>();
-                foreach (var node in arr)
-                {
-                    var obj = node as System.Text.Json.Nodes.JsonObject;
-                    if (obj != null && string.Equals((string?)obj["outputColumn"], outputColumn, StringComparison.Ordinal))
-                    {
-                        toRemove.Add(node);
-                    }
-                }
-                foreach (var n in toRemove)
-                {
-                    arr.Remove(n);
-                }
-
-                // Add/append new mapping entry
-                arr.Add(new System.Text.Json.Nodes.JsonObject
-                {
-                    ["inputColumn"] = importColumn,
-                    ["outputColumn"] = outputColumn,
-                    ["translationSql"] = string.Empty,
-                });
-
-                var updated = root.ToJsonString(new System.Text.Json.JsonSerializerOptions { WriteIndented = true });
-                System.IO.File.WriteAllText(configPath, updated);
-
-                return new JsonResult(new { success = true });
-            }
-            catch (Exception ex)
-            {
-                return new JsonResult(new { success = false, message = ex.Message });
-            }
+            var cmd = new HtmlClaimsDataImport.Application.Commands.SaveMappingCommand(tmpdir, outputColumn, importColumn);
+            var ok = await this.mediator.Send(cmd);
+            return new JsonResult(new { success = ok });
         }
 
         /// <summary>
@@ -436,28 +371,16 @@ namespace HtmlClaimsDataImport.Pages
         /// </summary>
         /// <param name="tmpdir">The temporary session directory.</param>
         /// <returns>JSON file download.</returns>
-        public IActionResult OnGetDownloadConfig(string tmpdir)
+        public async Task<IActionResult> OnGetDownloadConfig(string tmpdir)
         {
-            try
+            if (string.IsNullOrWhiteSpace(tmpdir))
             {
-                if (string.IsNullOrWhiteSpace(tmpdir))
-                {
-                    return this.NotFound("missing tmpdir");
-                }
+                return this.NotFound("missing tmpdir");
+            }
 
-                var configPath = Path.Combine(tmpdir, "ClaimsDataImportConfig.json");
-                if (!System.IO.File.Exists(configPath))
-                {
-                    var empty = System.Text.Encoding.UTF8.GetBytes("{}\n");
-                    return this.File(empty, "application/json", "ClaimsDataImportConfig.json");
-                }
-                var bytes = System.IO.File.ReadAllBytes(configPath);
-                return this.File(bytes, "application/json", "ClaimsDataImportConfig.json");
-            }
-            catch (Exception ex)
-            {
-                return this.Content($"download error: {System.Net.WebUtility.HtmlEncode(ex.Message)}");
-            }
+            var query = new HtmlClaimsDataImport.Application.Queries.GetConfigFileQuery(tmpdir);
+            var res = await this.mediator.Send(query);
+            return this.File(res.Content, res.ContentType, res.FileName);
         }
     }
 }
