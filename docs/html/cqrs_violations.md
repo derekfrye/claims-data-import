@@ -46,12 +46,30 @@ This document tracks current CQRS design deviations in the `HtmlClaimsDataImport
 - Risk: Hinders non-web callers and unit testing without ASP.NET.
 - Suggested fix: Redefine contracts to accept `Stream content, string fileName, long length, string contentType` (or similar). Adapt from `IFormFile` in the PageModel before calling the mediator.
 
+## 3a) Fix implemented: Replace IFormFile with app-agnostic request
+- Summary: Removed ASP.NET dependency from Application layer by introducing `FileUploadRequest` and adapting the upload flow.
+- Files added:
+  - `HtmlClaimsDataImport/Application/Commands/Requests/FileUploadRequest.cs`
+- Files updated:
+  - `HtmlClaimsDataImport/Application/Interfaces/IFileUploadService.cs` → now accepts `FileUploadRequest`.
+  - `HtmlClaimsDataImport/Application/Commands/UploadFileCommand.cs` → uses `FileUploadRequest` instead of `IFormFile`.
+  - `HtmlClaimsDataImport/Application/Handlers/UploadFileCommandHandler.cs` → passes new request type to service.
+  - `HtmlClaimsDataImport/Infrastructure/Services/FileUploadService.cs` → copies from `FileUploadRequest.Content` to destination file.
+  - `HtmlClaimsDataImport/Pages/ClaimsDataImporter.cshtml.cs` → adapts `IFormFile` to `FileUploadRequest` via `OpenReadStream()` before sending command.
+- Behavior impact: No functional change; Application layer no longer depends on ASP.NET types. UI remains unchanged.
+
 ## 4) Presentation logic in Infrastructure service
 - Location: `Infrastructure/Services/FileUploadService.cs` — `GenerateFileStatusResponse(...)` returns HTML.
 - Issue: Service mixes UI generation with application/infrastructure logic.
 - Why it’s a violation: Breaks separation of concerns; services shouldn't emit HTML.
 - Risk: Encourages further leakage of UI into lower layers and complicates testing.
 - Suggested fix: Remove or move HTML generation into Razor/UI helpers. Keep `FileUploadService` focused on file operations and metadata.
+
+## 4a) Fix implemented: Remove HTML generation from service
+- Summary: Deleted `GenerateFileStatusResponse(...)` and related helpers from `FileUploadService` to keep UI concerns in Razor/UI.
+- Files updated:
+  - `HtmlClaimsDataImport/Infrastructure/Services/FileUploadService.cs` (removed HTML emission and helper methods).
+- Behavior impact: No functional change; page already renders upload responses via partials/models.
 
 ## 5) Commands return presentation strings instead of result objects
 - Location: `Application/Handlers/LoadDataCommandHandler.cs`, `Infrastructure/Services/DataImportService.cs`.
@@ -90,3 +108,17 @@ This document tracks current CQRS design deviations in the `HtmlClaimsDataImport
 ## Notes
 - Positives: Commands and queries are separated via MediatR; query side (`PreviewService`) appears read-only; handlers encapsulate mutations.
 - Scope: This list covers the HtmlClaimsDataImport web app; the core library (`LibClaimsDataImport`) wasn’t evaluated here for CQRS boundaries.
+
+## 7) UI page performs config file I/O (bypasses CQRS)
+- Location: `Pages/ClaimsDataImporter.cshtml.cs`
+  - `OnPostSaveMapping` directly writes `ClaimsDataImportConfig.json` using `Directory`, `File.ReadAllText`, `File.WriteAllText`, `JsonNode` (approx lines 336–405).
+  - `OnGetDownloadConfig` directly reads and returns `ClaimsDataImportConfig.json` bytes (approx lines 426–447).
+- Issue: The UI layer performs read/write operations and JSON mutation instead of delegating through commands/queries.
+- Why it’s a violation: Bypasses the Mediator-based CQRS flow and application layer boundaries, reducing testability and consistency.
+- Risk: Duplicate logic outside handlers, harder to validate/secure, inconsistent with `ClearMappingCommandHandler` (save uses UI code; clear uses a handler).
+- Suggested fix:
+  - Add `SaveMappingCommand(string tmpDir, string outputColumn, string importColumn) : ICommand<bool>` with a handler containing the current JSON update logic.
+  - Add `GetConfigFileQuery(string tmpDir) : IQuery<(byte[] Content, string ContentType, string FileName)>` and return bytes for the page to stream.
+  - Introduce `IConfigService` (Application) and `ConfigService` (Infrastructure) to centralize `ClaimsDataImportConfig.json` read/write; reuse from preview and mapping handlers.
+  - Update the page to call `mediator.Send(...)` for both save and download; remove direct file/JSON code.
+  - Optional: inject `ISender` instead of `IMediator` in pages for clarity with the `Mediator` library.

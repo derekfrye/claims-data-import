@@ -3,6 +3,7 @@ namespace HtmlClaimsDataImport.Pages
     using System;
     using System.IO;
     using HtmlClaimsDataImport.Application.Commands;
+    using HtmlClaimsDataImport.Application.Commands.Requests;
     using HtmlClaimsDataImport.Application.Queries;
     using HtmlClaimsDataImport.Infrastructure.Services;
     using HtmlClaimsDataImport.Models;
@@ -110,8 +111,20 @@ namespace HtmlClaimsDataImport.Pages
         /// <returns>An <see cref="IActionResult"/> representing the result of the operation.</returns>
         public async Task<IActionResult> OnPostFileUpload(string fileType, IFormFile uploadedFile, string? tmpdir = null)
         {
-            var command = new UploadFileCommand(fileType, uploadedFile, tmpdir);
-            var result = await this.mediator.Send(command);
+            // Handle missing/empty file without hitting mediator
+            HtmlClaimsDataImport.Domain.ValueObjects.FileUploadResult result;
+            if (uploadedFile is null || uploadedFile.Length == 0)
+            {
+                result = new HtmlClaimsDataImport.Domain.ValueObjects.FileUploadResult("No file selected", string.Empty, string.Empty);
+            }
+            else
+            {
+                // Adapt ASP.NET upload into application-agnostic request
+                using var content = uploadedFile.OpenReadStream();
+                var req = new FileUploadRequest(content, Path.GetFileName(uploadedFile.FileName), uploadedFile.Length, uploadedFile.ContentType ?? string.Empty);
+                var command = new UploadFileCommand(fileType, req, tmpdir);
+                result = await this.mediator.Send(command);
+            }
 
             // Update the corresponding property and create model for partial view
             var model = new FileUploadResponseModel

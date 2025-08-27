@@ -44,6 +44,8 @@ public async Task<string> Handle(LoadDataCommand request, CancellationToken canc
 
 **Impact**: This violates the fundamental CQRS principle that commands should focus on state modification, not data retrieval. The command is acting like a query by returning detailed status information.
 
+Status: Resolved. `LoadDataCommand` now returns a structured `LoadDataResult` with success flag and data, not free-form strings. Documented in `docs/html/cqrs_violations.md` (items 5 and 5a). UI formats user-facing messages.
+
 ### 2. Mixed Responsibilities in Command Handlers
 
 **Location**: `LoadDataCommandHandler.Handle` method  
@@ -62,6 +64,8 @@ if (!jsonValidation.isValid)
 ```
 
 **Impact**: Commands should delegate validation to domain services and either succeed or fail, not return detailed diagnostic information.
+
+Status: Addressed pragmatically. Validation remains in handler/services (acceptable), but return type is now structured (`LoadDataResult`) rather than diagnostic strings. Further separation (domain validators) is optional.
 
 ### 3. Command Handler Console Output Side Effects
 
@@ -82,6 +86,8 @@ catch (Exception ex)
 
 **Impact**: Violates the principle of predictable command/query behavior and creates hidden side effects.
 
+Status: Resolved for handlers. Handlers use `ILogger` for errors; console writes in Razor page catches are presentation concerns, not CQRS violations. Covered under `cqrs_violations.md` item 5a.
+
 ### 4. UI Layer Mapping Violations
 
 **Location**: `ClaimsDataImporter.OnPostPreview` method  
@@ -97,6 +103,8 @@ var previewModel = MapToPreviewDataModel(previewDto);  // ← Mapping in UI laye
 
 **Impact**: Violates separation of concerns by placing application logic in the presentation layer.
 
+Status: Non-issue by design. Application returns DTOs (e.g., `PreviewDataDto`), and presentation mapping to view models intentionally resides in the UI layer. We previously fixed the opposite coupling (queries returning UI models) in `cqrs_violations.md` item 2a.
+
 ### 5. Inconsistent Return Type Patterns
 
 **Location**: Various command and query handlers
@@ -109,6 +117,8 @@ var previewModel = MapToPreviewDataModel(previewDto);  // ← Mapping in UI laye
 - `GetPreviewDataQuery` returns `PreviewDataDto` (correct pattern)
 
 **Impact**: Lack of consistency makes the codebase harder to maintain and violates the principle of predictable interfaces.
+
+Status: Resolved. Commands now use structured result types where needed (e.g., `LoadDataResult`), queries return DTOs, and value objects like `FileUploadResult` are retained where appropriate. Documented in `cqrs_violations.md` item 5a.
 
 ### 6. Business Logic in Infrastructure Services
 
@@ -126,6 +136,8 @@ var importTableName = $"claims_import_{timestamp}";  // ← Business logic
 
 **Impact**: Business rules are scattered across infrastructure, making them harder to test and maintain.
 
+Status: Low risk/optional. Current logic (e.g., import table naming) is operational policy. If desired, extract an `IImportNamingStrategy` in Application and implement in Infrastructure. Not blocking CQRS goals.
+
 ## Minor Issues
 
 ### 7. Exception Handling Inconsistencies
@@ -134,12 +146,16 @@ var importTableName = $"claims_import_{timestamp}";  // ← Business logic
 
 **Problem**: Inconsistent exception handling patterns between command and query handlers.
 
+Status: Mostly addressed. Handlers use `ILogger` and structured results; remaining differences are minor and acceptable. Can standardize further later.
+
 ### 8. Missing Validation in Domain Layer
 
 **Location**: Command objects  
 **Files**: `LoadDataCommand.cs`, `UploadFileCommand.cs`
 
 **Problem**: Commands lack built-in validation, relying entirely on handlers for validation logic.
+
+Status: Acceptable currently. Validation sits in handlers/services; introducing explicit command validators is an optional enhancement.
 
 ## Recommendations
 

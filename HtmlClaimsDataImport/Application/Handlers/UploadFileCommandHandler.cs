@@ -18,7 +18,7 @@ namespace HtmlClaimsDataImport.Application.Handlers
 
         public async ValueTask<FileUploadResult> Handle(UploadFileCommand request, CancellationToken cancellationToken)
         {
-            if (request.uploadedFile == null || request.uploadedFile.Length == 0)
+            if (request.file == null || request.file.Length == 0)
             {
                 return new FileUploadResult("No file selected", "", "");
             }
@@ -26,7 +26,7 @@ namespace HtmlClaimsDataImport.Application.Handlers
             // Resolve which temp directory to use with policy encapsulated in temp service
             string tempDir = this.tempDirectoryService.ResolveUploadTempDirectory(request.tmpDir);
 
-            return await this.fileUploadService.HandleFileUploadAsync(request.uploadedFile, request.fileType, tempDir).ConfigureAwait(false);
+            return await this.fileUploadService.HandleFileUploadAsync(request.file, request.fileType, tempDir).ConfigureAwait(false);
         }
     }
 }
