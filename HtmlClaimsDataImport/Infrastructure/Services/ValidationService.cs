@@ -6,36 +6,36 @@ namespace HtmlClaimsDataImport.Infrastructure.Services
 
     public class ValidationService : IValidationService
     {
-        public ValidationResult ValidateFile(string filePath)
+        public Task<ValidationResult> ValidateFileAsync(string filePath)
         {
             if (string.IsNullOrWhiteSpace(filePath))
             {
-                return ValidationResult.Failure("File path cannot be empty.");
+                return Task.FromResult(ValidationResult.Failure("File path cannot be empty."));
             }
 
             if (!File.Exists(filePath))
             {
-                return ValidationResult.Failure($"File not found: {filePath}");
+                return Task.FromResult(ValidationResult.Failure($"File not found: {filePath}"));
             }
 
             var fileInfo = new FileInfo(filePath);
             if (fileInfo.Length == 0)
             {
-                return ValidationResult.Failure("File is empty.");
+                return Task.FromResult(ValidationResult.Failure("File is empty."));
             }
 
-            return ValidationResult.Success();
+            return Task.FromResult(ValidationResult.Success());
         }
 
-        public ValidationResult ValidateJsonFile(string jsonPath)
+        public async Task<ValidationResult> ValidateJsonFileAsync(string jsonPath)
         {
             if (string.Equals(jsonPath, "default", StringComparison.OrdinalIgnoreCase))
             {
                 string defaultJsonPath = Path.Combine(Directory.GetCurrentDirectory(), "default_config.json");
-                return this.ValidateFile(defaultJsonPath);
+                return await this.ValidateFileAsync(defaultJsonPath).ConfigureAwait(false);
             }
             
-            var validationResult = this.ValidateFile(jsonPath);
+            var validationResult = await this.ValidateFileAsync(jsonPath).ConfigureAwait(false);
             if (!validationResult.isValid)
             {
                 return validationResult;
@@ -44,8 +44,8 @@ namespace HtmlClaimsDataImport.Infrastructure.Services
             // Additional JSON-specific validation could go here
             try
             {
-                var jsonContent = File.ReadAllText(jsonPath);
-                System.Text.Json.JsonDocument.Parse(jsonContent);
+                var jsonContent = await File.ReadAllTextAsync(jsonPath).ConfigureAwait(false);
+                using var _ = System.Text.Json.JsonDocument.Parse(jsonContent);
                 return ValidationResult.Success();
             }
             catch (System.Text.Json.JsonException ex)
@@ -54,9 +54,9 @@ namespace HtmlClaimsDataImport.Infrastructure.Services
             }
         }
 
-        public ValidationResult ValidateSqliteDatabase(string databasePath)
+        public async Task<ValidationResult> ValidateSqliteDatabaseAsync(string databasePath)
         {
-            var validationResult = this.ValidateFile(databasePath);
+            var validationResult = await this.ValidateFileAsync(databasePath).ConfigureAwait(false);
             if (!validationResult.isValid)
             {
                 return validationResult;
@@ -64,12 +64,12 @@ namespace HtmlClaimsDataImport.Infrastructure.Services
 
             try
             {
-                using var connection = new SqliteConnection($"Data Source={databasePath};Mode=ReadOnly");
-                connection.Open();
+                await using var connection = new SqliteConnection($"Data Source={databasePath};Mode=ReadOnly");
+                await connection.OpenAsync().ConfigureAwait(false);
                 
-                using var command = connection.CreateCommand();
+                await using var command = connection.CreateCommand();
                 command.CommandText = "SELECT name FROM sqlite_master WHERE type='table' AND name='claims';";
-                var result = command.ExecuteScalar();
+                var result = await command.ExecuteScalarAsync().ConfigureAwait(false);
                 
                 if (result == null)
                 {

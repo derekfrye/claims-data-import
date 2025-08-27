@@ -4,8 +4,8 @@ namespace HtmlClaimsDataImport.Application.Interfaces
 
     public interface IValidationService
     {
-        ValidationResult ValidateFile(string filePath);
-        ValidationResult ValidateJsonFile(string jsonPath);
-        ValidationResult ValidateSqliteDatabase(string databasePath);
+        Task<ValidationResult> ValidateFileAsync(string filePath);
+        Task<ValidationResult> ValidateJsonFileAsync(string jsonPath);
+        Task<ValidationResult> ValidateSqliteDatabaseAsync(string databasePath);
     }
 }

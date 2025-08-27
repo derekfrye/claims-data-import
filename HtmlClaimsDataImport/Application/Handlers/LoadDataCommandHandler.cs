@@ -29,21 +29,21 @@ namespace HtmlClaimsDataImport.Application.Handlers
                 string actualFileName = Path.Combine(request.tmpDir, request.fileName);
 
                 // Validation step 1: Check if JSON is valid
-                var jsonValidation = this.validationService.ValidateJsonFile(actualJsonPath);
+                var jsonValidation = await this.validationService.ValidateJsonFileAsync(actualJsonPath).ConfigureAwait(false);
                 if (!jsonValidation.isValid)
                 {
                     return LoadDataResult.Fail($"json invalid: {jsonValidation.errorMessage}");
                 }
 
                 // Validation step 2: Check if file exists and is readable
-                var fileValidation = this.validationService.ValidateFile(actualFileName);
+                var fileValidation = await this.validationService.ValidateFileAsync(actualFileName).ConfigureAwait(false);
                 if (!fileValidation.isValid)
                 {
                     return LoadDataResult.Fail(fileValidation.errorMessage);
                 }
 
                 // Validation step 3: Check if database exists and is readable as SQLite
-                var dbValidation = this.validationService.ValidateSqliteDatabase(actualDatabasePath);
+                var dbValidation = await this.validationService.ValidateSqliteDatabaseAsync(actualDatabasePath).ConfigureAwait(false);
                 if (!dbValidation.isValid)
                 {
                     return LoadDataResult.Fail(dbValidation.errorMessage);

@@ -44,7 +44,7 @@ namespace HtmlClaimsDataImport.Infrastructure.Services
                 model.IsPreviewAvailable = true;
 
                 // Load any existing saved mappings from session config (if present)
-                TryLoadSavedMappings(tmpdir, model);
+                await TryLoadSavedMappingsAsync(tmpdir, model).ConfigureAwait(false);
 
                 // If no explicit selection was provided, auto-select from saved mapping for current claims column
                 if (string.IsNullOrEmpty(model.SelectedImportColumn) &&
@@ -67,7 +67,7 @@ namespace HtmlClaimsDataImport.Infrastructure.Services
             return model;
         }
 
-        private static void TryLoadSavedMappings(string tmpdir, PreviewDataDto model)
+        private static async Task TryLoadSavedMappingsAsync(string tmpdir, PreviewDataDto model)
         {
             try
             {
@@ -76,8 +76,8 @@ namespace HtmlClaimsDataImport.Infrastructure.Services
                 {
                     return;
                 }
-                using var stream = File.OpenRead(configPath);
-                using var doc = System.Text.Json.JsonDocument.Parse(stream);
+                await using var stream = new FileStream(configPath, FileMode.Open, FileAccess.Read, FileShare.Read, 4096, FileOptions.Asynchronous);
+                using var doc = await System.Text.Json.JsonDocument.ParseAsync(stream).ConfigureAwait(false);
                 var root = doc.RootElement;
                 if (root.TryGetProperty("translationMapping", out var arr) && arr.ValueKind == System.Text.Json.JsonValueKind.Array)
                 {

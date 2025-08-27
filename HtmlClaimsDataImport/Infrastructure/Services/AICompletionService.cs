@@ -79,7 +79,7 @@ namespace HtmlClaimsDataImport.Infrastructure.Services
                 }
                 foreach (var file in Directory.EnumerateFiles(tmpdir, "*.json", SearchOption.TopDirectoryOnly))
                 {
-                    using var fs = new FileStream(file, FileMode.Open, FileAccess.Read, FileShare.Read);
+                    await using var fs = new FileStream(file, FileMode.Open, FileAccess.Read, FileShare.Read, 4096, FileOptions.Asynchronous);
                     using var doc = await JsonDocument.ParseAsync(fs, new JsonDocumentOptions { AllowTrailingCommas = true }, cancellationToken).ConfigureAwait(false);
                     var root = doc.RootElement;
                     if (root.ValueKind == JsonValueKind.Object)

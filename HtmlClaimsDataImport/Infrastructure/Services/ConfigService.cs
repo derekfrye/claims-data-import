@@ -1,26 +1,26 @@
 namespace HtmlClaimsDataImport.Infrastructure.Services
 {
     using HtmlClaimsDataImport.Application.Interfaces;
+    using System.Text;
     using System.Text.Json;
     using System.Text.Json.Nodes;
 
     public class ConfigService : IConfigService
     {
-        public Task<byte[]> ReadConfigAsync(string tmpdir, CancellationToken cancellationToken = default)
+        public async Task<byte[]> ReadConfigAsync(string tmpdir, CancellationToken cancellationToken = default)
         {
             ArgumentException.ThrowIfNullOrWhiteSpace(tmpdir);
             var configPath = Path.Combine(tmpdir, "ClaimsDataImportConfig.json");
             if (!File.Exists(configPath))
             {
-                // Return empty JSON document
-                return Task.FromResult(System.Text.Encoding.UTF8.GetBytes("{}\n"));
+                return Encoding.UTF8.GetBytes("{}\n");
             }
 
-            var bytes = File.ReadAllBytes(configPath);
-            return Task.FromResult(bytes);
+            var bytes = await File.ReadAllBytesAsync(configPath, cancellationToken).ConfigureAwait(false);
+            return bytes;
         }
 
-        public Task<bool> SaveMappingAsync(string tmpdir, string outputColumn, string importColumn, CancellationToken cancellationToken = default)
+        public async Task<bool> SaveMappingAsync(string tmpdir, string outputColumn, string importColumn, CancellationToken cancellationToken = default)
         {
             try
             {
@@ -30,7 +30,7 @@ namespace HtmlClaimsDataImport.Infrastructure.Services
                 JsonObject root;
                 if (File.Exists(configPath))
                 {
-                    var json = File.ReadAllText(configPath);
+                    var json = await File.ReadAllTextAsync(configPath, cancellationToken).ConfigureAwait(false);
                     root = JsonNode.Parse(json) as JsonObject ?? [];
                 }
                 else
@@ -80,14 +80,69 @@ namespace HtmlClaimsDataImport.Infrastructure.Services
                 });
 
                 var updated = root.ToJsonString(new JsonSerializerOptions { WriteIndented = true });
-                File.WriteAllText(configPath, updated);
-                return Task.FromResult(true);
+                await File.WriteAllTextAsync(configPath, updated, cancellationToken).ConfigureAwait(false);
+                return true;
             }
             catch
             {
-                return Task.FromResult(false);
+                return false;
+            }
+        }
+
+        public async Task<bool> ClearMappingAsync(string tmpdir, string outputColumn, CancellationToken cancellationToken = default)
+        {
+            try
+            {
+                if (string.IsNullOrWhiteSpace(tmpdir) || string.IsNullOrWhiteSpace(outputColumn))
+                {
+                    return false;
+                }
+
+                Directory.CreateDirectory(tmpdir);
+                var configPath = Path.Combine(tmpdir, "ClaimsDataImportConfig.json");
+
+                JsonObject root;
+                if (File.Exists(configPath))
+                {
+                    var json = await File.ReadAllTextAsync(configPath, cancellationToken).ConfigureAwait(false);
+                    root = JsonNode.Parse(json) as JsonObject ?? [];
+                }
+                else
+                {
+                    root = [];
+                }
+
+                var arr = root["translationMapping"] as JsonArray;
+                if (arr is null)
+                {
+                    return true; // nothing to clear
+                }
+
+                var toRemove = new List<JsonNode?>();
+                foreach (var node in arr)
+                {
+                    if (node is JsonObject obj)
+                    {
+                        var output = (string?)obj["outputColumn"];
+                        if (string.Equals(output, outputColumn, StringComparison.Ordinal))
+                        {
+                            toRemove.Add(node);
+                        }
+                    }
+                }
+                foreach (var n in toRemove)
+                {
+                    arr.Remove(n);
+                }
+
+                var updated = root.ToJsonString(new JsonSerializerOptions { WriteIndented = true });
+                await File.WriteAllTextAsync(configPath, updated, cancellationToken).ConfigureAwait(false);
+                return true;
+            }
+            catch
+            {
+                return false;
             }
         }
     }
 }
-

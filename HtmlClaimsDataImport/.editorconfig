@@ -1,5 +1,5 @@
 root = false
 
 [**/*.cshtml.cs]
-dotnet_diagnostic.MA0048.severity = none
-
+# dotnet_diagnostic.MA0048.severity = none
+dotnet_analyzer_diagnostic.severity = warning

@@ -120,7 +120,7 @@ namespace HtmlClaimsDataImport.Pages
             else
             {
                 // Adapt ASP.NET upload into application-agnostic request
-                using var content = uploadedFile.OpenReadStream();
+                await using var content = uploadedFile.OpenReadStream();
                 var req = new FileUploadRequest(content, Path.GetFileName(uploadedFile.FileName), uploadedFile.Length, uploadedFile.ContentType ?? string.Empty);
                 var command = new UploadFileCommand(fileType, req, tmpdir);
                 result = await this.mediator.Send(command);
