@@ -3,6 +3,8 @@ root = false
 # Project-wide: ignore MA0165 (false positives on plain literals)
 [*.cs]
 dotnet_diagnostic.MA0165.severity = none
+# dotnet_diagnostic.IDE0010.severity = warning
+dotnet_analyzer_diagnostic.category-Style.severity = warning
 
 [**/*.cshtml.cs]
 dotnet_diagnostic.MA0048.severity = none

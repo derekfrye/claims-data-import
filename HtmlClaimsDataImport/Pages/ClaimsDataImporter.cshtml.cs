@@ -127,7 +127,7 @@ namespace HtmlClaimsDataImport.Pages
             }
 
             // Update the corresponding property and create model for partial view
-            var model = new FileUploadResponseModel
+            FileUploadResponseModel model = new()
             {
                 FileType = fileType,
                 StatusMessage = result.statusMessage,

@@ -53,9 +53,22 @@ if (( warnaserror == 1 )); then
 fi
 DOTNET_CLI_UI_LANGUAGE=en "${build_cmd[@]}" 2>&1 | tee -a "${BUILD_LOG}" || true
 
-# Update convenient latest pointers
-ln -sf "${CLEAN_LOG}" "${ARTIFACT_DIR}/clean.log"
-ln -sf "${BUILD_LOG}" "${ARTIFACT_DIR}/build.log"
+# Helper to create symlinks using absolute targets and only if the target exists
+safe_link() {
+  local target="$1"
+  local linkpath="$2"
+  if [[ -f "$target" ]]; then
+    local abspath
+    abspath=$(readlink -f "$target" 2>/dev/null || echo "$target")
+    ln -sf "$abspath" "$linkpath"
+  else
+    echo "[warn] Not linking $linkpath -> $target (target missing)" >&2
+  fi
+}
+
+# Update convenient latest pointers (use absolute targets)
+safe_link "${CLEAN_LOG}" "${ARTIFACT_DIR}/clean.log"
+safe_link "${BUILD_LOG}" "${ARTIFACT_DIR}/build.log"
 
 # Helpers for parsing with ripgrep if available, else grep/awk fallback
 have_rg=0
@@ -78,7 +91,7 @@ else
   grep -E "(warning|error) [A-Z]{2}[0-9]{3,4}" "${BUILD_LOG}" | head -n 40 > "${samples_file}" || true
 fi
 touch "${samples_file}"
-ln -sf "${samples_file}" "${ARTIFACT_DIR}/diagnostics_samples.txt"
+safe_link "${samples_file}" "${ARTIFACT_DIR}/diagnostics_samples.txt"
 
 # Top rules across the solution (always create file)
 if (( have_rg )); then
@@ -89,7 +102,7 @@ else
     | awk '{print $2}' | sort | uniq -c | sort -nr > "${rules_all}" || true
 fi
 touch "${rules_all}"
-ln -sf "${rules_all}" "${rules_all_latest}"
+safe_link "${rules_all}" "${rules_all_latest}"
 
 # Top projects by diagnostics (always create file)
 if (( have_rg )); then
@@ -102,7 +115,7 @@ else
     | sort | uniq -c | sort -nr > "${projects_all}" || true
 fi
 touch "${projects_all}"
-ln -sf "${projects_all}" "${projects_all_latest}"
+safe_link "${projects_all}" "${projects_all_latest}"
 
 # If a project is passed, compute top rules for that project
 if [[ -n "${proj}" ]]; then
@@ -116,7 +129,7 @@ if [[ -n "${proj}" ]]; then
       | sort | uniq -c | sort -nr > "${rules_by_project}" || true
   fi
   touch "${rules_by_project}"
-  ln -sf "${rules_by_project}" "${rules_by_project_latest}"
+  safe_link "${rules_by_project}" "${rules_by_project_latest}"
 fi
 
 # Console summary
