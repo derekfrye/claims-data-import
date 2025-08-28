@@ -1,26 +1,17 @@
+; Not a root EditorConfig: inherit from repo root and override only Html-specific needs
 root = false
 
-# Project-wide: ignore MA0165 (false positives on plain literals)
+; Scope: all C# files in this project
 [*.cs]
+; Disable MA0165 (Meziantou): rule is noisy here due to false positives on plain literals in this web project
 dotnet_diagnostic.MA0165.severity = none
 # dotnet_diagnostic.IDE0010.severity = warning
-dotnet_analyzer_diagnostic.category-Style.severity = warning
-dotnet_diagnostic.IDE0003.severity = warning
 
-# Qualification preferences (enable IDE0003 production on build)
-dotnet_style_qualification_for_field = false:warning
-dotnet_style_qualification_for_property = false:warning
-dotnet_style_qualification_for_method = false:warning
-dotnet_style_qualification_for_event = false:warning
-
-# Var usage compromise: use 'var' when the type is apparent or built-in; explicit type elsewhere
-csharp_style_var_for_built_in_types = true:suggestion
-csharp_style_var_when_type_is_apparent = true:suggestion
-csharp_style_var_elsewhere = false:suggestion
-
-# Using directive placement: prefer outside namespace
-csharp_using_directive_placement = outside_namespace:suggestion
-
+; Scope: Razor page code-behind files only
 [**/*.cshtml.cs]
+; Disable MA0048 (Meziantou): avoid Razor-specific false positives in generated/partial page contexts
 dotnet_diagnostic.MA0048.severity = none
+; Keep analyzer diagnostics visible as warnings for page models
 dotnet_analyzer_diagnostic.severity = warning
+; Disable MA0041 (Meziantou 'make property static'): page models expose instance-bound members consumed by Razor
+dotnet_diagnostic.MA0041.severity = none

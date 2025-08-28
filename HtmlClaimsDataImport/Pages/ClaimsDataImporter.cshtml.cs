@@ -200,7 +200,7 @@ namespace HtmlClaimsDataImport.Pages
                     return Content(statusMessage);
             }
 
-            return Content(statusMessage);
+            // All cases return above; no fall-through.
         }
 
         /// <summary>
@@ -280,7 +280,7 @@ namespace HtmlClaimsDataImport.Pages
         private async Task<string> RenderPartialViewAsync<T>(string partialName, T model)
         {
             Microsoft.AspNetCore.Mvc.ViewEngines.ICompositeViewEngine viewEngine = HttpContext.RequestServices.GetRequiredService<Microsoft.AspNetCore.Mvc.ViewEngines.ICompositeViewEngine>();
-            Microsoft.AspNetCore.Mvc.ViewEngines.ViewEngineResult viewResult = viewEngine.FindView(PageContext, partialName, false);
+            Microsoft.AspNetCore.Mvc.ViewEngines.ViewEngineResult viewResult = viewEngine.FindView(PageContext, partialName, isMainPage: false);
 
             if (!viewResult.Success)
             {
@@ -289,7 +289,7 @@ namespace HtmlClaimsDataImport.Pages
 
             var viewData = new Microsoft.AspNetCore.Mvc.ViewFeatures.ViewDataDictionary<T>(ViewData, model);
 
-            using var writer = new StringWriter();
+            await using var writer = new StringWriter();
             var viewContext = new Microsoft.AspNetCore.Mvc.Rendering.ViewContext(
                 PageContext,
                 viewResult.View,

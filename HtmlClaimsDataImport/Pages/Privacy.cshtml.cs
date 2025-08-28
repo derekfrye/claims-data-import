@@ -3,12 +3,11 @@ using Microsoft.AspNetCore.Mvc.RazorPages;
 
 namespace HtmlClaimsDataImport.Pages
 {
-    public class PrivacyModel(ILogger<PrivacyModel> logger) : PageModel
+    public class PrivacyModel : PageModel
     {
-        private readonly ILogger<PrivacyModel> logger = logger;
-
         public void OnGet()
         {
+            _ = HttpContext; // touch instance to avoid static suggestion
         }
     }
 }

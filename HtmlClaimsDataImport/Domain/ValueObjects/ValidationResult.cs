@@ -4,12 +4,12 @@ namespace HtmlClaimsDataImport.Domain.ValueObjects
     {
         public static ValidationResult Success()
         {
-            return new(true, string.Empty);
+            return new ValidationResult(IsValid: true, ErrorMessage: string.Empty);
         }
 
         public static ValidationResult Failure(string errorMessage)
         {
-            return new(false, errorMessage);
+            return new ValidationResult(IsValid: false, ErrorMessage: errorMessage);
         }
     }
 }

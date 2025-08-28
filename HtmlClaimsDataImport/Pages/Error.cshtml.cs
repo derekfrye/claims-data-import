@@ -8,12 +8,10 @@ namespace HtmlClaimsDataImport.Pages
     /// <summary>
     /// Represents the model for the error page.
     /// </summary>
-    /// <param name="logger">The logger instance used for logging.</param>
     [ResponseCache(Duration = 0, Location = ResponseCacheLocation.None, NoStore = true)]
     [IgnoreAntiforgeryToken]
-    public class ErrorModel(ILogger<ErrorModel> logger) : PageModel
+    public class ErrorModel : PageModel
     {
-        private readonly ILogger<ErrorModel> logger = logger;
 
         /// <summary>
         /// Gets or sets the request ID associated with the current HTTP request.

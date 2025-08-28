@@ -10,9 +10,10 @@ namespace HtmlClaimsDataImport.Application.Handlers
 
         public async ValueTask<bool> Handle(SaveMappingCommand request, CancellationToken cancellationToken)
         {
-            return string.IsNullOrWhiteSpace(request.TmpDir) || string.IsNullOrWhiteSpace(request.OutputColumn) || string.IsNullOrWhiteSpace(request.ImportColumn)
-                ? false
-                : await configService.SaveMappingAsync(request.TmpDir, request.OutputColumn, request.ImportColumn, cancellationToken).ConfigureAwait(false);
+            return !string.IsNullOrWhiteSpace(request.TmpDir)
+                && !string.IsNullOrWhiteSpace(request.OutputColumn)
+                && !string.IsNullOrWhiteSpace(request.ImportColumn)
+                && await this.configService.SaveMappingAsync(request.TmpDir, request.OutputColumn, request.ImportColumn, cancellationToken).ConfigureAwait(false);
         }
     }
 }

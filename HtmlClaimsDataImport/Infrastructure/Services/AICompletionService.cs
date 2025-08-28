@@ -37,7 +37,7 @@ namespace HtmlClaimsDataImport.Infrastructure.Services
                 model = "gpt-4o-mini",
                 messages = new object[]
                 {
-                    new { role = "user", content = prompt }
+                    new { role = "user", content = prompt },
                 },
                 temperature = 0.2,
             };

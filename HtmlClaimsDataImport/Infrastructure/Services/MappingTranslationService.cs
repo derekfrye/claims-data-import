@@ -65,7 +65,7 @@ namespace HtmlClaimsDataImport.Infrastructure.Services
             var constraints = new List<string>
             {
                 $"nullable: {(s.notNull ? "no" : "yes")}",
-                $"unique: {(s.isUnique ? "yes" : "no")}"
+                $"unique: {(s.isUnique ? "yes" : "no")}",
             };
             if (s.isPrimaryKey)
             {

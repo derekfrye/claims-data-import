@@ -1,0 +1,28 @@
+; Treat this file as the root EditorConfig so child directories inherit from here
+root = true
+
+[*.cs]
+; Elevate all Style-category analyzer diagnostics to warnings so they appear in builds/CI
+dotnet_analyzer_diagnostic.category-Style.severity = warning
+
+; Prefer 'var' for built-in types to reduce noise (e.g., int, string)
+csharp_style_var_for_built_in_types = true:suggestion
+; Prefer 'var' when the type is obvious from the right-hand side
+csharp_style_var_when_type_is_apparent = true:suggestion
+; Otherwise prefer explicit types for clarity when not apparent
+csharp_style_var_elsewhere = false:suggestion
+
+; Place using directives outside namespaces (aligns with modern templates/file-scoped namespaces)
+csharp_using_directive_placement = outside_namespace:suggestion
+
+; Avoid redundant 'this.' on fields to reduce noise
+dotnet_style_qualification_for_field = false:warning
+; Avoid redundant 'this.' on properties to reduce noise
+dotnet_style_qualification_for_property = false:warning
+; Avoid redundant 'this.' on methods to reduce noise
+dotnet_style_qualification_for_method = false:warning
+; Avoid redundant 'this.' on events to reduce noise
+dotnet_style_qualification_for_event = false:warning
+
+; If IDE0003 (qualification) is emitted during build, show as a warning for visibility
+dotnet_diagnostic.IDE0003.severity = warning

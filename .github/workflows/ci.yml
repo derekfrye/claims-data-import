@@ -1,0 +1,52 @@
+name: CI
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  build-test-style:
+    if: ${{ !github.event.repository.private }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ ubuntu-latest, windows-latest, macos-latest ]
+    runs-on: ${{ matrix.os }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup .NET 9
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 9.0.x
+
+      - name: Restore
+        run: dotnet restore ClaimsDataImport.sln
+
+      - name: Build (warn as error)
+        run: dotnet build ClaimsDataImport.sln -warnaserror --configuration Debug
+
+      - name: Test
+        run: dotnet test --no-build --configuration Debug
+
+      - name: Style analysis (ProjectStyleBuilder)
+        run: dotnet run --project ProjectStyleBuilder -- -s ClaimsDataImport.sln -u
+
+      - name: Fail if style warnings present
+        shell: bash
+        run: |
+          if [ -s build_artifacts/warnings_by_id.txt ]; then
+            echo "::error::Style warnings detected. See build_artifacts for details."
+            sed -n '1,60p' build_artifacts/warnings_by_id.txt || true
+            exit 1
+          fi
+
+      - name: Upload artifacts
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: build_artifacts-${{ runner.os }}
+          path: build_artifacts
