@@ -155,6 +155,9 @@ namespace HtmlClaimsDataImport.Pages
                     model.InputId = "database";
                     model.InputName = "Database";
                     break;
+                default:
+                    // no-op for unknown file types
+                    break;
             }
 
             var partialView = await this.RenderPartialViewAsync("_FileUploadResponse", model);
@@ -196,6 +199,8 @@ namespace HtmlClaimsDataImport.Pages
                     this.Database = string.Equals(action, "ok", StringComparison.OrdinalIgnoreCase) ? fileName : string.Empty;
                     this.DatabaseStatus = statusMessage;
                     return this.Content(this.DatabaseStatus);
+                default:
+                    return this.Content(statusMessage);
             }
 
             return this.Content(statusMessage);
@@ -293,8 +298,8 @@ namespace HtmlClaimsDataImport.Pages
                 viewResult.View,
                 viewData,
                 this.TempData,
-                writer,
-                new Microsoft.AspNetCore.Mvc.ViewFeatures.HtmlHelperOptions());
+                writer: writer,
+                htmlHelperOptions: new Microsoft.AspNetCore.Mvc.ViewFeatures.HtmlHelperOptions());
 
             await viewResult.View.RenderAsync(viewContext);
             return writer.ToString();
