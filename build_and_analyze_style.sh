@@ -86,19 +86,20 @@ samples_file="${ARTIFACT_DIR}/diagnostics_samples_${ts}.txt"
 
 # Capture some samples (always create file)
 if (( have_rg )); then
-  rg -N "(warning|error)\s+[A-Z]{2}\d{3,4}" "${BUILD_LOG}" | head -n 40 > "${samples_file}" || true
+  # Capture warnings/errors with rule IDs of 2+ letters followed by 3–5 digits (e.g., MA0001, IDE0065, SYSLIB1045)
+  rg -N "(warning|error)\s+[A-Z]{2,}\d{3,5}" "${BUILD_LOG}" | head -n 40 > "${samples_file}" || true
 else
-  grep -E "(warning|error) [A-Z]{2}[0-9]{3,4}" "${BUILD_LOG}" | head -n 40 > "${samples_file}" || true
+  grep -E "(warning|error) [A-Z]{2,}[0-9]{3,5}" "${BUILD_LOG}" | head -n 40 > "${samples_file}" || true
 fi
 touch "${samples_file}"
 safe_link "${samples_file}" "${ARTIFACT_DIR}/diagnostics_samples.txt"
 
 # Top rules across the solution (always create file)
 if (( have_rg )); then
-  rg -N -o -e '(warning|error)\s+([A-Z]{2}\d{3,4})' --replace '$2' "${BUILD_LOG}" \
+  rg -N -o -e '(warning|error)\s+([A-Z]{2,}\d{3,5})' --replace '$2' "${BUILD_LOG}" \
     | sort | uniq -c | sort -nr > "${rules_all}" || true
 else
-  grep -Eo "(warning|error) [A-Z]{2}[0-9]{3,4}" "${BUILD_LOG}" \
+  grep -Eo "(warning|error) [A-Z]{2,}[0-9]{3,5}" "${BUILD_LOG}" \
     | awk '{print $2}' | sort | uniq -c | sort -nr > "${rules_all}" || true
 fi
 touch "${rules_all}"
@@ -106,11 +107,11 @@ safe_link "${rules_all}" "${rules_all_latest}"
 
 # Top projects by diagnostics (always create file)
 if (( have_rg )); then
-  rg -N -o -e '(warning|error)\s+[A-Z]{2}\d{3,4}.*\[([^\]]+\.csproj)\]' --replace '$2' "${BUILD_LOG}" \
+  rg -N -o -e '(warning|error)\s+[A-Z]{2,}\d{3,5}.*\[([^\]]+\.csproj)\]' --replace '$2' "${BUILD_LOG}" \
     | xargs -r -n1 basename | sort | uniq -c | sort -nr > "${projects_all}" || true
 else
   # Fallback: best-effort extract content in brackets ending with .csproj
-  grep -E "(warning|error) [A-Z]{2}[0-9]{3,4}.*\[[^]]+\.csproj\]" "${BUILD_LOG}" \
+  grep -E "(warning|error) [A-Z]{2,}[0-9]{3,5}.*\[[^]]+\.csproj\]" "${BUILD_LOG}" \
     | sed -E 's/.*\[([^]]+\.csproj)\].*/\1/' | xargs -r -n1 basename \
     | sort | uniq -c | sort -nr > "${projects_all}" || true
 fi
@@ -121,11 +122,11 @@ safe_link "${projects_all}" "${projects_all_latest}"
 if [[ -n "${proj}" ]]; then
   proj_name=$(basename -- "${proj}")
   if (( have_rg )); then
-    rg -N -o -e "(warning|error)\s+([A-Z]{2}\\d{3,4}).*\\[[^]]*${proj_name}\\]" --replace '$2' "${BUILD_LOG}" \
+    rg -N -o -e "(warning|error)\s+([A-Z]{2,}\\d{3,5}).*\\[[^]]*${proj_name}\\]" --replace '$2' "${BUILD_LOG}" \
       | sort | uniq -c | sort -nr > "${rules_by_project}" || true
   else
-    grep -E "(warning|error) [A-Z]{2}[0-9]{3,4}.*\[[^]]*${proj_name}\]" "${BUILD_LOG}" \
-      | sed -E 's/.*(warning|error) ([A-Z]{2}[0-9]{3,4}).*/\2/' \
+    grep -E "(warning|error) [A-Z]{2,}[0-9]{3,5}.*\[[^]]*${proj_name}\]" "${BUILD_LOG}" \
+      | sed -E 's/.*(warning|error) ([A-Z]{2,}[0-9]{3,5}).*/\2/' \
       | sort | uniq -c | sort -nr > "${rules_by_project}" || true
   fi
   touch "${rules_by_project}"
