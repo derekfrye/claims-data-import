@@ -21,7 +21,7 @@ namespace HtmlClaimsDataImport.Infrastructure.Services
             {
                 return new AIResponseDto
                 {
-                    ResponseText = "[Simulated AI Response]\n\n" + prompt,
+                    ResponseText = $"[Simulated AI Response]\n\n{prompt}",
                     IsSimulated = true,
                     Provider = "simulated",
                     Model = "local-dev",
