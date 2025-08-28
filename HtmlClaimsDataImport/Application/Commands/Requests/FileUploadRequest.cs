@@ -1,19 +1,11 @@
 namespace HtmlClaimsDataImport.Application.Commands.Requests
 {
-    public sealed class FileUploadRequest
+    public sealed class FileUploadRequest(Stream content, string fileName, long length, string contentType)
     {
-        public FileUploadRequest(Stream content, string fileName, long length, string contentType)
-        {
-            this.Content = content;
-            this.FileName = fileName;
-            this.Length = length;
-            this.ContentType = contentType;
-        }
-
-        public Stream Content { get; }
-        public string FileName { get; }
-        public long Length { get; }
-        public string ContentType { get; }
+        public Stream Content { get; } = content;
+        public string FileName { get; } = fileName;
+        public long Length { get; } = length;
+        public string ContentType { get; } = contentType;
     }
 }
 

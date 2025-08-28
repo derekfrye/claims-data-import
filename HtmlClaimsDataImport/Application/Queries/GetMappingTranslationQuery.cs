@@ -1,8 +1,8 @@
+using HtmlClaimsDataImport.Application.Queries.Dtos;
+using Mediator;
+
 namespace HtmlClaimsDataImport.Application.Queries
 {
-    using HtmlClaimsDataImport.Application.Queries.Dtos;
-    using Mediator;
-
     public record GetMappingTranslationQuery(
         string TmpDir,
         int MappingStep,

@@ -1,10 +1,10 @@
+using HtmlClaimsDataImport.Application.Interfaces;
+using HtmlClaimsDataImport.Application.Queries;
+using HtmlClaimsDataImport.Application.Queries.Dtos;
+using Mediator;
+
 namespace HtmlClaimsDataImport.Application.Handlers
 {
-    using HtmlClaimsDataImport.Application.Interfaces;
-    using HtmlClaimsDataImport.Application.Queries;
-    using HtmlClaimsDataImport.Application.Queries.Dtos;
-    using Mediator;
-
     public class GetMappingTranslationQueryHandler(IMappingTranslationService mappingService)
         : IQueryHandler<GetMappingTranslationQuery, MappingTranslationDto>
     {
@@ -12,7 +12,7 @@ namespace HtmlClaimsDataImport.Application.Handlers
 
         public async ValueTask<MappingTranslationDto> Handle(GetMappingTranslationQuery request, CancellationToken cancellationToken)
         {
-            return await this.mappingService.BuildPromptAsync(request.TmpDir, request.MappingStep, request.SelectedColumn).ConfigureAwait(false);
+            return await mappingService.BuildPromptAsync(request.TmpDir, request.MappingStep, request.SelectedColumn).ConfigureAwait(false);
         }
     }
 }

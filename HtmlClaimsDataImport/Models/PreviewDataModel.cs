@@ -18,17 +18,17 @@ namespace HtmlClaimsDataImport.Models
         /// <summary>
         /// Gets or sets the column names from the import table.
         /// </summary>
-        public IList<string> ImportColumns { get; set; } = new List<string>();
+        public IList<string> ImportColumns { get; set; } = [];
 
         /// <summary>
         /// Gets or sets the column names from the claims table.
         /// </summary>
-        public IList<string> ClaimsColumns { get; set; } = new List<string>();
+        public IList<string> ClaimsColumns { get; set; } = [];
 
         /// <summary>
         /// Gets or sets the preview data rows (first 10 rows).
         /// </summary>
-        public IList<Dictionary<string, string>> PreviewRows { get; set; } = new List<Dictionary<string, string>>();
+        public IList<Dictionary<string, string>> PreviewRows { get; set; } = [];
 
         /// <summary>
         /// Gets or sets the name of the import table found.

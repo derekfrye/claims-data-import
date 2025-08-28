@@ -1,20 +1,14 @@
+using HtmlClaimsDataImport.Application.Commands;
+using HtmlClaimsDataImport.Application.Interfaces;
+using HtmlClaimsDataImport.Domain.ValueObjects;
+using Mediator;
+
 namespace HtmlClaimsDataImport.Application.Handlers
 {
-    using HtmlClaimsDataImport.Application.Commands;
-    using HtmlClaimsDataImport.Application.Interfaces;
-    using HtmlClaimsDataImport.Domain.ValueObjects;
-    using Mediator;
-
-    public class UploadFileCommandHandler : ICommandHandler<UploadFileCommand, FileUploadResult>
+    public class UploadFileCommandHandler(IFileUploadService fileUploadService, ITempDirectoryService tempDirectoryService) : ICommandHandler<UploadFileCommand, FileUploadResult>
     {
-        private readonly IFileUploadService fileUploadService;
-        private readonly ITempDirectoryService tempDirectoryService;
-
-        public UploadFileCommandHandler(IFileUploadService fileUploadService, ITempDirectoryService tempDirectoryService)
-        {
-            this.fileUploadService = fileUploadService;
-            this.tempDirectoryService = tempDirectoryService;
-        }
+        private readonly IFileUploadService fileUploadService = fileUploadService;
+        private readonly ITempDirectoryService tempDirectoryService = tempDirectoryService;
 
         public async ValueTask<FileUploadResult> Handle(UploadFileCommand request, CancellationToken cancellationToken)
         {
@@ -24,9 +18,9 @@ namespace HtmlClaimsDataImport.Application.Handlers
             }
 
             // Resolve which temp directory to use with policy encapsulated in temp service
-            string tempDir = this.tempDirectoryService.ResolveUploadTempDirectory(request.TmpDir);
+            var tempDir = tempDirectoryService.ResolveUploadTempDirectory(request.TmpDir);
 
-            return await this.fileUploadService.HandleFileUploadAsync(request.File, request.FileType, tempDir).ConfigureAwait(false);
+            return await fileUploadService.HandleFileUploadAsync(request.File, request.FileType, tempDir).ConfigureAwait(false);
         }
     }
 }

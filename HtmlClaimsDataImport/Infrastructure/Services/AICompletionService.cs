@@ -1,11 +1,11 @@
+using System.Net.Http.Headers;
+using System.Text;
+using System.Text.Json;
+using HtmlClaimsDataImport.Application.Interfaces;
+using HtmlClaimsDataImport.Application.Queries.Dtos;
+
 namespace HtmlClaimsDataImport.Infrastructure.Services
 {
-    using System.Net.Http.Headers;
-    using System.Text;
-    using System.Text.Json;
-    using HtmlClaimsDataImport.Application.Interfaces;
-    using HtmlClaimsDataImport.Application.Queries.Dtos;
-
     public class AICompletionService : IAICompletionService
     {
         private static readonly JsonSerializerOptions JsonOpts = new(JsonSerializerDefaults.Web);
@@ -43,22 +43,22 @@ namespace HtmlClaimsDataImport.Infrastructure.Services
             };
 
             var content = new StringContent(JsonSerializer.Serialize(reqBody, JsonOpts), Encoding.UTF8, "application/json");
-            using var resp = await http.PostAsync("https://api.openai.com/v1/chat/completions", content, cancellationToken).ConfigureAwait(false);
+            using HttpResponseMessage resp = await http.PostAsync("https://api.openai.com/v1/chat/completions", content, cancellationToken).ConfigureAwait(false);
             if (!resp.IsSuccessStatusCode)
             {
                 var err = await resp.Content.ReadAsStringAsync(cancellationToken).ConfigureAwait(false);
                 return new AIResponseDto
                 {
-                    ResponseText = $"[AI Error { (int)resp.StatusCode }] {err}",
+                    ResponseText = $"[AI Error {(int)resp.StatusCode}] {err}",
                     IsSimulated = true,
                     Provider = "openai",
                     Model = "gpt-4o-mini",
                 };
             }
 
-            using var stream = await resp.Content.ReadAsStreamAsync(cancellationToken).ConfigureAwait(false);
-            using var doc = await JsonDocument.ParseAsync(stream, cancellationToken: cancellationToken).ConfigureAwait(false);
-            var root = doc.RootElement;
+            using Stream stream = await resp.Content.ReadAsStreamAsync(cancellationToken).ConfigureAwait(false);
+            using JsonDocument doc = await JsonDocument.ParseAsync(stream, cancellationToken: cancellationToken).ConfigureAwait(false);
+            JsonElement root = doc.RootElement;
             var text = root.GetProperty("choices")[0].GetProperty("message").GetProperty("content").GetString() ?? string.Empty;
             return new AIResponseDto
             {
@@ -82,11 +82,11 @@ namespace HtmlClaimsDataImport.Infrastructure.Services
                     var fs = new FileStream(file, FileMode.Open, FileAccess.Read, FileShare.Read, 4096, FileOptions.Asynchronous);
                     try
                     {
-                        using var doc = await JsonDocument.ParseAsync(fs, new JsonDocumentOptions { AllowTrailingCommas = true }, cancellationToken).ConfigureAwait(false);
-                        var root = doc.RootElement;
+                        using JsonDocument doc = await JsonDocument.ParseAsync(fs, new JsonDocumentOptions { AllowTrailingCommas = true }, cancellationToken).ConfigureAwait(false);
+                        JsonElement root = doc.RootElement;
                         if (root.ValueKind == JsonValueKind.Object)
                         {
-                            if (TryGetPropertyCaseInsensitive(root, "openai_api_key", out var keyEl) && keyEl.ValueKind == JsonValueKind.String)
+                            if (TryGetPropertyCaseInsensitive(root, "openai_api_key", out JsonElement keyEl) && keyEl.ValueKind == JsonValueKind.String)
                             {
                                 return keyEl.GetString() ?? string.Empty;
                             }
@@ -111,7 +111,7 @@ namespace HtmlClaimsDataImport.Infrastructure.Services
             {
                 return true;
             }
-            foreach (var prop in obj.EnumerateObject())
+            foreach (JsonProperty prop in obj.EnumerateObject())
             {
                 if (string.Equals(prop.Name, name, StringComparison.OrdinalIgnoreCase))
                 {

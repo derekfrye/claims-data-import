@@ -10,11 +10,11 @@ namespace HtmlClaimsDataImport.Application.Queries.Dtos
 
         public bool IsPreviewAvailable { get; set; }
 
-        public IList<string> ImportColumns { get; set; } = new List<string>();
+        public IList<string> ImportColumns { get; set; } = [];
 
-        public IList<string> ClaimsColumns { get; set; } = new List<string>();
+        public IList<string> ClaimsColumns { get; set; } = [];
 
-        public IList<Dictionary<string, string>> PreviewRows { get; set; } = new List<Dictionary<string, string>>();
+        public IList<Dictionary<string, string>> PreviewRows { get; set; } = [];
 
         public string ImportTableName { get; set; } = string.Empty;
 

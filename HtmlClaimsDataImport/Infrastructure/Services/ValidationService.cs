@@ -1,9 +1,9 @@
+using HtmlClaimsDataImport.Application.Interfaces;
+using HtmlClaimsDataImport.Domain.ValueObjects;
+using Microsoft.Data.Sqlite;
+
 namespace HtmlClaimsDataImport.Infrastructure.Services
 {
-    using HtmlClaimsDataImport.Application.Interfaces;
-    using HtmlClaimsDataImport.Domain.ValueObjects;
-    using Microsoft.Data.Sqlite;
-
     public class ValidationService : IValidationService
     {
         public Task<ValidationResult> ValidateFileAsync(string filePath)
@@ -19,23 +19,20 @@ namespace HtmlClaimsDataImport.Infrastructure.Services
             }
 
             var fileInfo = new FileInfo(filePath);
-            if (fileInfo.Length == 0)
-            {
-                return Task.FromResult(ValidationResult.Failure("File is empty."));
-            }
-
-            return Task.FromResult(ValidationResult.Success());
+            return fileInfo.Length == 0
+                ? Task.FromResult(ValidationResult.Failure("File is empty."))
+                : Task.FromResult(ValidationResult.Success());
         }
 
         public async Task<ValidationResult> ValidateJsonFileAsync(string jsonPath)
         {
             if (string.Equals(jsonPath, "default", StringComparison.OrdinalIgnoreCase))
             {
-                string defaultJsonPath = Path.Combine(Directory.GetCurrentDirectory(), "default_config.json");
-                return await this.ValidateFileAsync(defaultJsonPath).ConfigureAwait(false);
+                var defaultJsonPath = Path.Combine(Directory.GetCurrentDirectory(), "default_config.json");
+                return await ValidateFileAsync(defaultJsonPath).ConfigureAwait(false);
             }
-            
-            var validationResult = await this.ValidateFileAsync(jsonPath).ConfigureAwait(false);
+
+            ValidationResult validationResult = await ValidateFileAsync(jsonPath).ConfigureAwait(false);
             if (!validationResult.IsValid)
             {
                 return validationResult;
@@ -56,7 +53,7 @@ namespace HtmlClaimsDataImport.Infrastructure.Services
 
         public async Task<ValidationResult> ValidateSqliteDatabaseAsync(string databasePath)
         {
-            var validationResult = await this.ValidateFileAsync(databasePath).ConfigureAwait(false);
+            ValidationResult validationResult = await ValidateFileAsync(databasePath).ConfigureAwait(false);
             if (!validationResult.IsValid)
             {
                 return validationResult;
@@ -68,18 +65,13 @@ namespace HtmlClaimsDataImport.Infrastructure.Services
                 await connection.OpenAsync().ConfigureAwait(false);
                 try
                 {
-                    var command = connection.CreateCommand();
+                    SqliteCommand command = connection.CreateCommand();
                     try
                     {
                         command.CommandText = "SELECT name FROM sqlite_master WHERE type='table' AND name='claims';";
                         var result = await command.ExecuteScalarAsync().ConfigureAwait(false);
 
-                        if (result == null)
-                        {
-                            return ValidationResult.Failure("Database does not contain a 'claims' table.");
-                        }
-                        
-                        return ValidationResult.Success();
+                        return result == null ? ValidationResult.Failure("Database does not contain a 'claims' table.") : ValidationResult.Success();
                     }
                     finally
                     {

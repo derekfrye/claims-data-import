@@ -1,26 +1,21 @@
+using HtmlClaimsDataImport.Application.Commands.Results;
+using HtmlClaimsDataImport.Application.Interfaces;
+using LibClaimsDataImport.Importer;
+using Sylvan.Data.Csv;
+
 namespace HtmlClaimsDataImport.Infrastructure.Services
 {
-    using HtmlClaimsDataImport.Application.Commands.Results;
-    using HtmlClaimsDataImport.Application.Interfaces;
-    using LibClaimsDataImport.Importer;
-    using Sylvan.Data.Csv;
-    using Microsoft.Extensions.Logging;
-
-    public class DataImportService : IDataImportService
+    public class DataImportService(ILogger<DataImportService> logger) : IDataImportService
     {
-        private readonly ILogger<DataImportService> logger;
+        private readonly ILogger<DataImportService> logger = logger;
 
-        public DataImportService(ILogger<DataImportService> logger)
-        {
-            this.logger = logger;
-        }
         public async Task<string> ResolveActualPath(string path, string tmpdir, string defaultFileName)
         {
             if (string.Equals(path, "default", StringComparison.OrdinalIgnoreCase))
             {
                 // Copy default file to temp directory
-                string defaultPath = Path.Combine(Directory.GetCurrentDirectory(), defaultFileName);
-                string tempPath = Path.Combine(tmpdir, "working_db.db");
+                var defaultPath = Path.Combine(Directory.GetCurrentDirectory(), defaultFileName);
+                var tempPath = Path.Combine(tmpdir, "working_db.db");
 
                 // Copy the default file to temp directory
                 await CopyFileAsync(defaultPath, tempPath).ConfigureAwait(false);
@@ -29,8 +24,8 @@ namespace HtmlClaimsDataImport.Infrastructure.Services
             else
             {
                 // For uploaded files, copy to temp directory with a working copy name
-                string sourcePath = Path.IsPathRooted(path) ? path : Path.Combine(tmpdir, path);
-                string tempPath = Path.Combine(tmpdir, "working_db.db");
+                var sourcePath = Path.IsPathRooted(path) ? path : Path.Combine(tmpdir, path);
+                var tempPath = Path.Combine(tmpdir, "working_db.db");
 
                 // Copy the uploaded file to a working copy
                 await CopyFileAsync(sourcePath, tempPath).ConfigureAwait(false);
@@ -61,7 +56,7 @@ namespace HtmlClaimsDataImport.Infrastructure.Services
                 }
 
                 // Step 4e: Setup File and import
-                streamReader.BaseStream.Seek(0, SeekOrigin.Begin);
+                _ = streamReader.BaseStream.Seek(0, SeekOrigin.Begin);
                 streamReader.DiscardBufferedData();
                 var file = new LibClaimsDataImport.Importer.File(streamReader, fileSpec, config);
 
@@ -76,7 +71,7 @@ namespace HtmlClaimsDataImport.Infrastructure.Services
             }
             catch (Exception ex)
             {
-                this.logger.LogError(ex, "Error in ProcessFileImport");
+                logger.LogError(ex, "Error in ProcessFileImport");
                 return LoadDataResult.Fail($"Import failed: {ex.Message}");
             }
         }

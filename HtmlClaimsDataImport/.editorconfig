@@ -5,6 +5,13 @@ root = false
 dotnet_diagnostic.MA0165.severity = none
 # dotnet_diagnostic.IDE0010.severity = warning
 dotnet_analyzer_diagnostic.category-Style.severity = warning
+dotnet_diagnostic.IDE0003.severity = warning
+
+# Qualification preferences (enable IDE0003 production on build)
+dotnet_style_qualification_for_field = false:warning
+dotnet_style_qualification_for_property = false:warning
+dotnet_style_qualification_for_method = false:warning
+dotnet_style_qualification_for_event = false:warning
 
 # Var usage compromise: use 'var' when the type is apparent or built-in; explicit type elsewhere
 csharp_style_var_for_built_in_types = true:suggestion

@@ -1,15 +1,14 @@
 using HtmlClaimsDataImport.Application.Interfaces;
 using HtmlClaimsDataImport.Infrastructure.Services;
 using Microsoft.AspNetCore.Mvc;
-using Mediator;
 
-var builder = WebApplication.CreateBuilder(args);
+WebApplicationBuilder builder = WebApplication.CreateBuilder(args);
 
 // Check for custom temp directory argument
 string? customTempDir = null;
 if (args.Length > 0 && args[0].StartsWith("--temp-dir=", StringComparison.Ordinal))
 {
-    customTempDir = args[0].Substring("--temp-dir=".Length);
+    customTempDir = args[0]["--temp-dir=".Length..];
     if (!string.IsNullOrEmpty(customTempDir))
     {
         TempDirectoryCleanupService.SetTempBasePath(customTempDir);
@@ -39,11 +38,11 @@ builder.Services.AddScoped<IConfigService, ConfigService>();
 // Register session-scoped temp directory service
 builder.Services.AddScoped<ITempDirectoryService>(provider =>
 {
-    var httpContextAccessor = provider.GetRequiredService<IHttpContextAccessor>();
-    var httpContext = httpContextAccessor.HttpContext;
+    IHttpContextAccessor httpContextAccessor = provider.GetRequiredService<IHttpContextAccessor>();
+    HttpContext? httpContext = httpContextAccessor.HttpContext;
 
     // Ensure session is loaded/initialized before getting ID
-    var session = httpContext?.Session;
+    ISession? session = httpContext?.Session;
     if (session != null)
     {
         // This ensures the session is loaded and has an ID
@@ -58,7 +57,7 @@ builder.Services.AddScoped<ITempDirectoryService>(provider =>
     return service;
 });
 
-var app = builder.Build();
+WebApplication app = builder.Build();
 
 // Add additional cleanup for when the app is forcefully terminated
 AppDomain.CurrentDomain.ProcessExit += (sender, e) =>
@@ -76,9 +75,9 @@ Console.CancelKeyPress += (sender, e) =>
 // Configure the HTTP request pipeline.
 if (!app.Environment.IsDevelopment())
 {
-    app.UseExceptionHandler("/Error");
+    _ = app.UseExceptionHandler("/Error");
     // The default HSTS value is 30 days. You may want to change this for production scenarios, see https://aka.ms/aspnetcore-hsts.
-    app.UseHsts();
+    _ = app.UseHsts();
 }
 
 app.UseHttpsRedirection();

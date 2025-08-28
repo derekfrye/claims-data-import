@@ -10,10 +10,14 @@ namespace HtmlClaimsDataImport.Application.Commands.Results
         public string? ImportTableName { get; init; }
 
         public static LoadDataResult Ok(string importTableName, string? message = null)
-            => new() { Success = true, ImportTableName = importTableName, StatusMessage = message ?? string.Empty };
+        {
+            return new() { Success = true, ImportTableName = importTableName, StatusMessage = message ?? string.Empty };
+        }
 
         public static LoadDataResult Fail(string message)
-            => new() { Success = false, ImportTableName = null, StatusMessage = message };
+        {
+            return new() { Success = false, ImportTableName = null, StatusMessage = message };
+        }
     }
 }
 

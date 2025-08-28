@@ -1,18 +1,15 @@
+using HtmlClaimsDataImport.Application.Commands;
+using HtmlClaimsDataImport.Application.Commands.Requests;
+using HtmlClaimsDataImport.Application.Queries;
+using HtmlClaimsDataImport.Models;
+using HtmlClaimsDataImport.Application.Queries.Dtos;
+using HtmlClaimsDataImport.Application.Interfaces;
+using Mediator;
+using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Mvc.RazorPages;
+
 namespace HtmlClaimsDataImport.Pages
 {
-    using System;
-    using System.IO;
-    using HtmlClaimsDataImport.Application.Commands;
-    using HtmlClaimsDataImport.Application.Commands.Requests;
-    using HtmlClaimsDataImport.Application.Queries;
-    using HtmlClaimsDataImport.Infrastructure.Services;
-    using HtmlClaimsDataImport.Models;
-    using HtmlClaimsDataImport.Application.Queries.Dtos;
-    using HtmlClaimsDataImport.Application.Interfaces;
-    using Mediator;
-    using Microsoft.AspNetCore.Mvc;
-    using Microsoft.AspNetCore.Mvc.RazorPages;
-
     /// <summary>
     /// Initializes a new instance of the <see cref="ClaimsDataImporter"/> class.
     /// </summary>
@@ -71,7 +68,7 @@ namespace HtmlClaimsDataImport.Pages
         /// <summary>
         /// Gets the temporary directory for the current session.
         /// </summary>
-        public string TempDirectory => this.tempDirectoryService.GetSessionTempDirectory();
+        public string TempDirectory => tempDirectoryService.GetSessionTempDirectory();
 
         /// <summary>
         /// Gets the default JSON configuration file name.
@@ -89,16 +86,16 @@ namespace HtmlClaimsDataImport.Pages
         public void OnGet()
         {
             // Initialize default values if not already set
-            if (string.IsNullOrEmpty(this.JsonFile) && string.Equals(this.JsonMode, "default", StringComparison.OrdinalIgnoreCase))
+            if (string.IsNullOrEmpty(JsonFile) && string.Equals(JsonMode, "default", StringComparison.OrdinalIgnoreCase))
             {
-                this.JsonFile = this.DefaultJsonFile;
-                this.JsonFileStatus = "Using default configuration";
+                JsonFile = DefaultJsonFile;
+                JsonFileStatus = "Using default configuration";
             }
 
-            if (string.IsNullOrEmpty(this.Database) && string.Equals(this.DatabaseMode, "default", StringComparison.OrdinalIgnoreCase))
+            if (string.IsNullOrEmpty(Database) && string.Equals(DatabaseMode, "default", StringComparison.OrdinalIgnoreCase))
             {
-                this.Database = this.DefaultDatabase;
-                this.DatabaseStatus = "Using default database";
+                Database = DefaultDatabase;
+                DatabaseStatus = "Using default database";
             }
         }
 
@@ -112,18 +109,18 @@ namespace HtmlClaimsDataImport.Pages
         public async Task<IActionResult> OnPostFileUpload(string fileType, IFormFile uploadedFile, string? tmpdir = null)
         {
             // Handle missing/empty file without hitting mediator
-            HtmlClaimsDataImport.Domain.ValueObjects.FileUploadResult result;
+            Domain.ValueObjects.FileUploadResult result;
             if (uploadedFile is null || uploadedFile.Length == 0)
             {
-                result = new HtmlClaimsDataImport.Domain.ValueObjects.FileUploadResult("No file selected", string.Empty, string.Empty);
+                result = new Domain.ValueObjects.FileUploadResult("No file selected", string.Empty, string.Empty);
             }
             else
             {
                 // Adapt ASP.NET upload into application-agnostic request
-                await using var content = uploadedFile.OpenReadStream();
+                await using Stream content = uploadedFile.OpenReadStream();
                 var req = new FileUploadRequest(content, Path.GetFileName(uploadedFile.FileName), uploadedFile.Length, uploadedFile.ContentType ?? string.Empty);
                 var command = new UploadFileCommand(fileType, req, tmpdir);
-                result = await this.mediator.Send(command, this.HttpContext.RequestAborted);
+                result = await mediator.Send(command, HttpContext.RequestAborted);
             }
 
             // Update the corresponding property and create model for partial view
@@ -138,20 +135,20 @@ namespace HtmlClaimsDataImport.Pages
             switch (fileType)
             {
                 case "json":
-                    this.JsonFile = result.FilePath;
-                    this.JsonFileStatus = result.StatusMessage;
+                    JsonFile = result.FilePath;
+                    JsonFileStatus = result.StatusMessage;
                     model.InputId = "jsonFile";
                     model.InputName = "JsonFile";
                     break;
                 case "filename":
-                    this.FileName = result.FilePath;
-                    this.FileNameStatus = result.StatusMessage;
+                    FileName = result.FilePath;
+                    FileNameStatus = result.StatusMessage;
                     model.InputId = "fileName";
                     model.InputName = "FileName";
                     break;
                 case "database":
-                    this.Database = result.FilePath;
-                    this.DatabaseStatus = result.StatusMessage;
+                    Database = result.FilePath;
+                    DatabaseStatus = result.StatusMessage;
                     model.InputId = "database";
                     model.InputName = "Database";
                     break;
@@ -160,8 +157,8 @@ namespace HtmlClaimsDataImport.Pages
                     break;
             }
 
-            var partialView = await this.RenderPartialViewAsync("_FileUploadResponse", model);
-            return this.Content(partialView, "text/html");
+            var partialView = await RenderPartialViewAsync("_FileUploadResponse", model);
+            return Content(partialView, "text/html");
         }
 
         /// <summary>
@@ -179,31 +176,31 @@ namespace HtmlClaimsDataImport.Pages
             switch (fileType)
             {
                 case "json":
-                    this.JsonFile = string.Equals(action, "ok", StringComparison.OrdinalIgnoreCase) ? fileName : string.Empty;
-                    this.JsonFileStatus = statusMessage;
-                    return this.Content(this.JsonFileStatus);
+                    JsonFile = string.Equals(action, "ok", StringComparison.OrdinalIgnoreCase) ? fileName : string.Empty;
+                    JsonFileStatus = statusMessage;
+                    return Content(JsonFileStatus);
                 case "filename":
-                    this.FileName = string.Equals(action, "ok", StringComparison.OrdinalIgnoreCase) ? fileName : string.Empty;
-                    this.FileNameStatus = statusMessage;
+                    FileName = string.Equals(action, "ok", StringComparison.OrdinalIgnoreCase) ? fileName : string.Empty;
+                    FileNameStatus = statusMessage;
                     var fileSelectedModel = new FileSelectedResponseModel
                     {
                         FileType = fileType,
-                        StatusMessage = this.FileNameStatus,
-                        FileName = this.FileName,
+                        StatusMessage = FileNameStatus,
+                        FileName = FileName,
                         InputId = "fileName",
                         InputName = "FileName",
                     };
-                    var partialView = await this.RenderPartialViewAsync("_FileSelectedResponse", fileSelectedModel);
-                    return this.Content(partialView, "text/html");
+                    var partialView = await RenderPartialViewAsync("_FileSelectedResponse", fileSelectedModel);
+                    return Content(partialView, "text/html");
                 case "database":
-                    this.Database = string.Equals(action, "ok", StringComparison.OrdinalIgnoreCase) ? fileName : string.Empty;
-                    this.DatabaseStatus = statusMessage;
-                    return this.Content(this.DatabaseStatus);
+                    Database = string.Equals(action, "ok", StringComparison.OrdinalIgnoreCase) ? fileName : string.Empty;
+                    DatabaseStatus = statusMessage;
+                    return Content(DatabaseStatus);
                 default:
-                    return this.Content(statusMessage);
+                    return Content(statusMessage);
             }
 
-            return this.Content(statusMessage);
+            return Content(statusMessage);
         }
 
         /// <summary>
@@ -218,10 +215,10 @@ namespace HtmlClaimsDataImport.Pages
             try
             {
                 var query = new GetPreviewDataQuery(tmpdir, mappingStep, selectedColumn);
-                var previewDto = await this.mediator.Send(query, this.HttpContext.RequestAborted);
-                var previewModel = MapToPreviewDataModel(previewDto);
-                var partialView = await this.RenderPartialViewAsync("_PreviewContent", previewModel);
-                return this.Content(partialView, "text/html");
+                PreviewDataDto previewDto = await mediator.Send(query, HttpContext.RequestAborted);
+                PreviewDataModel previewModel = MapToPreviewDataModel(previewDto);
+                var partialView = await RenderPartialViewAsync("_PreviewContent", previewModel);
+                return Content(partialView, "text/html");
             }
             catch (Exception ex)
             {
@@ -231,8 +228,8 @@ namespace HtmlClaimsDataImport.Pages
                     StatusMessage = $"Error: {ex.Message}",
                     IsPreviewAvailable = false,
                 };
-                var partialView = await this.RenderPartialViewAsync("_PreviewContent", errorModel);
-                return this.Content(partialView, "text/html");
+                var partialView = await RenderPartialViewAsync("_PreviewContent", errorModel);
+                return Content(partialView, "text/html");
             }
         }
 
@@ -247,7 +244,7 @@ namespace HtmlClaimsDataImport.Pages
         public async Task<IActionResult> OnPostLoadData(string tmpdir, string fileName, string jsonPath, string databasePath)
         {
             var command = new LoadDataCommand(tmpdir, fileName, jsonPath, databasePath);
-            var result = await this.mediator.Send(command, this.HttpContext.RequestAborted);
+            Application.Commands.Results.LoadDataResult result = await mediator.Send(command, HttpContext.RequestAborted);
             return new JsonResult(new
             {
                 success = result.Success,
@@ -268,36 +265,36 @@ namespace HtmlClaimsDataImport.Pages
             try
             {
                 var query = new GetMappingTranslationQuery(tmpdir, mappingStep, selectedColumn);
-                var dto = await this.mediator.Send(query, this.HttpContext.RequestAborted);
+                MappingTranslationDto dto = await mediator.Send(query, HttpContext.RequestAborted);
                 var model = new MappingTranslationModel { ModelPrompt = dto.ModelPrompt };
-                var partialView = await this.RenderPartialViewAsync("_MappingTranslation", model);
-                return this.Content(partialView, "text/html");
+                var partialView = await RenderPartialViewAsync("_MappingTranslation", model);
+                return Content(partialView, "text/html");
             }
             catch (Exception ex)
             {
-                return this.Content($"<div class=\"text-danger\">error: {System.Net.WebUtility.HtmlEncode(ex.Message)}</div>", "text/html");
+                return Content($"<div class=\"text-danger\">error: {System.Net.WebUtility.HtmlEncode(ex.Message)}</div>", "text/html");
             }
         }
 
 
         private async Task<string> RenderPartialViewAsync<T>(string partialName, T model)
         {
-            var viewEngine = this.HttpContext.RequestServices.GetRequiredService<Microsoft.AspNetCore.Mvc.ViewEngines.ICompositeViewEngine>();
-            var viewResult = viewEngine.FindView(this.PageContext, partialName, false);
+            Microsoft.AspNetCore.Mvc.ViewEngines.ICompositeViewEngine viewEngine = HttpContext.RequestServices.GetRequiredService<Microsoft.AspNetCore.Mvc.ViewEngines.ICompositeViewEngine>();
+            Microsoft.AspNetCore.Mvc.ViewEngines.ViewEngineResult viewResult = viewEngine.FindView(PageContext, partialName, false);
 
             if (!viewResult.Success)
             {
                 throw new InvalidOperationException($"Partial view '{partialName}' not found");
             }
 
-            var viewData = new Microsoft.AspNetCore.Mvc.ViewFeatures.ViewDataDictionary<T>(this.ViewData, model);
+            var viewData = new Microsoft.AspNetCore.Mvc.ViewFeatures.ViewDataDictionary<T>(ViewData, model);
 
             using var writer = new StringWriter();
             var viewContext = new Microsoft.AspNetCore.Mvc.Rendering.ViewContext(
-                this.PageContext,
+                PageContext,
                 viewResult.View,
                 viewData,
-                this.TempData,
+                TempData,
                 writer: writer,
                 htmlHelperOptions: new Microsoft.AspNetCore.Mvc.ViewFeatures.HtmlHelperOptions());
 
@@ -311,9 +308,9 @@ namespace HtmlClaimsDataImport.Pages
             {
                 StatusMessage = dto.StatusMessage,
                 IsPreviewAvailable = dto.IsPreviewAvailable,
-                ImportColumns = dto.ImportColumns.ToList(),
-                ClaimsColumns = dto.ClaimsColumns.ToList(),
-                PreviewRows = dto.PreviewRows.ToList(),
+                ImportColumns = [.. dto.ImportColumns],
+                ClaimsColumns = [.. dto.ClaimsColumns],
+                PreviewRows = [.. dto.PreviewRows],
                 ImportTableName = dto.ImportTableName,
                 CurrentMappingStep = dto.CurrentMappingStep,
                 ColumnMappings = new Dictionary<string, string>(dto.ColumnMappings, StringComparer.Ordinal),
@@ -331,16 +328,16 @@ namespace HtmlClaimsDataImport.Pages
         {
             try
             {
-                var cmd = new HtmlClaimsDataImport.Application.Commands.SubmitPromptToAICommand(tmpdir, promptText);
-                var dto = await this.mediator.Send(cmd, this.HttpContext.RequestAborted);
-                var partialView = await this.RenderPartialViewAsync("_AIResponse", dto);
-                return this.Content(partialView, "text/html");
+                var cmd = new SubmitPromptToAICommand(tmpdir, promptText);
+                AIResponseDto dto = await mediator.Send(cmd, HttpContext.RequestAborted);
+                var partialView = await RenderPartialViewAsync("_AIResponse", dto);
+                return Content(partialView, "text/html");
             }
             catch (Exception ex)
             {
                 var err = new AIResponseDto { ResponseText = $"Error: {ex.Message}", IsSimulated = true };
-                var partialView = await this.RenderPartialViewAsync("_AIResponse", err);
-                return this.Content(partialView, "text/html");
+                var partialView = await RenderPartialViewAsync("_AIResponse", err);
+                return Content(partialView, "text/html");
             }
         }
 
@@ -353,8 +350,8 @@ namespace HtmlClaimsDataImport.Pages
         /// <returns>A simple OK response.</returns>
         public async Task<IActionResult> OnPostSaveMapping(string tmpdir, string outputColumn, string importColumn)
         {
-            var cmd = new HtmlClaimsDataImport.Application.Commands.SaveMappingCommand(tmpdir, outputColumn, importColumn);
-            var ok = await this.mediator.Send(cmd, this.HttpContext.RequestAborted);
+            var cmd = new SaveMappingCommand(tmpdir, outputColumn, importColumn);
+            var ok = await mediator.Send(cmd, HttpContext.RequestAborted);
             return new JsonResult(new { success = ok });
         }
 
@@ -366,8 +363,8 @@ namespace HtmlClaimsDataImport.Pages
         /// <returns>JSON indicating success.</returns>
         public async Task<IActionResult> OnPostClearMapping(string tmpdir, string outputColumn)
         {
-            var cmd = new HtmlClaimsDataImport.Application.Commands.ClearMappingCommand(tmpdir, outputColumn);
-            var ok = await this.mediator.Send(cmd, this.HttpContext.RequestAborted);
+            var cmd = new ClearMappingCommand(tmpdir, outputColumn);
+            var ok = await mediator.Send(cmd, HttpContext.RequestAborted);
             return new JsonResult(new { success = ok });
         }
 
@@ -380,12 +377,12 @@ namespace HtmlClaimsDataImport.Pages
         {
             if (string.IsNullOrWhiteSpace(tmpdir))
             {
-                return this.NotFound("missing tmpdir");
+                return NotFound("missing tmpdir");
             }
 
-            var query = new HtmlClaimsDataImport.Application.Queries.GetConfigFileQuery(tmpdir);
-            var res = await this.mediator.Send(query, this.HttpContext.RequestAborted);
-            return this.File(res.Content, res.ContentType, res.FileName);
+            var query = new GetConfigFileQuery(tmpdir);
+            GetConfigFileResult res = await mediator.Send(query, HttpContext.RequestAborted);
+            return File(res.Content, res.ContentType, res.FileName);
         }
     }
 }

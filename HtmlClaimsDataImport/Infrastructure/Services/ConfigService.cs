@@ -1,29 +1,31 @@
+using HtmlClaimsDataImport.Application.Interfaces;
+using System.Text;
+using System.Text.Json;
+using System.Text.Json.Nodes;
+
 namespace HtmlClaimsDataImport.Infrastructure.Services
 {
-    using HtmlClaimsDataImport.Application.Interfaces;
-    using System.Text;
-    using System.Text.Json;
-    using System.Text.Json.Nodes;
-
     public class ConfigService : IConfigService
     {
-        private static string GetConfigPath(string tmpdir) => Path.Combine(tmpdir, "ClaimsDataImportConfig.json");
+        private static string GetConfigPath(string tmpdir)
+        {
+            return Path.Combine(tmpdir, "ClaimsDataImportConfig.json");
+        }
 
         private static void MigrateLegacyKeys(JsonObject root)
         {
             if (root.ContainsKey("columnMappings") && !root.ContainsKey("stagingColumnMappings"))
             {
                 root["stagingColumnMappings"] = root["columnMappings"];
-                root.Remove("columnMappings");
+                _ = root.Remove("columnMappings");
             }
         }
 
         private static JsonArray GetOrCreateTranslationArray(JsonObject root)
         {
-            var arr = root["translationMapping"] as JsonArray;
-            if (arr is null)
+            if (root["translationMapping"] is not JsonArray arr)
             {
-                arr = new JsonArray();
+                arr = [];
                 root["translationMapping"] = arr;
             }
             return arr;
@@ -32,7 +34,7 @@ namespace HtmlClaimsDataImport.Infrastructure.Services
         private static void RemoveMappingsForOutput(JsonArray arr, string outputColumn)
         {
             var toRemove = new List<JsonNode?>();
-            foreach (var node in arr)
+            foreach (JsonNode? node in arr)
             {
                 if (node is JsonObject obj)
                 {
@@ -43,9 +45,9 @@ namespace HtmlClaimsDataImport.Infrastructure.Services
                     }
                 }
             }
-            foreach (var n in toRemove)
+            foreach (JsonNode? n in toRemove)
             {
-                arr.Remove(n);
+                _ = arr.Remove(n);
             }
         }
 
@@ -64,9 +66,9 @@ namespace HtmlClaimsDataImport.Infrastructure.Services
             if (File.Exists(configPath))
             {
                 var json = await File.ReadAllTextAsync(configPath, cancellationToken).ConfigureAwait(false);
-                return JsonNode.Parse(json) as JsonObject ?? new JsonObject();
+                return JsonNode.Parse(json) as JsonObject ?? [];
             }
-            return new JsonObject();
+            return [];
         }
 
         private static async Task WriteRootAsync(string configPath, JsonObject root, CancellationToken cancellationToken)
@@ -92,11 +94,11 @@ namespace HtmlClaimsDataImport.Infrastructure.Services
         {
             try
             {
-                Directory.CreateDirectory(tmpdir);
+                _ = Directory.CreateDirectory(tmpdir);
                 var configPath = GetConfigPath(tmpdir);
-                var root = await ReadRootAsync(configPath, cancellationToken).ConfigureAwait(false);
+                JsonObject root = await ReadRootAsync(configPath, cancellationToken).ConfigureAwait(false);
                 MigrateLegacyKeys(root);
-                var arr = GetOrCreateTranslationArray(root);
+                JsonArray arr = GetOrCreateTranslationArray(root);
                 RemoveMappingsForOutput(arr, outputColumn);
                 AddMapping(arr, outputColumn, importColumn);
                 await WriteRootAsync(configPath, root, cancellationToken).ConfigureAwait(false);
@@ -117,7 +119,7 @@ namespace HtmlClaimsDataImport.Infrastructure.Services
                     return false;
                 }
 
-                Directory.CreateDirectory(tmpdir);
+                _ = Directory.CreateDirectory(tmpdir);
                 var configPath = Path.Combine(tmpdir, "ClaimsDataImportConfig.json");
 
                 JsonObject root;
@@ -131,14 +133,13 @@ namespace HtmlClaimsDataImport.Infrastructure.Services
                     root = [];
                 }
 
-                var arr = root["translationMapping"] as JsonArray;
-                if (arr is null)
+                if (root["translationMapping"] is not JsonArray arr)
                 {
                     return true; // nothing to clear
                 }
 
                 var toRemove = new List<JsonNode?>();
-                foreach (var node in arr)
+                foreach (JsonNode? node in arr)
                 {
                     if (node is JsonObject obj)
                     {
@@ -149,9 +150,9 @@ namespace HtmlClaimsDataImport.Infrastructure.Services
                         }
                     }
                 }
-                foreach (var n in toRemove)
+                foreach (JsonNode? n in toRemove)
                 {
-                    arr.Remove(n);
+                    _ = arr.Remove(n);
                 }
 
                 var updated = root.ToJsonString(new JsonSerializerOptions { WriteIndented = true });
