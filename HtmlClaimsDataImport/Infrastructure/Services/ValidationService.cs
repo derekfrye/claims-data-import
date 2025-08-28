@@ -64,19 +64,32 @@ namespace HtmlClaimsDataImport.Infrastructure.Services
 
             try
             {
-                await using var connection = new SqliteConnection($"Data Source={databasePath};Mode=ReadOnly");
+                var connection = new SqliteConnection($"Data Source={databasePath};Mode=ReadOnly");
                 await connection.OpenAsync().ConfigureAwait(false);
-                
-                await using var command = connection.CreateCommand();
-                command.CommandText = "SELECT name FROM sqlite_master WHERE type='table' AND name='claims';";
-                var result = await command.ExecuteScalarAsync().ConfigureAwait(false);
-                
-                if (result == null)
+                try
                 {
-                    return ValidationResult.Failure("Database does not contain a 'claims' table.");
+                    var command = connection.CreateCommand();
+                    try
+                    {
+                        command.CommandText = "SELECT name FROM sqlite_master WHERE type='table' AND name='claims';";
+                        var result = await command.ExecuteScalarAsync().ConfigureAwait(false);
+
+                        if (result == null)
+                        {
+                            return ValidationResult.Failure("Database does not contain a 'claims' table.");
+                        }
+                        
+                        return ValidationResult.Success();
+                    }
+                    finally
+                    {
+                        await command.DisposeAsync().ConfigureAwait(false);
+                    }
                 }
-                
-                return ValidationResult.Success();
+                finally
+                {
+                    await connection.DisposeAsync().ConfigureAwait(false);
+                }
             }
             catch (SqliteException ex)
             {

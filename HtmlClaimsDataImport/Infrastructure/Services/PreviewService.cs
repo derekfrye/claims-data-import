@@ -76,25 +76,32 @@ namespace HtmlClaimsDataImport.Infrastructure.Services
                 {
                     return;
                 }
-                await using var stream = new FileStream(configPath, FileMode.Open, FileAccess.Read, FileShare.Read, 4096, FileOptions.Asynchronous);
-                using var doc = await System.Text.Json.JsonDocument.ParseAsync(stream).ConfigureAwait(false);
-                var root = doc.RootElement;
-                if (root.TryGetProperty("translationMapping", out var arr) && arr.ValueKind == System.Text.Json.JsonValueKind.Array)
+                var stream = new FileStream(configPath, FileMode.Open, FileAccess.Read, FileShare.Read, 4096, FileOptions.Asynchronous);
+                try
                 {
-                    foreach (var el in arr.EnumerateArray())
+                    using var doc = await System.Text.Json.JsonDocument.ParseAsync(stream).ConfigureAwait(false);
+                    var root = doc.RootElement;
+                    if (root.TryGetProperty("translationMapping", out var arr) && arr.ValueKind == System.Text.Json.JsonValueKind.Array)
                     {
-                        if (el.ValueKind != System.Text.Json.JsonValueKind.Object) continue;
-                        var input = el.TryGetProperty("inputColumn", out var i) ? i.GetString() : null;
-                        var output = el.TryGetProperty("outputColumn", out var o) ? o.GetString() : null;
-                        if (!string.IsNullOrWhiteSpace(input) && !string.IsNullOrWhiteSpace(output))
+                        foreach (var el in arr.EnumerateArray())
                         {
-                            // Claims (dest) -> Import (src)
-                            if (!model.ColumnMappings.ContainsKey(output!))
+                            if (el.ValueKind != System.Text.Json.JsonValueKind.Object) continue;
+                            var input = el.TryGetProperty("inputColumn", out var i) ? i.GetString() : null;
+                            var output = el.TryGetProperty("outputColumn", out var o) ? o.GetString() : null;
+                            if (!string.IsNullOrWhiteSpace(input) && !string.IsNullOrWhiteSpace(output))
                             {
-                                model.ColumnMappings[output!] = input!;
+                                // Claims (dest) -> Import (src)
+                                if (!model.ColumnMappings.ContainsKey(output!))
+                                {
+                                    model.ColumnMappings[output!] = input!;
+                                }
                             }
                         }
                     }
+                }
+                finally
+                {
+                    await stream.DisposeAsync().ConfigureAwait(false);
                 }
             }
             catch

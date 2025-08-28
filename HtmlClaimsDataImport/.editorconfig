@@ -5,5 +5,5 @@ root = false
 dotnet_diagnostic.MA0165.severity = none
 
 [**/*.cshtml.cs]
-# dotnet_diagnostic.MA0048.severity = none
+dotnet_diagnostic.MA0048.severity = none
 dotnet_analyzer_diagnostic.severity = warning

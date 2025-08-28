@@ -123,7 +123,7 @@ namespace HtmlClaimsDataImport.Pages
                 await using var content = uploadedFile.OpenReadStream();
                 var req = new FileUploadRequest(content, Path.GetFileName(uploadedFile.FileName), uploadedFile.Length, uploadedFile.ContentType ?? string.Empty);
                 var command = new UploadFileCommand(fileType, req, tmpdir);
-                result = await this.mediator.Send(command);
+                result = await this.mediator.Send(command, this.HttpContext.RequestAborted);
             }
 
             // Update the corresponding property and create model for partial view
@@ -213,7 +213,7 @@ namespace HtmlClaimsDataImport.Pages
             try
             {
                 var query = new GetPreviewDataQuery(tmpdir, mappingStep, selectedColumn);
-                var previewDto = await this.mediator.Send(query);
+                var previewDto = await this.mediator.Send(query, this.HttpContext.RequestAborted);
                 var previewModel = MapToPreviewDataModel(previewDto);
                 var partialView = await this.RenderPartialViewAsync("_PreviewContent", previewModel);
                 return this.Content(partialView, "text/html");
@@ -242,7 +242,7 @@ namespace HtmlClaimsDataImport.Pages
         public async Task<IActionResult> OnPostLoadData(string tmpdir, string fileName, string jsonPath, string databasePath)
         {
             var command = new LoadDataCommand(tmpdir, fileName, jsonPath, databasePath);
-            var result = await this.mediator.Send(command);
+            var result = await this.mediator.Send(command, this.HttpContext.RequestAborted);
             return new JsonResult(new
             {
                 success = result.Success,
@@ -263,7 +263,7 @@ namespace HtmlClaimsDataImport.Pages
             try
             {
                 var query = new GetMappingTranslationQuery(tmpdir, mappingStep, selectedColumn);
-                var dto = await this.mediator.Send(query);
+                var dto = await this.mediator.Send(query, this.HttpContext.RequestAborted);
                 var model = new MappingTranslationModel { ModelPrompt = dto.ModelPrompt };
                 var partialView = await this.RenderPartialViewAsync("_MappingTranslation", model);
                 return this.Content(partialView, "text/html");
@@ -327,7 +327,7 @@ namespace HtmlClaimsDataImport.Pages
             try
             {
                 var cmd = new HtmlClaimsDataImport.Application.Commands.SubmitPromptToAICommand(tmpdir, promptText);
-                var dto = await this.mediator.Send(cmd);
+                var dto = await this.mediator.Send(cmd, this.HttpContext.RequestAborted);
                 var partialView = await this.RenderPartialViewAsync("_AIResponse", dto);
                 return this.Content(partialView, "text/html");
             }
@@ -349,7 +349,7 @@ namespace HtmlClaimsDataImport.Pages
         public async Task<IActionResult> OnPostSaveMapping(string tmpdir, string outputColumn, string importColumn)
         {
             var cmd = new HtmlClaimsDataImport.Application.Commands.SaveMappingCommand(tmpdir, outputColumn, importColumn);
-            var ok = await this.mediator.Send(cmd);
+            var ok = await this.mediator.Send(cmd, this.HttpContext.RequestAborted);
             return new JsonResult(new { success = ok });
         }
 
@@ -362,7 +362,7 @@ namespace HtmlClaimsDataImport.Pages
         public async Task<IActionResult> OnPostClearMapping(string tmpdir, string outputColumn)
         {
             var cmd = new HtmlClaimsDataImport.Application.Commands.ClearMappingCommand(tmpdir, outputColumn);
-            var ok = await this.mediator.Send(cmd);
+            var ok = await this.mediator.Send(cmd, this.HttpContext.RequestAborted);
             return new JsonResult(new { success = ok });
         }
 
@@ -379,7 +379,7 @@ namespace HtmlClaimsDataImport.Pages
             }
 
             var query = new HtmlClaimsDataImport.Application.Queries.GetConfigFileQuery(tmpdir);
-            var res = await this.mediator.Send(query);
+            var res = await this.mediator.Send(query, this.HttpContext.RequestAborted);
             return this.File(res.Content, res.ContentType, res.FileName);
         }
     }

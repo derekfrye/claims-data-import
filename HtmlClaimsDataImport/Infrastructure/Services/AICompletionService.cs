@@ -79,15 +79,22 @@ namespace HtmlClaimsDataImport.Infrastructure.Services
                 }
                 foreach (var file in Directory.EnumerateFiles(tmpdir, "*.json", SearchOption.TopDirectoryOnly))
                 {
-                    await using var fs = new FileStream(file, FileMode.Open, FileAccess.Read, FileShare.Read, 4096, FileOptions.Asynchronous);
-                    using var doc = await JsonDocument.ParseAsync(fs, new JsonDocumentOptions { AllowTrailingCommas = true }, cancellationToken).ConfigureAwait(false);
-                    var root = doc.RootElement;
-                    if (root.ValueKind == JsonValueKind.Object)
+                    var fs = new FileStream(file, FileMode.Open, FileAccess.Read, FileShare.Read, 4096, FileOptions.Asynchronous);
+                    try
                     {
-                        if (TryGetPropertyCaseInsensitive(root, "openai_api_key", out var keyEl) && keyEl.ValueKind == JsonValueKind.String)
+                        using var doc = await JsonDocument.ParseAsync(fs, new JsonDocumentOptions { AllowTrailingCommas = true }, cancellationToken).ConfigureAwait(false);
+                        var root = doc.RootElement;
+                        if (root.ValueKind == JsonValueKind.Object)
                         {
-                            return keyEl.GetString() ?? string.Empty;
+                            if (TryGetPropertyCaseInsensitive(root, "openai_api_key", out var keyEl) && keyEl.ValueKind == JsonValueKind.String)
+                            {
+                                return keyEl.GetString() ?? string.Empty;
+                            }
                         }
+                    }
+                    finally
+                    {
+                        await fs.DisposeAsync().ConfigureAwait(false);
                     }
                 }
             }
