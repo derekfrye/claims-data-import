@@ -4,7 +4,7 @@ namespace HtmlClaimsDataImport.Application.Queries
     using Mediator;
 
     public record GetMappingTranslationQuery(
-        string tmpDir,
-        int mappingStep,
-        string selectedColumn) : IQuery<MappingTranslationDto>;
+        string TmpDir,
+        int MappingStep,
+        string SelectedColumn) : IQuery<MappingTranslationDto>;
 }

@@ -4,8 +4,8 @@ namespace HtmlClaimsDataImport.Application.Commands
     using Mediator;
 
     public record LoadDataCommand(
-        string tmpDir,
-        string fileName,
-        string jsonPath,
-        string databasePath) : ICommand<LoadDataResult>;
+        string TmpDir,
+        string FileName,
+        string JsonPath,
+        string DatabasePath) : ICommand<LoadDataResult>;
 }

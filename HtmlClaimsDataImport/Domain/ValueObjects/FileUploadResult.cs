@@ -1,7 +1,7 @@
 namespace HtmlClaimsDataImport.Domain.ValueObjects
 {
-    public record FileUploadResult(string statusMessage, string logEntry, string filePath)
+    public record FileUploadResult(string StatusMessage, string LogEntry, string FilePath)
     {
-        public bool IsSuccess => !string.IsNullOrEmpty(this.filePath);
+        public bool IsSuccess => !string.IsNullOrEmpty(this.FilePath);
     }
 }

@@ -5,7 +5,7 @@ namespace HtmlClaimsDataImport.Application.Commands
     using Mediator;
 
     public record UploadFileCommand(
-        string fileType,
-        FileUploadRequest file,
-        string? tmpDir = null) : ICommand<FileUploadResult>;
+        string FileType,
+        FileUploadRequest File,
+        string? TmpDir = null) : ICommand<FileUploadResult>;
 }

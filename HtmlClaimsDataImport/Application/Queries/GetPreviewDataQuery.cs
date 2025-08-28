@@ -4,7 +4,7 @@ namespace HtmlClaimsDataImport.Application.Queries
     using Mediator;
 
     public record GetPreviewDataQuery(
-        string tmpDir,
-        int mappingStep = 0,
-        string selectedColumn = "") : IQuery<PreviewDataDto>;
+        string TmpDir,
+        int MappingStep = 0,
+        string SelectedColumn = "") : IQuery<PreviewDataDto>;
 }

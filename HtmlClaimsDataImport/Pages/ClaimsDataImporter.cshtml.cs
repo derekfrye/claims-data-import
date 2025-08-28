@@ -130,28 +130,28 @@ namespace HtmlClaimsDataImport.Pages
             FileUploadResponseModel model = new()
             {
                 FileType = fileType,
-                StatusMessage = result.statusMessage,
-                FilePath = result.filePath,
-                LogEntry = result.logEntry,
+                StatusMessage = result.StatusMessage,
+                FilePath = result.FilePath,
+                LogEntry = result.LogEntry,
             };
 
             switch (fileType)
             {
                 case "json":
-                    this.JsonFile = result.filePath;
-                    this.JsonFileStatus = result.statusMessage;
+                    this.JsonFile = result.FilePath;
+                    this.JsonFileStatus = result.StatusMessage;
                     model.InputId = "jsonFile";
                     model.InputName = "JsonFile";
                     break;
                 case "filename":
-                    this.FileName = result.filePath;
-                    this.FileNameStatus = result.statusMessage;
+                    this.FileName = result.FilePath;
+                    this.FileNameStatus = result.StatusMessage;
                     model.InputId = "fileName";
                     model.InputName = "FileName";
                     break;
                 case "database":
-                    this.Database = result.filePath;
-                    this.DatabaseStatus = result.statusMessage;
+                    this.Database = result.FilePath;
+                    this.DatabaseStatus = result.StatusMessage;
                     model.InputId = "database";
                     model.InputName = "Database";
                     break;

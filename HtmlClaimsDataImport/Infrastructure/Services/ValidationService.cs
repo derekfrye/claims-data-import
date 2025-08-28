@@ -36,7 +36,7 @@ namespace HtmlClaimsDataImport.Infrastructure.Services
             }
             
             var validationResult = await this.ValidateFileAsync(jsonPath).ConfigureAwait(false);
-            if (!validationResult.isValid)
+            if (!validationResult.IsValid)
             {
                 return validationResult;
             }
@@ -57,7 +57,7 @@ namespace HtmlClaimsDataImport.Infrastructure.Services
         public async Task<ValidationResult> ValidateSqliteDatabaseAsync(string databasePath)
         {
             var validationResult = await this.ValidateFileAsync(databasePath).ConfigureAwait(false);
-            if (!validationResult.isValid)
+            if (!validationResult.IsValid)
             {
                 return validationResult;
             }

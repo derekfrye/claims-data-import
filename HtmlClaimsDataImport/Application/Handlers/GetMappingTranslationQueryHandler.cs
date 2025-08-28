@@ -12,7 +12,7 @@ namespace HtmlClaimsDataImport.Application.Handlers
 
         public async ValueTask<MappingTranslationDto> Handle(GetMappingTranslationQuery request, CancellationToken cancellationToken)
         {
-            return await this.mappingService.BuildPromptAsync(request.tmpDir, request.mappingStep, request.selectedColumn).ConfigureAwait(false);
+            return await this.mappingService.BuildPromptAsync(request.TmpDir, request.MappingStep, request.SelectedColumn).ConfigureAwait(false);
         }
     }
 }

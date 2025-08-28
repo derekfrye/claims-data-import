@@ -24,29 +24,29 @@ namespace HtmlClaimsDataImport.Application.Handlers
             try
             {
                 // Resolve paths
-                string actualJsonPath = ResolveJsonPath(request.jsonPath, request.tmpDir);
-                string actualDatabasePath = await this.dataImportService.ResolveActualPath(request.databasePath, request.tmpDir, "default.sqlite3.db").ConfigureAwait(false);
-                string actualFileName = Path.Combine(request.tmpDir, request.fileName);
+                string actualJsonPath = ResolveJsonPath(request.JsonPath, request.TmpDir);
+                string actualDatabasePath = await this.dataImportService.ResolveActualPath(request.DatabasePath, request.TmpDir, "default.sqlite3.db").ConfigureAwait(false);
+                string actualFileName = Path.Combine(request.TmpDir, request.FileName);
 
                 // Validation step 1: Check if JSON is valid
                 var jsonValidation = await this.validationService.ValidateJsonFileAsync(actualJsonPath).ConfigureAwait(false);
-                if (!jsonValidation.isValid)
+                if (!jsonValidation.IsValid)
                 {
-                    return LoadDataResult.Fail($"json invalid: {jsonValidation.errorMessage}");
+                    return LoadDataResult.Fail($"json invalid: {jsonValidation.ErrorMessage}");
                 }
 
                 // Validation step 2: Check if file exists and is readable
                 var fileValidation = await this.validationService.ValidateFileAsync(actualFileName).ConfigureAwait(false);
-                if (!fileValidation.isValid)
+                if (!fileValidation.IsValid)
                 {
-                    return LoadDataResult.Fail(fileValidation.errorMessage);
+                    return LoadDataResult.Fail(fileValidation.ErrorMessage);
                 }
 
                 // Validation step 3: Check if database exists and is readable as SQLite
                 var dbValidation = await this.validationService.ValidateSqliteDatabaseAsync(actualDatabasePath).ConfigureAwait(false);
-                if (!dbValidation.isValid)
+                if (!dbValidation.IsValid)
                 {
-                    return LoadDataResult.Fail(dbValidation.errorMessage);
+                    return LoadDataResult.Fail(dbValidation.ErrorMessage);
                 }
 
                 // All validations passed - proceed with import

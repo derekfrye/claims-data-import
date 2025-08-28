@@ -11,7 +11,7 @@ namespace HtmlClaimsDataImport.Application.Handlers
 
         public async ValueTask<GetConfigFileResult> Handle(GetConfigFileQuery request, CancellationToken cancellationToken)
         {
-            var bytes = await this.configService.ReadConfigAsync(request.tmpDir, cancellationToken).ConfigureAwait(false);
+            var bytes = await this.configService.ReadConfigAsync(request.TmpDir, cancellationToken).ConfigureAwait(false);
             return new GetConfigFileResult
             {
                 Content = bytes,
@@ -21,4 +21,3 @@ namespace HtmlClaimsDataImport.Application.Handlers
         }
     }
 }
-

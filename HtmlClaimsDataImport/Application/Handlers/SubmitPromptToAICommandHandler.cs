@@ -12,7 +12,7 @@ namespace HtmlClaimsDataImport.Application.Handlers
 
         public async ValueTask<AIResponseDto> Handle(SubmitPromptToAICommand request, CancellationToken cancellationToken)
         {
-            return await this.aiService.CompleteAsync(request.tmpDir, request.promptText, cancellationToken).ConfigureAwait(false);
+            return await this.aiService.CompleteAsync(request.TmpDir, request.PromptText, cancellationToken).ConfigureAwait(false);
         }
     }
 }

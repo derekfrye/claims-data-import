@@ -10,12 +10,12 @@ public class ClearMappingCommandHandler(IConfigService configService) : ICommand
 
     public async ValueTask<bool> Handle(ClearMappingCommand request, CancellationToken cancellationToken)
     {
-        if (string.IsNullOrWhiteSpace(request.tmpDir) || string.IsNullOrWhiteSpace(request.outputColumn))
+        if (string.IsNullOrWhiteSpace(request.TmpDir) || string.IsNullOrWhiteSpace(request.OutputColumn))
         {
             return false;
         }
 
-        var ok = await this.configService.ClearMappingAsync(request.tmpDir, request.outputColumn, cancellationToken).ConfigureAwait(false);
+        var ok = await this.configService.ClearMappingAsync(request.TmpDir, request.OutputColumn, cancellationToken).ConfigureAwait(false);
         return ok;
     }
 }
