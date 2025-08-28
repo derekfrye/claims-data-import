@@ -16,20 +16,22 @@
  - Tip: if a focused test run shows no failure details, run `dotnet clean` before `dotnet test` to surface full diagnostics.
 
 ### Style/Analyzer Build + Summary
-- Script: `./build_and_analyze_style.sh` (zsh)
-  - Cleans and builds, saves logs to `build_artifacts/`, and prints summaries of analyzer diagnostics (Meziantou).
-  - Options:
-    - `-w`: build with `-warnaserror` (treat warnings as errors)
-    - `-s <solution.sln|project.csproj>`: scope to a solution or a single project (default: `ClaimsDataImport.sln`)
-    - `-p <project.csproj>`: show a per-project top-rules breakdown in addition to global summary
-  - Outputs (symlinks to latest run):
+- CLI: `ProjectStyleBuilder` (C# console app)
+  - Cleans and builds, saves logs to `build_artifacts/`, and prints enriched summaries of diagnostics (includes rule messages and optional help URLs).
+  - Flags:
+    - `-w, --warnaserror`: treat warnings as errors during build
+    - `-s, --solution <solution.sln|project.csproj>`: scope to solution or single project (default: `ClaimsDataImport.sln`)
+    - `-p, --project <project.csproj>`: per-project top-rules breakdown (match by basename)
+    - `-u, --include-urls`: include rule help URLs in summaries
+  - Outputs (latest copies are maintained alongside timestamped logs):
     - `build_artifacts/clean.log`, `build_artifacts/build.log`
-    - `build_artifacts/warnings_by_id.txt`, `build_artifacts/warnings_by_project.txt`, `build_artifacts/warnings_by_id_for_project.txt`
+    - `build_artifacts/warnings_by_id.txt` (count + rule + message), `build_artifacts/warnings_by_project.txt`, `build_artifacts/warnings_by_id_for_project.txt`
     - `build_artifacts/diagnostics_samples.txt`
+    - `build_artifacts/warnings_messages.tsv` and `warnings_messages_short.tsv` (rule → message, with/without URLs)
   - Examples:
-    - Whole solution: `./build_and_analyze_style.sh -w`
-    - Lib only: `./build_and_analyze_style.sh -w -s LibClaimsDataImport/LibClaimsDataImport.csproj`
-    - Web + per-project breakdown: `./build_and_analyze_style.sh -w -s HtmlClaimsDataImport/HtmlClaimsDataImport.csproj -p HtmlClaimsDataImport.csproj`
+    - Whole solution: `dotnet run --project ProjectStyleBuilder -- -w`
+    - Lib only: `dotnet run --project ProjectStyleBuilder -- -w -s LibClaimsDataImport/LibClaimsDataImport.csproj`
+    - Web + per-project breakdown: `dotnet run --project ProjectStyleBuilder -- -w -s HtmlClaimsDataImport/HtmlClaimsDataImport.csproj -p HtmlClaimsDataImport.csproj`
 
 ## Coding Style & Naming Conventions
 - Language: C# on .NET 9.0 with `<Nullable>enable</Nullable>` and implicit usings.
