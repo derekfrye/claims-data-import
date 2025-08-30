@@ -95,7 +95,7 @@ namespace LibClaimsDataImport.Importer
                         typeCodes[i] = detectedType;
                     }
                     // if we have conflicting types, treat it as string
-                    else if (typeCodes[i] != detectedType)
+                    if (typeCodes[i] != detectedType)
                     {
                         typeCodes[i] = TypeCode.String;
                     }
