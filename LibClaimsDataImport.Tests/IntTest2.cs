@@ -1,6 +1,7 @@
 using System.Diagnostics;
 using System.Reflection;
 using Microsoft.Data.Sqlite;
+using System.Globalization;
 
 namespace LibClaimsDataImport.Tests
 {
@@ -137,6 +138,121 @@ namespace LibClaimsDataImport.Tests
                     continue;
                 }
             }
+        }
+
+
+        [Fact]
+        public async Task CmdClaimsDataImport_IntTest2_LongDigits_ClassifiedAsReal()
+        {
+            // Arrange a temp CSV with three identical long-digit values
+            var testDirectory = Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location)!;
+            var projectDirectory = Path.GetFullPath(Path.Combine(testDirectory, "..", "..", ".."));
+            var configFilePath = Path.Combine(projectDirectory, "IntTest2.json");
+
+            var tempCsvPath = Path.Combine(Path.GetTempPath(), $"longdigits_{Guid.NewGuid():N}.csv");
+            var header = "code";
+            var value = "2253402054095601";
+            await File.WriteAllTextAsync(tempCsvPath, $"{header}\n{value}\n{value}\n{value}\n");
+
+            // Create temporary database file for the test
+            var tempFile = Path.GetTempFileName();
+            var tempDbPath = Path.ChangeExtension(tempFile, $"_inttest2_longdigits_{Guid.NewGuid():N}.db");
+            File.Delete(tempFile);
+
+            try
+            {
+                Assert.True(File.Exists(configFilePath), $"Config file not found at: {configFilePath}");
+                Assert.True(File.Exists(tempCsvPath), $"Temp CSV not created: {tempCsvPath}");
+
+                // Get path to CmdClaimsDataImport executable
+                var cmdProjectPath = Path.GetFullPath(Path.Combine(testDirectory, "..", "..", "..", "..", "CmdClaimsDataImport"));
+                var executableDirectory = Path.Combine(cmdProjectPath, "bin", "Debug", "net9.0");
+                var executablePath = Path.Combine(executableDirectory, "CmdClaimsDataImport.exe");
+                if (!File.Exists(executablePath))
+                {
+                    executablePath = Path.Combine(executableDirectory, "CmdClaimsDataImport.dll");
+                }
+
+                var tableName = "long_digits";
+                var psi = new ProcessStartInfo
+                {
+                    FileName = executablePath.EndsWith(".dll") ? "dotnet" : executablePath,
+                    Arguments = executablePath.EndsWith(".dll")
+                        ? $"\"{executablePath}\" --database \"{tempDbPath}\" --table {tableName} --filename \"{tempCsvPath}\" --config \"{configFilePath}\""
+                        : $"--database \"{tempDbPath}\" --table {tableName} --filename \"{tempCsvPath}\" --config \"{configFilePath}\"",
+                    WorkingDirectory = executableDirectory,
+                    RedirectStandardOutput = true,
+                    RedirectStandardError = true,
+                    UseShellExecute = false,
+                    CreateNoWindow = true,
+                };
+
+                using var process = new Process { StartInfo = psi };
+                _ = process.Start();
+                var output = await process.StandardOutput.ReadToEndAsync();
+                var error = await process.StandardError.ReadToEndAsync();
+                await process.WaitForExitAsync();
+
+                Console.WriteLine($"Process exit: {process.ExitCode}\nSTDOUT:\n{output}\nSTDERR:\n{error}");
+                Assert.True(process.ExitCode == 0, $"Process failed with exit code {process.ExitCode}. Error: {error}. Output: {output}");
+
+                await ValidateLongDigitsImportedData_ExpectReal($"Data Source={tempDbPath}", tableName, header, value);
+            }
+            finally
+            {
+                TryDeleteSqliteFilesWithRetry(tempDbPath);
+                try { if (File.Exists(tempCsvPath)) { File.Delete(tempCsvPath); } } catch { }
+            }
+        }
+
+        private static async Task ValidateLongDigitsImportedData_ExpectReal(string connectionString, string tableName, string columnName, string expectedValue)
+        {
+            using var connection = new SqliteConnection(connectionString);
+            await connection.OpenAsync();
+
+            // Verify 3 rows imported
+            using (SqliteCommand countCmd = connection.CreateCommand())
+            {
+                countCmd.CommandText = $"SELECT COUNT(*) FROM [{tableName}]";
+                var count = Convert.ToInt32(await countCmd.ExecuteScalarAsync());
+                Assert.Equal(3, count);
+            }
+
+            // Verify column type is REAL (decimal mapping)
+            using (SqliteCommand typeCmd = connection.CreateCommand())
+            {
+                typeCmd.CommandText = $"PRAGMA table_info('{tableName}')";
+                using SqliteDataReader reader = await typeCmd.ExecuteReaderAsync();
+                string? detectedType = null;
+                while (await reader.ReadAsync())
+                {
+                    var name = reader.GetString(1);
+                    if (string.Equals(name, columnName, StringComparison.OrdinalIgnoreCase))
+                    {
+                        detectedType = reader.GetString(2);
+                        break;
+                    }
+                }
+                Assert.NotNull(detectedType);
+                Assert.Equal("INTEGER", detectedType);
+            }
+
+            // Verify first and last row values match the input (as numeric compare then ToString)
+            using (SqliteCommand firstCmd = connection.CreateCommand())
+            {
+                firstCmd.CommandText = $"SELECT [{columnName}] FROM [{tableName}] ORDER BY recid ASC LIMIT 1";
+                var first = await firstCmd.ExecuteScalarAsync();
+                var firstStr = Convert.ToString(first, CultureInfo.InvariantCulture);
+                Console.WriteLine($"First value raw: {first}, as string: {firstStr}");
+                Assert.Equal(expectedValue, firstStr);
+            }
+
+            using SqliteCommand lastCmd = connection.CreateCommand();
+            lastCmd.CommandText = $"SELECT [{columnName}] FROM [{tableName}] ORDER BY recid DESC LIMIT 1";
+            var last = await lastCmd.ExecuteScalarAsync();
+            var lastStr = Convert.ToString(last, CultureInfo.InvariantCulture);
+            Console.WriteLine($"Last value raw: {last}, as string: {lastStr}");
+            Assert.Equal(expectedValue, lastStr);
         }
     }
 }

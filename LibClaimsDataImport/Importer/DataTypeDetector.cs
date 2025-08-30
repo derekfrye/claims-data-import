@@ -16,8 +16,8 @@ namespace LibClaimsDataImport.Importer
         /// <returns>The detected <see cref="Type"/> to represent the value.</returns>
         public static Type DetectType(string? value)
         {
-            (Type DetectedType, bool Success) result = TryParseToStrongestType(value, out _);
-            return result.DetectedType;
+            (Type DetectedType, _) = TryParseToStrongestType(value, out _);
+            return DetectedType;
         }
 
         /// <summary>
@@ -34,10 +34,10 @@ namespace LibClaimsDataImport.Importer
                 return value ?? string.Empty;
             }
 
-            (Type DetectedType, bool Success) result = TryParseToStrongestType(value, out var parsedValue);
+            (Type DetectedType, _) = TryParseToStrongestType(value, out var parsedValue);
 
             // If the detected type matches the target type, return the parsed value
-            if (result.DetectedType == targetType)
+            if (DetectedType == targetType)
             {
                 return parsedValue;
             }
@@ -150,7 +150,36 @@ namespace LibClaimsDataImport.Importer
                 return (typeof(string), true);
             }
 
-            // Try SQL Server Money format first (e.g., $1,234.56 or 1234.56)
+            // Leading-zero rule: if digits-only representation length > 1 and starts with '0', treat as string
+            var digitsOnlyBuilder = new System.Text.StringBuilder(value.Length);
+            for (var i = 0; i < value.Length; i++)
+            {
+                if (char.IsDigit(value[i]))
+                {
+                    _ = digitsOnlyBuilder.Append(value[i]);
+                }
+            }
+            var digitsOnly = digitsOnlyBuilder.ToString();
+            if (digitsOnly.Length > 1 && digitsOnly[0] == '0')
+            {
+                parsedValue = value;
+                return (typeof(string), true);
+            }
+
+            // Prefer integer for pure numeric values (allow thousands separators)
+            if (long.TryParse(value, NumberStyles.Integer | NumberStyles.AllowThousands, CultureInfo.InvariantCulture, out var longValue))
+            {
+                if (longValue is <= int.MaxValue and >= int.MinValue)
+                {
+                    parsedValue = (int)longValue;
+                    return (typeof(int), true);
+                }
+
+                parsedValue = longValue;
+                return (typeof(long), true);
+            }
+
+            // Money/decimal detection (handles currency symbols, commas, parentheses)
             if (TryParseMoney(value, out var decimalValue))
             {
                 parsedValue = decimalValue;
@@ -176,18 +205,7 @@ namespace LibClaimsDataImport.Importer
                 return (typeof(DateTime), true);
             }
 
-            // Try integer (long or int)
-            if (long.TryParse(value, NumberStyles.Integer, CultureInfo.InvariantCulture, out var longValue))
-            {
-                if (longValue <= int.MaxValue && longValue >= int.MinValue)
-                {
-                    parsedValue = (int)longValue;
-                    return (typeof(int), true);
-                }
-
-                parsedValue = longValue;
-                return (typeof(long), true);
-            }
+            // Integer already attempted above
 
             // Default to string
             parsedValue = value;
