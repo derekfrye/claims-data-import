@@ -30,7 +30,7 @@ public class FileSpecTests
     public void TryParseDateTime_ValidDateFormats_ParsesCorrectly(string input, int expectedYear, int expectedMonth, int expectedDay, int expectedHour, int expectedMinute, int expectedSecond)
     {
         // Act
-        bool result = DataTypeDetector.TryParseDateTime(input, out DateTime parsedDate);
+        var result = DataTypeDetector.TryParseDateTime(input, out DateTime parsedDate);
 
         // Assert
         Assert.True(result, $"Failed to parse '{input}' as DateTime");
@@ -61,7 +61,7 @@ public class FileSpecTests
     public void TryParseDateTime_InvalidDateFormats_ReturnsFalse(string? input)
     {
         // Act
-        bool result = DataTypeDetector.TryParseDateTime(input, out DateTime parsedDate);
+        var result = DataTypeDetector.TryParseDateTime(input, out DateTime parsedDate);
 
         // Assert
         Assert.False(result, $"Expected '{input}' to fail parsing but it succeeded with value: {parsedDate}");
@@ -80,7 +80,7 @@ public class FileSpecTests
     public void TryParseDateTime_ComplexFormats_ParsesCorrectly(string input, int expectedYear, int expectedMonth, int expectedDay, int expectedHour, int expectedMinute, int expectedSecond)
     {
         // Act
-        bool result = DataTypeDetector.TryParseDateTime(input, out DateTime parsedDate);
+        var result = DataTypeDetector.TryParseDateTime(input, out DateTime parsedDate);
 
         // Assert
         Assert.True(result, $"Failed to parse '{input}' as DateTime");
@@ -99,7 +99,7 @@ public class FileSpecTests
     public void TryParseDateTime_EdgeCaseInvalidDates_ReturnsFalse(string input)
     {
         // Act
-        bool result = DataTypeDetector.TryParseDateTime(input, out DateTime parsedDate);
+        var result = DataTypeDetector.TryParseDateTime(input, out DateTime parsedDate);
 
         // Assert
         Assert.False(result, $"Expected '{input}' to fail parsing but it succeeded with value: {parsedDate}");

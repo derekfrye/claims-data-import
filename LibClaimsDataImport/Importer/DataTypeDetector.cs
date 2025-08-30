@@ -1,7 +1,7 @@
+using System.Globalization;
+
 namespace LibClaimsDataImport.Importer
 {
-    using System.Globalization;
-
     /// <summary>
     /// Centralized data type detection and parsing logic to ensure consistency
     /// between column type detection during scanning and value parsing during insertion.
@@ -16,7 +16,7 @@ namespace LibClaimsDataImport.Importer
         /// <returns>The detected <see cref="Type"/> to represent the value.</returns>
         public static Type DetectType(string? value)
         {
-            var result = TryParseToStrongestType(value, out _);
+            (Type DetectedType, bool Success) result = TryParseToStrongestType(value, out _);
             return result.DetectedType;
         }
 
@@ -29,22 +29,22 @@ namespace LibClaimsDataImport.Importer
         /// <returns>The parsed value as the requested type, or the original string if no conversion applies.</returns>
         public static object ParseValue(string? value, Type targetType)
         {
-        if (string.IsNullOrWhiteSpace(value))
-        {
-            return value ?? string.Empty;
-        }
+            if (string.IsNullOrWhiteSpace(value))
+            {
+                return value ?? string.Empty;
+            }
 
-        var result = TryParseToStrongestType(value, out var parsedValue);
-        
-        // If the detected type matches the target type, return the parsed value
-        if (result.DetectedType == targetType)
-        {
-            return parsedValue;
-        }
+            (Type DetectedType, bool Success) result = TryParseToStrongestType(value, out var parsedValue);
 
-        // Otherwise, try to parse specifically for the target type
-        return TryParseForSpecificType(value, targetType);
-    }
+            // If the detected type matches the target type, return the parsed value
+            if (result.DetectedType == targetType)
+            {
+                return parsedValue;
+            }
+
+            // Otherwise, try to parse specifically for the target type
+            return TryParseForSpecificType(value, targetType);
+        }
 
         /// <summary>
         /// Tries to parse a string as a time-only value (HH:mm, HH:mm:ss, etc.).
@@ -54,20 +54,20 @@ namespace LibClaimsDataImport.Importer
         /// <returns><c>true</c> if the input represents a time-only value; otherwise, <c>false</c>.</returns>
         public static bool TryParseTimeOnly(string? value, out TimeOnly result)
         {
-        result = TimeOnly.MinValue;
-        if (string.IsNullOrWhiteSpace(value))
-        {
+            result = TimeOnly.MinValue;
+            if (string.IsNullOrWhiteSpace(value))
+            {
+                return false;
+            }
+
+            // Check if it looks like time-only format (HH:mm, HH:mm:ss, etc.)
+            if (TimeOnly.TryParse(value, CultureInfo.InvariantCulture, out result))
+            {
+                // Additional check: ensure it doesn't contain date components
+                return !value.Contains('/') && !value.Contains('-') && !char.IsLetter(value[0]);
+            }
             return false;
         }
-
-        // Check if it looks like time-only format (HH:mm, HH:mm:ss, etc.)
-        if (TimeOnly.TryParse(value, CultureInfo.InvariantCulture, out result))
-        {
-            // Additional check: ensure it doesn't contain date components
-            return !value.Contains('/') && !value.Contains('-') && !char.IsLetter(value[0]);
-        }
-        return false;
-    }
 
         /// <summary>
         /// Tries to parse a string as a date-only value (no time component).
@@ -77,20 +77,20 @@ namespace LibClaimsDataImport.Importer
         /// <returns><c>true</c> if the input represents a date-only value; otherwise, <c>false</c>.</returns>
         public static bool TryParseDateOnly(string? value, out DateOnly result)
         {
-        result = DateOnly.MinValue;
-        if (string.IsNullOrWhiteSpace(value))
-        {
+            result = DateOnly.MinValue;
+            if (string.IsNullOrWhiteSpace(value))
+            {
+                return false;
+            }
+
+            // Try to parse as date and check if it's date-only (no time component)
+            if (DateOnly.TryParse(value, CultureInfo.InvariantCulture, out result))
+            {
+                // Additional check: ensure it doesn't contain time components
+                return !value.Contains(':') && !value.Contains("am", StringComparison.OrdinalIgnoreCase) && !value.Contains("pm", StringComparison.OrdinalIgnoreCase);
+            }
             return false;
         }
-
-        // Try to parse as date and check if it's date-only (no time component)
-        if (DateOnly.TryParse(value, CultureInfo.InvariantCulture, out result))
-        {
-            // Additional check: ensure it doesn't contain time components
-            return !value.Contains(':') && !value.Contains("am", StringComparison.OrdinalIgnoreCase) && !value.Contains("pm", StringComparison.OrdinalIgnoreCase);
-        }
-        return false;
-    }
 
         /// <summary>
         /// Tries to parse a string as a <see cref="DateTime"/> using common date/time formats.
@@ -100,15 +100,15 @@ namespace LibClaimsDataImport.Importer
         /// <returns><c>true</c> if the input represents a date and time; otherwise, <c>false</c>.</returns>
         public static bool TryParseDateTime(string? value, out DateTime result)
         {
-        result = DateTime.MinValue;
-        if (string.IsNullOrWhiteSpace(value))
-        {
-            return false;
-        }
+            result = DateTime.MinValue;
+            if (string.IsNullOrWhiteSpace(value))
+            {
+                return false;
+            }
 
-        // Try parsing common date formats
-        return DateTime.TryParse(value, CultureInfo.InvariantCulture, DateTimeStyles.None, out result);
-    }
+            // Try parsing common date formats
+            return DateTime.TryParse(value, CultureInfo.InvariantCulture, DateTimeStyles.None, out result);
+        }
 
         /// <summary>
         /// Tries to parse a string as a money/decimal value, handling currency symbols, thousands separators, and parentheses for negatives.
@@ -118,22 +118,22 @@ namespace LibClaimsDataImport.Importer
         /// <returns><c>true</c> if parsing succeeded; otherwise, <c>false</c>.</returns>
         public static bool TryParseMoney(string? value, out decimal result)
         {
-        result = 0;
-        if (string.IsNullOrWhiteSpace(value))
-        {
-            return false;
+            result = 0;
+            if (string.IsNullOrWhiteSpace(value))
+            {
+                return false;
+            }
+
+            // Remove common money formatting characters
+            var cleanValue = string.Concat(value.Where(c => !char.IsWhiteSpace(c)))
+                .Replace("$", "")
+                .Replace(",", "")
+                .Replace("_", "")
+                .Replace("(", "-")
+                .Replace(")", "");
+
+            return decimal.TryParse(cleanValue, NumberStyles.Number | NumberStyles.AllowCurrencySymbol, CultureInfo.InvariantCulture, out result);
         }
-
-        // Remove common money formatting characters
-        var cleanValue = string.Concat(value.Where(c => !char.IsWhiteSpace(c)))
-            .Replace("$", "")
-            .Replace(",", "")
-            .Replace("_", "")
-            .Replace("(", "-")
-            .Replace(")", "");
-
-        return decimal.TryParse(cleanValue, NumberStyles.Number | NumberStyles.AllowCurrencySymbol, CultureInfo.InvariantCulture, out result);
-    }
 
         /// <summary>
         /// Core parsing that detects the strongest possible type for a value and optionally returns the parsed value.
@@ -158,19 +158,19 @@ namespace LibClaimsDataImport.Importer
             }
 
             // Try date/time formats - check more specific types first
-            if (TryParseTimeOnly(value, out var timeOnlyValue))
+            if (TryParseTimeOnly(value, out TimeOnly timeOnlyValue))
             {
                 parsedValue = timeOnlyValue;
                 return (typeof(TimeOnly), true);
             }
 
-            if (TryParseDateOnly(value, out var dateOnlyValue))
+            if (TryParseDateOnly(value, out DateOnly dateOnlyValue))
             {
                 parsedValue = dateOnlyValue;
                 return (typeof(DateOnly), true);
             }
 
-            if (TryParseDateTime(value, out var dateTimeValue))
+            if (TryParseDateTime(value, out DateTime dateTimeValue))
             {
                 parsedValue = dateTimeValue;
                 return (typeof(DateTime), true);
@@ -207,17 +207,17 @@ namespace LibClaimsDataImport.Importer
                 return decimalValue;
             }
 
-            if (targetType == typeof(DateTime) && TryParseDateTime(value, out var dateTimeValue))
+            if (targetType == typeof(DateTime) && TryParseDateTime(value, out DateTime dateTimeValue))
             {
                 return dateTimeValue;
             }
 
-            if (targetType == typeof(DateOnly) && TryParseDateOnly(value, out var dateOnlyValue))
+            if (targetType == typeof(DateOnly) && TryParseDateOnly(value, out DateOnly dateOnlyValue))
             {
                 return dateOnlyValue;
             }
 
-            if (targetType == typeof(TimeOnly) && TryParseTimeOnly(value, out var timeOnlyValue))
+            if (targetType == typeof(TimeOnly) && TryParseTimeOnly(value, out TimeOnly timeOnlyValue))
             {
                 return timeOnlyValue;
             }

@@ -3,7 +3,7 @@
     "connectionSettings": {
       "defaultTimeout": 30,
       "enableForeignKeys": true,
-      "journalMode": "WAL",
+      "journalMode": "DELETE",
       "pragma": {
         "cache_size": 10000,
         "temp_store": "memory"

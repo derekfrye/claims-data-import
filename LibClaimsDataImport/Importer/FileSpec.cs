@@ -1,13 +1,12 @@
 using System.Globalization;
 using System.Runtime.CompilerServices;
 using System.Text;
+using Sylvan.Data.Csv;
 
 [assembly: InternalsVisibleTo("LibClaimsDataImport.Tests")]
 
 namespace LibClaimsDataImport.Importer
 {
-    using Sylvan.Data.Csv;
-
     /// <summary>
     /// Scans CSV headers and data to infer column names and types.
     /// </summary>
@@ -15,10 +14,10 @@ namespace LibClaimsDataImport.Importer
     {
         private readonly CsvDataReader csvReader;
         private readonly Dictionary<string, Type> columnTypes = new(StringComparer.Ordinal);
-        private readonly List<string> columnNames = new();
+        private readonly List<string> columnNames = [];
 
-        public IReadOnlyDictionary<string, Type> ColumnTypes => this.columnTypes;
-        public IReadOnlyList<string> ColumnNames => this.columnNames;
+        public IReadOnlyDictionary<string, Type> ColumnTypes => columnTypes;
+        public IReadOnlyList<string> ColumnNames => columnNames;
 
         /// <summary>
         /// Initializes a new instance of the <see cref="FileSpec"/> class.
@@ -34,26 +33,26 @@ namespace LibClaimsDataImport.Importer
         /// </summary>
         public void Scan()
         {
-            var headerNames = this.GetSanitizedHeaderNames();
+            var headerNames = GetSanitizedHeaderNames();
             var columnCount = headerNames.Length;
-            this.columnNames.AddRange(headerNames);
+            columnNames.AddRange(headerNames);
 
-            var analysis = this.AnalyzeTypes(columnCount);
+            (TypeCode[] typeCodes, bool[] hasData) analysis = AnalyzeTypes(columnCount);
 
-            for (int i = 0; i < columnCount; i++)
+            for (var i = 0; i < columnCount; i++)
             {
-                var columnType = analysis.hasData[i] ? ConvertToSystemType(analysis.typeCodes[i]) : typeof(string);
-                this.columnTypes[headerNames[i]] = columnType;
+                Type columnType = analysis.hasData[i] ? ConvertToSystemType(analysis.typeCodes[i]) : typeof(string);
+                columnTypes[headerNames[i]] = columnType;
             }
         }
 
         private string[] GetSanitizedHeaderNames()
         {
-            var columnCount = this.csvReader.FieldCount;
+            var columnCount = csvReader.FieldCount;
             var headerNames = new string[columnCount];
-            for (int i = 0; i < columnCount; i++)
+            for (var i = 0; i < columnCount; i++)
             {
-                headerNames[i] = SanitizeColumnName(this.csvReader.GetName(i));
+                headerNames[i] = SanitizeColumnName(csvReader.GetName(i));
             }
             return headerNames;
         }
@@ -63,21 +62,21 @@ namespace LibClaimsDataImport.Importer
             var typeCodes = new TypeCode[columnCount];
             var hasData = new bool[columnCount];
 
-            for (int i = 0; i < columnCount; i++)
+            for (var i = 0; i < columnCount; i++)
             {
                 typeCodes[i] = TypeCode.Empty;
             }
 
-            while (this.csvReader.Read())
+            while (csvReader.Read())
             {
-                for (int i = 0; i < columnCount; i++)
+                for (var i = 0; i < columnCount; i++)
                 {
-                    if (this.csvReader.IsDBNull(i))
+                    if (csvReader.IsDBNull(i))
                     {
                         continue;
                     }
 
-                    var value = this.csvReader.GetString(i);
+                    var value = csvReader.GetString(i);
                     if (string.IsNullOrWhiteSpace(value))
                     {
                         continue;
@@ -90,7 +89,7 @@ namespace LibClaimsDataImport.Importer
                         continue;
                     }
 
-                    var detectedType = TypeCodeFromSystemType(DataTypeDetector.DetectType(value));
+                    TypeCode detectedType = TypeCodeFromSystemType(DataTypeDetector.DetectType(value));
 
                     if (typeCodes[i] == TypeCode.Empty)
                     {
@@ -132,11 +131,9 @@ namespace LibClaimsDataImport.Importer
             {
                 return TypeCode.Decimal;
             }
-            if (systemType == typeof(DateTime) || systemType == typeof(DateOnly) || systemType == typeof(TimeOnly))
-            {
-                return TypeCode.DateTime;
-            }
-            return TypeCode.String;
+            return systemType == typeof(DateTime) || systemType == typeof(DateOnly) || systemType == typeof(TimeOnly)
+                ? TypeCode.DateTime
+                : TypeCode.String;
         }
 
         private static string SanitizeColumnName(string columnName)
@@ -146,12 +143,12 @@ namespace LibClaimsDataImport.Importer
                 return "column";
             }
 
-        // Trim whitespace
+            // Trim whitespace
             var sanitized = columnName.Trim();
-        
-        // Remove non-ASCII characters and convert non-alphanumeric to underscores
+
+            // Remove non-ASCII characters and convert non-alphanumeric to underscores
             var result = new StringBuilder();
-            foreach (char c in sanitized)
+            foreach (var c in sanitized)
             {
                 if (char.IsAsciiLetter(c) || char.IsAsciiDigit(c))
                 {
@@ -162,24 +159,24 @@ namespace LibClaimsDataImport.Importer
                     result.Append('_');
                 }
             }
-        
+
             var finalResult = result.ToString();
-        
-        // Ensure it doesn't start with a number or underscore
+
+            // Ensure it doesn't start with a number or underscore
             if (string.IsNullOrEmpty(finalResult) || char.IsAsciiDigit(finalResult[0]))
             {
                 finalResult = "col_" + finalResult;
             }
-        
-        // Remove consecutive underscores
+
+            // Remove consecutive underscores
             while (finalResult.Contains("__"))
             {
                 finalResult = finalResult.Replace("__", "_");
             }
-        
-        // Remove trailing underscores
+
+            // Remove trailing underscores
             finalResult = finalResult.TrimEnd('_');
-        
+
             return string.IsNullOrEmpty(finalResult) ? "column" : finalResult;
         }
     }

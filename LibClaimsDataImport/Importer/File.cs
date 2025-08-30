@@ -1,9 +1,9 @@
-﻿namespace LibClaimsDataImport.Importer
-{
-    using System.Data;
-    using Microsoft.Data.Sqlite;
-    using Sylvan.Data.Csv;
+﻿using System.Data;
+using Microsoft.Data.Sqlite;
+using Sylvan.Data.Csv;
 
+namespace LibClaimsDataImport.Importer
+{
     /// <summary>
     /// Provides CSV file ingestion and bulk insertion into SQLite.
     /// </summary>
@@ -50,15 +50,15 @@
             ValidateInputs(filename, table);
             EnsureDirectoryExists(filename);
 
-            using var connection = CreateConnection(filename);
+            using SqliteConnection connection = CreateConnection(filename);
             await connection.OpenAsync().ConfigureAwait(false);
 
             await ApplyPragmasAsync(connection).ConfigureAwait(false);
-            await this.config.CreateTableIfNotExists(connection, table, this.fileSpec).ConfigureAwait(false);
+            await config.CreateTableIfNotExists(connection, table, fileSpec).ConfigureAwait(false);
 
             PrepareCsvReader();
 
-            SqliteTransaction? transaction = this.config.SqliteSettings.ImportSettings.EnableTransactions
+            SqliteTransaction? transaction = config.SqliteSettings.ImportSettings.EnableTransactions
                 ? connection.BeginTransaction()
                 : null;
 
@@ -94,7 +94,7 @@
             {
                 throw new ArgumentException("Table name cannot be null or empty", nameof(table));
             }
-            if (this.fileSpec.ColumnTypes.Count == 0)
+            if (fileSpec.ColumnTypes.Count == 0)
             {
                 throw new InvalidOperationException("FileSpec.Scan() must be called before WriteToDb");
             }
@@ -114,68 +114,68 @@
             var csb = new SqliteConnectionStringBuilder
             {
                 DataSource = filename,
-                DefaultTimeout = this.config.SqliteSettings.ConnectionSettings.DefaultTimeout,
-                ForeignKeys = this.config.SqliteSettings.ConnectionSettings.EnableForeignKeys,
+                DefaultTimeout = config.SqliteSettings.ConnectionSettings.DefaultTimeout,
+                ForeignKeys = config.SqliteSettings.ConnectionSettings.EnableForeignKeys,
             };
             return new SqliteConnection(csb.ConnectionString);
         }
 
         private async Task ApplyPragmasAsync(SqliteConnection connection)
         {
-            if (!string.IsNullOrEmpty(this.config.SqliteSettings.ConnectionSettings.JournalMode))
+            if (!string.IsNullOrEmpty(config.SqliteSettings.ConnectionSettings.JournalMode))
             {
-                var journalCommand = connection.CreateCommand();
-                journalCommand.CommandText = $"PRAGMA journal_mode = {this.config.SqliteSettings.ConnectionSettings.JournalMode}";
-                await journalCommand.ExecuteNonQueryAsync().ConfigureAwait(false);
+                SqliteCommand journalCommand = connection.CreateCommand();
+                journalCommand.CommandText = $"PRAGMA journal_mode = {config.SqliteSettings.ConnectionSettings.JournalMode}";
+                _ = await journalCommand.ExecuteNonQueryAsync().ConfigureAwait(false);
             }
 
-            foreach (var pragma in this.config.SqliteSettings.ConnectionSettings.Pragma)
+            foreach (KeyValuePair<string, object> pragma in config.SqliteSettings.ConnectionSettings.Pragma)
             {
-                var pragmaCommand = connection.CreateCommand();
+                SqliteCommand pragmaCommand = connection.CreateCommand();
                 pragmaCommand.CommandText = $"PRAGMA {pragma.Key} = {pragma.Value}";
-                await pragmaCommand.ExecuteNonQueryAsync().ConfigureAwait(false);
+                _ = await pragmaCommand.ExecuteNonQueryAsync().ConfigureAwait(false);
             }
         }
 
         private void PrepareCsvReader()
         {
-            this.streamReader.BaseStream.Seek(0, SeekOrigin.Begin);
-            this.streamReader.DiscardBufferedData();
+            streamReader.BaseStream.Seek(0, SeekOrigin.Begin);
+            streamReader.DiscardBufferedData();
             var csvOptions = new CsvDataReaderOptions { HasHeaders = true };
-            this.csvReader = CsvDataReader.Create(this.streamReader, csvOptions);
+            csvReader = CsvDataReader.Create(streamReader, csvOptions);
         }
 
         private SqliteCommand CreateInsertCommand(SqliteConnection connection, SqliteTransaction? transaction, string table)
         {
-            var columnNames = string.Join(", ", this.fileSpec.ColumnTypes.Keys.Select(name => $"[{name}]"));
-            var parameterNames = string.Join(", ", this.fileSpec.ColumnTypes.Keys.Select((_, index) => $"${index}"));
+            var columnNames = string.Join(", ", fileSpec.ColumnTypes.Keys.Select(name => $"[{name}]"));
+            var parameterNames = string.Join(", ", fileSpec.ColumnTypes.Keys.Select((_, index) => $"${index}"));
             var insertSql = $"INSERT INTO [{table}] ({columnNames}) VALUES ({parameterNames})";
 
-            var insertCommand = connection.CreateCommand();
+            SqliteCommand insertCommand = connection.CreateCommand();
             insertCommand.CommandText = insertSql;
             if (transaction != null)
             {
                 insertCommand.Transaction = transaction;
             }
-            for (int i = 0; i < this.fileSpec.ColumnTypes.Count; i++)
+            for (var i = 0; i < fileSpec.ColumnTypes.Count; i++)
             {
-                insertCommand.Parameters.Add(new SqliteParameter($"${i}", DbType.Object));
+                _ = insertCommand.Parameters.Add(new SqliteParameter($"${i}", DbType.Object));
             }
             return insertCommand;
         }
 
         private async Task<SqliteTransaction?> BulkInsertAsync(SqliteConnection connection, SqliteTransaction? transaction, string table)
         {
-            var insertCommand = CreateInsertCommand(connection, transaction, table);
-            var reader = this.csvReader ?? throw new InvalidOperationException("CSV reader is not initialized");
-            int rowCount = 0;
-            int errorCount = 0;
+            SqliteCommand insertCommand = CreateInsertCommand(connection, transaction, table);
+            CsvDataReader reader = csvReader ?? throw new InvalidOperationException("CSV reader is not initialized");
+            var rowCount = 0;
+            var errorCount = 0;
 
             while (await reader.ReadAsync().ConfigureAwait(false))
             {
                 try
                 {
-                    for (int i = 0; i < this.fileSpec.ColumnTypes.Count; i++)
+                    for (var i = 0; i < fileSpec.ColumnTypes.Count; i++)
                     {
                         if (reader.IsDBNull(i))
                         {
@@ -183,18 +183,18 @@
                         }
                         else
                         {
-                            var columnName = this.fileSpec.ColumnTypes.Keys.ElementAt(i);
-                            var columnType = this.fileSpec.ColumnTypes[columnName];
+                            var columnName = fileSpec.ColumnTypes.Keys.ElementAt(i);
+                            Type columnType = fileSpec.ColumnTypes[columnName];
                             var rawValue = reader.GetString(i);
                             var parsedValue = DataTypeDetector.ParseValue(rawValue, columnType);
                             insertCommand.Parameters[i].Value = parsedValue;
                         }
                     }
 
-                    await insertCommand.ExecuteNonQueryAsync().ConfigureAwait(false);
+                    _ = await insertCommand.ExecuteNonQueryAsync().ConfigureAwait(false);
                     rowCount++;
 
-                    if (this.config.SqliteSettings.ImportSettings.BatchSize > 0 && rowCount % this.config.SqliteSettings.ImportSettings.BatchSize == 0)
+                    if (config.SqliteSettings.ImportSettings.BatchSize > 0 && rowCount % config.SqliteSettings.ImportSettings.BatchSize == 0)
                     {
                         if (transaction != null)
                         {
@@ -207,17 +207,17 @@
                 catch (Exception ex)
                 {
                     errorCount++;
-                    if (!this.config.SqliteSettings.ImportSettings.ContinueOnError)
+                    if (!config.SqliteSettings.ImportSettings.ContinueOnError)
                     {
                         throw new InvalidOperationException($"Error processing row {rowCount + 1}: {ex.Message}", ex);
                     }
 
-                    if (errorCount >= this.config.Validation.MaxRowErrors)
+                    if (errorCount >= config.Validation.MaxRowErrors)
                     {
-                        throw new InvalidOperationException($"Maximum error count ({this.config.Validation.MaxRowErrors}) exceeded at row {rowCount + 1}");
+                        throw new InvalidOperationException($"Maximum error count ({config.Validation.MaxRowErrors}) exceeded at row {rowCount + 1}");
                     }
 
-                    if (this.config.SqliteSettings.ImportSettings.LogLevel.Equals("info", StringComparison.OrdinalIgnoreCase))
+                    if (config.SqliteSettings.ImportSettings.LogLevel.Equals("info", StringComparison.OrdinalIgnoreCase))
                     {
                         Console.WriteLine($"Warning: Error at row {rowCount + 1}: {ex.Message}");
                     }

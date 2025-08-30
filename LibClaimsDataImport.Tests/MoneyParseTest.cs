@@ -22,10 +22,10 @@ public class MoneyParseTests
     public void TryParseMoney_ValidFormats_ParsesCorrectly(string input, double expectedValue)
     {
         // Arrange
-        decimal expected = (decimal)expectedValue;
+        var expected = (decimal)expectedValue;
 
         // Act
-        bool result = DataTypeDetector.TryParseMoney(input, out decimal parsedValue);
+        var result = DataTypeDetector.TryParseMoney(input, out var parsedValue);
 
         // Assert
         Assert.True(result, $"Failed to parse '{input}' as money");
@@ -44,10 +44,10 @@ public class MoneyParseTests
     public void TryParseMoney_NegativeFormats_ParsesCorrectly(string input, double expectedValue)
     {
         // Arrange
-        decimal expected = (decimal)expectedValue;
+        var expected = (decimal)expectedValue;
 
         // Act
-        bool result = DataTypeDetector.TryParseMoney(input, out decimal parsedValue);
+        var result = DataTypeDetector.TryParseMoney(input, out var parsedValue);
 
         // Assert
         Assert.True(result, $"Failed to parse negative money format '{input}'");
@@ -65,10 +65,10 @@ public class MoneyParseTests
     public void TryParseMoney_FormatsWithWhitespaceAndSeparators_ParsesCorrectly(string input, double expectedValue)
     {
         // Arrange
-        decimal expected = (decimal)expectedValue;
+        var expected = (decimal)expectedValue;
 
         // Act
-        bool result = DataTypeDetector.TryParseMoney(input, out decimal parsedValue);
+        var result = DataTypeDetector.TryParseMoney(input, out var parsedValue);
 
         // Assert
         Assert.True(result, $"Failed to parse money format with separators '{input}'");
@@ -92,7 +92,7 @@ public class MoneyParseTests
     public void TryParseMoney_InvalidFormats_ReturnsFalse(string? input)
     {
         // Act
-        bool result = DataTypeDetector.TryParseMoney(input, out decimal parsedValue);
+        var result = DataTypeDetector.TryParseMoney(input, out var parsedValue);
 
         // Assert
         Assert.False(result, $"Expected '{input}' to fail parsing but it succeeded with value: {parsedValue}");
@@ -110,10 +110,10 @@ public class MoneyParseTests
     public void TryParseMoney_EdgeCaseValidAmounts_ParsesCorrectly(string input, double expectedValue)
     {
         // Arrange
-        decimal expected = (decimal)expectedValue;
+        var expected = (decimal)expectedValue;
 
         // Act
-        bool result = DataTypeDetector.TryParseMoney(input, out decimal parsedValue);
+        var result = DataTypeDetector.TryParseMoney(input, out var parsedValue);
 
         // Assert
         Assert.True(result, $"Failed to parse edge case money format '{input}'");
@@ -133,10 +133,10 @@ public class MoneyParseTests
     public void TryParseMoney_UnusualButValidFormats_ParsesCorrectly(string input, double expectedValue)
     {
         // Arrange
-        decimal expected = (decimal)expectedValue;
+        var expected = (decimal)expectedValue;
 
         // Act
-        bool result = DataTypeDetector.TryParseMoney(input, out decimal parsedValue);
+        var result = DataTypeDetector.TryParseMoney(input, out var parsedValue);
 
         // Assert
         Assert.True(result, $"Current implementation should parse '{input}' successfully");

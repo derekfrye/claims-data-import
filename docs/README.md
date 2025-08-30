@@ -1,5 +1,7 @@
 # HtmlClaimsDataImport — Local Setup
 
+[![CI](https://github.com/derekfrye/claims-data-import/actions/workflows/ci.yml/badge.svg)](https://github.com/derekfrye/claims-data-import/actions/workflows/ci.yml)
+
 Follow these steps to run the ASP.NET Core app locally for testing.
 
 ## Prerequisites
