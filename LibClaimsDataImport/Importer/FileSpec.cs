@@ -1,4 +1,3 @@
-using System.Globalization;
 using System.Runtime.CompilerServices;
 using System.Text;
 using Sylvan.Data.Csv;
@@ -37,11 +36,11 @@ namespace LibClaimsDataImport.Importer
             var columnCount = headerNames.Length;
             columnNames.AddRange(headerNames);
 
-            (TypeCode[] typeCodes, bool[] hasData) analysis = AnalyzeTypes(columnCount);
+            (TypeCode[] typeCodes, var hasData) = AnalyzeTypes(columnCount);
 
             for (var i = 0; i < columnCount; i++)
             {
-                Type columnType = analysis.hasData[i] ? ConvertToSystemType(analysis.typeCodes[i]) : typeof(string);
+                Type columnType = hasData[i] ? ConvertToSystemType(typeCodes[i]) : typeof(string);
                 columnTypes[headerNames[i]] = columnType;
             }
         }
@@ -95,6 +94,7 @@ namespace LibClaimsDataImport.Importer
                     {
                         typeCodes[i] = detectedType;
                     }
+                    // if we have conflicting types, treat it as string
                     else if (typeCodes[i] != detectedType)
                     {
                         typeCodes[i] = TypeCode.String;
@@ -113,25 +113,35 @@ namespace LibClaimsDataImport.Importer
                 TypeCode.Int64 => typeof(long),
                 TypeCode.Decimal => typeof(decimal),
                 TypeCode.DateTime => typeof(DateTime),
+                // For all other codes we don't emit from detection, default to string.
+                // This avoids unexpected NotImplementedException when future codes appear.
+                TypeCode.Empty => typeof(string),
+                TypeCode.Object => typeof(string),
+                TypeCode.DBNull => typeof(string),
+                TypeCode.Boolean => typeof(string),
+                TypeCode.Char => typeof(string),
+                TypeCode.SByte => typeof(string),
+                TypeCode.Byte => typeof(string),
+                TypeCode.Int16 => typeof(string),
+                TypeCode.UInt16 => typeof(string),
+                TypeCode.UInt32 => typeof(string),
+                TypeCode.UInt64 => typeof(string),
+                TypeCode.Single => typeof(string),
+                TypeCode.Double => typeof(string),
+                TypeCode.String => typeof(string),
                 _ => typeof(string),
             };
         }
 
         private static TypeCode TypeCodeFromSystemType(Type systemType)
         {
-            if (systemType == typeof(int))
-            {
-                return TypeCode.Int32;
-            }
-            if (systemType == typeof(long))
-            {
-                return TypeCode.Int64;
-            }
-            if (systemType == typeof(decimal))
-            {
-                return TypeCode.Decimal;
-            }
-            return systemType == typeof(DateTime) || systemType == typeof(DateOnly) || systemType == typeof(TimeOnly)
+            return systemType == typeof(int)
+                ? TypeCode.Int32
+                : systemType == typeof(long)
+                ? TypeCode.Int64
+                : systemType == typeof(decimal)
+                ? TypeCode.Decimal
+                : systemType == typeof(DateTime) || systemType == typeof(DateOnly) || systemType == typeof(TimeOnly)
                 ? TypeCode.DateTime
                 : TypeCode.String;
         }
