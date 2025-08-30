@@ -31,3 +31,7 @@ Follow these steps to run the ASP.NET Core app locally for testing.
 - Port in use: set a custom port, e.g. `ASPNETCORE_URLS=http://localhost:5080 dotnet run --project HtmlClaimsDataImport`.
 - Certificate warnings: re-run `dotnet dev-certs https --trust`.
 - Sanity check: run tests with `dotnet test`.
+
+## Licenses
+- Project license: see `LICENSE` (BSD 2-Clause) in the repo root.
+- Third-party notices: see `THIRD-PARTY-NOTICES.md` in the repo root.
